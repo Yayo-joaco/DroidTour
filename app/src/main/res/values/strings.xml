@@ -1,0 +1,84 @@
+<resources>
+    <string name="app_name">DroidTour</string>
+    
+    <!-- Login/Register -->
+    <string name="welcome">Bienvenido a DroidTour</string>
+    <string name="login">Iniciar Sesión</string>
+    <string name="register">Registrarse</string>
+    <string name="email">Correo Electrónico</string>
+    <string name="password">Contraseña</string>
+    <string name="confirm_password">Confirmar Contraseña</string>
+    <string name="forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="role_selection">Seleccionar Rol</string>
+    
+    <!-- User Types -->
+    <string name="superadmin">Superadministrador</string>
+    <string name="tour_admin">Administrador de Empresa</string>
+    <string name="tour_guide">Guía de Turismo</string>
+    <string name="client">Cliente</string>
+    
+    <!-- Common -->
+    <string name="name">Nombre</string>
+    <string name="last_name">Apellido</string>
+    <string name="document_type">Tipo de Documento</string>
+    <string name="document_number">Número de Documento</string>
+    <string name="birth_date">Fecha de Nacimiento</string>
+    <string name="phone">Teléfono</string>
+    <string name="address">Domicilio</string>
+    <string name="photo">Foto</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="edit">Editar</string>
+    <string name="delete">Eliminar</string>
+    <string name="view">Ver</string>
+    <string name="search">Buscar</string>
+    
+    <!-- Navigation -->
+    <string name="home">Inicio</string>
+    <string name="profile">Perfil</string>
+    <string name="logout">Cerrar Sesión</string>
+    <string name="back">Atrás</string>
+    
+    <!-- Superadmin -->
+    <string name="user_management">Gestión de Usuarios</string>
+    <string name="tour_reports">Reportes de Tours</string>
+    <string name="system_logs">Logs del Sistema</string>
+    <string name="enable_user">Habilitar Usuario</string>
+    <string name="disable_user">Deshabilitar Usuario</string>
+    
+    <!-- Tour Admin -->
+    <string name="company_info">Información de Empresa</string>
+    <string name="tour_management">Gestión de Tours</string>
+    <string name="guide_management">Gestión de Guías</string>
+    <string name="sales_reports">Reportes de Ventas</string>
+    <string name="create_tour">Crear Tour</string>
+    
+    <!-- Tour Guide -->
+    <string name="available_tours">Tours Disponibles</string>
+    <string name="my_tours">Mis Tours</string>
+    <string name="tour_location">Ubicación del Tour</string>
+    <string name="check_in">Check In</string>
+    <string name="check_out">Check Out</string>
+    
+    <!-- Client -->
+    <string name="available_companies">Empresas Disponibles</string>
+    <string name="my_reservations">Mis Reservas</string>
+    <string name="make_reservation">Hacer Reserva</string>
+    <string name="tour_history">Historial de Tours</string>
+    <string name="rate_tour">Valorar Tour</string>
+    
+    <!-- Navigation Drawer -->
+    <string name="open_drawer">Abrir menú</string>
+    <string name="close_drawer">Cerrar menú</string>
+    <string name="navigation_drawer_open">Abrir menú de navegación</string>
+    <string name="navigation_drawer_close">Cerrar menú de navegación</string>
+    
+    <!-- Tour Admin Navigation -->
+    <string name="dashboard">Dashboard</string>
+    <string name="company_information">Información Empresa</string>
+    <string name="tour_creation">Crear Tour</string>
+    <string name="guide_tracking">Seguimiento Guías</string>
+    <string name="checkout_alerts">Alertas Check-out</string>
+    <string name="customer_chat">Chat Clientes</string>
+    <string name="settings">Configuración</string>
+</resources>

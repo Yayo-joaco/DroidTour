@@ -1,0 +1,10 @@
+android {
+    // ...
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        // Agregar esta línea para ver detalles de APIs obsoletas
+        compilerArgs.add("-Xlint:deprecation")
+    }
+    // ...
+}

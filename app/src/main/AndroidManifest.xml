@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.DroidTour">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <activity
+            android:name=".SuperadminMainActivity"
+            android:exported="false" />
+            
+        <activity
+            android:name=".TourAdminMainActivity"
+            android:exported="false" />
+            
+        <activity
+            android:name=".TourGuideMainActivity"
+            android:exported="false" />
+            
+        <activity
+            android:name=".ClientMainActivity"
+            android:exported="false" />
+            
+        <activity
+            android:name=".SuperadminUsersActivity"
+            android:exported="false"
+            android:parentActivityName=".SuperadminMainActivity" />
+            
+        <activity
+            android:name=".SuperadminReportsActivity"
+            android:exported="false"
+            android:parentActivityName=".SuperadminMainActivity" />
+            
+        <activity
+            android:name=".SuperadminLogsActivity"
+            android:exported="false"
+            android:parentActivityName=".SuperadminMainActivity" />
+            
+        <!-- Tour Admin Activities -->
+        <activity
+            android:name=".CompanyInfoActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+            
+        <activity
+            android:name=".CreateServiceActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+            
+        <activity
+            android:name=".CreateTourActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+            
+        <activity
+            android:name=".GuideManagementActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+            
+        <activity
+            android:name=".GuideTrackingActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+            
+        <activity
+            android:name=".CheckoutAlertsActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+            
+        <activity
+            android:name=".SalesReportsActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+            
+        <activity
+            android:name=".CustomerChatActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+            
+        <activity
+            android:name=".ChatDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".CustomerChatActivity" />
+
+        <!-- Client Activities -->
+        <activity
+            android:name=".TourBookingActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+        <activity
+            android:name=".ClientReservationsActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+        <activity
+            android:name=".ClientHistoryActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+        <activity
+            android:name=".ClientQRActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+            
+        <!-- Tour Guide Activities -->
+        <activity
+            android:name=".TourOffersActivity"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+            
+        <activity
+            android:name=".GuideActiveToursActivity"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+            
+        <activity
+            android:name=".QRScannerActivity"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+            
+        <activity
+            android:name=".LocationTrackingActivity"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+            
+        <activity
+            android:name=".GuideRegistrationActivity"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+        <activity
+            android:name=".TourRatingActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+            
+        <!-- Actividades de Autenticación -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false" />
+            
+        <activity
+            android:name=".RoleSelectionActivity"
+            android:exported="false"
+            android:parentActivityName=".LoginActivity" />
+            
+        <activity
+            android:name=".ClientRegistrationActivity"
+            android:exported="false"
+            android:parentActivityName=".RoleSelectionActivity" />
+            
+        <activity
+            android:name=".AdminRegistrationActivity"
+            android:exported="false"
+            android:parentActivityName=".RoleSelectionActivity" />
+            
+        <activity
+            android:name=".ClientChatActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+            
+        <activity
+            android:name=".RealTimeTrackingActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+            
+        <activity
+            android:name=".ForgotPasswordActivity"
+            android:exported="false"
+            android:parentActivityName=".LoginActivity" />
+            
+        <activity
+            android:name=".ResetPasswordActivity"
+            android:exported="false"
+            android:parentActivityName=".ForgotPasswordActivity" />
+            
+    </application>
+
+</manifest>

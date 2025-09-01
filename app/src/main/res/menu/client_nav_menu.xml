@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="@string/home" />
+
+        <item
+            android:id="@+id/nav_available_companies"
+            android:icon="@android:drawable/ic_menu_info_details"
+            android:title="@string/available_companies" />
+
+        <item
+            android:id="@+id/nav_my_reservations"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="@string/my_reservations" />
+
+        <item
+            android:id="@+id/nav_tour_history"
+            android:icon="@android:drawable/ic_menu_recent_history"
+            android:title="@string/tour_history" />
+
+    </group>
+
+    <item android:title="Cuenta">
+        <menu>
+            <item
+                android:id="@+id/nav_profile"
+                android:icon="@android:drawable/ic_menu_myplaces"
+                android:title="@string/profile" />
+            
+            <item
+                android:id="@+id/nav_logout"
+                android:icon="@android:drawable/ic_lock_power_off"
+                android:title="@string/logout" />
+        </menu>
+    </item>
+
+</menu>

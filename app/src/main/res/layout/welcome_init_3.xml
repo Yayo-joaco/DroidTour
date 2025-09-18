@@ -3,20 +3,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#FE003B95">
+    android:layout_height="match_parent">
+
 
     <ImageView
         android:id="@+id/imageninit"
-        android:layout_width="242dp"
-        android:layout_height="361dp"
-        android:src="@drawable/saludo_init"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/welcome_ubi"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/mensaje1"
-        app:layout_constraintVertical_bias="0.091" />
+        app:layout_constraintVertical_bias="0.172" />
 
     <TextView
         android:id="@+id/saltar"
@@ -27,7 +27,7 @@
         android:text="@string/saltar"
         android:textAlignment="center"
         android:textAllCaps="false"
-        android:textColor="#FFFFFF"
+        android:textColor="#FE003B95"
         android:textSize="21sp"
         app:layout_constraintBottom_toTopOf="@+id/mensaje1"
         app:layout_constraintEnd_toEndOf="parent"
@@ -37,11 +37,13 @@
 
     <TextView
         android:id="@+id/mensaje1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="328dp"
+        android:layout_height="81dp"
         android:fontFamily="@font/bricolage_grotesque"
-        android:text="@string/mensaje1"
-        android:textColor="#FFFFFF"
+        android:gravity="center"
+        android:text="@string/mensaje3"
+        android:textAlignment="center"
+        android:textColor="#FE003B95"
         android:textSize="27sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -53,18 +55,19 @@
 
     <TextView
         android:id="@+id/mensaje2"
-        android:layout_width="345dp"
-        android:layout_height="71dp"
+        android:layout_width="347dp"
+        android:layout_height="98dp"
         android:fontFamily="@font/bricolage_grotesque"
-        android:text="@string/mensaje2"
+        android:gravity="center"
+        android:text="@string/mensaje4"
         android:textAlignment="center"
-        android:textColor="#FFFFFF"
+        android:textColor="#FE003B95"
         android:textSize="25sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageninit"
-        app:layout_constraintVertical_bias="0.184" />
+        app:layout_constraintVertical_bias="0.339" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

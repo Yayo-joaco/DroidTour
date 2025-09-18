@@ -81,4 +81,9 @@
     <string name="checkout_alerts">Alertas Check-out</string>
     <string name="customer_chat">Chat Clientes</string>
     <string name="settings">Configuración</string>
+    <string name="saltar"><u>Saltar>></u></string>
+    <string name="mensaje1">¡Bienvenido a DroidTour!</string>
+    <string name="mensaje2">Reserva y gestiona tus tours de manera rápida y segura</string>
+    <string name="mensaje3">¡Encuentra el tour perfecto para ti!</string>
+    <string name="mensaje4">Animate a conocer el mundo, así como  puedes guiar a otros a conocerlo!</string>
 </resources>

@@ -19,6 +19,8 @@ public class MainActivity extends AppCompatActivity {
     private MaterialCardView cardSuperadmin, cardTourAdmin, cardTourGuide, cardClient;
     private MaterialButton btnLogin;
 
+
+    /*
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,6 +36,22 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         setupClickListeners();
     }
+
+    */
+    //este es para probar las pantallas -just testing
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_login);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+        // No inicializar ni usar elementos que no existen en welcome_init_1.xml
+    }
+
 
     private void initViews() {
         cardSuperadmin = findViewById(R.id.card_superadmin);

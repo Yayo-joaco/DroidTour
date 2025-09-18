@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
     private MaterialButton btnLogin;
 
 
-    /*
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,7 +37,8 @@ public class MainActivity extends AppCompatActivity {
         setupClickListeners();
     }
 
-    */
+
+    /*
     //este es para probar las pantallas -just testing
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
         });
         // No inicializar ni usar elementos que no existen en welcome_init_1.xml
     }
+
+     */
 
 
     private void initViews() {

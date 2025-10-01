@@ -183,6 +183,16 @@
             android:parentActivityName=".ClientChatActivity" />
 
         <activity
+            android:name=".AdminChatDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".AdminChatListActivity" />
+
+        <activity
+            android:name=".AdminChatListActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+
+        <activity
             android:name=".RealTimeTrackingActivity"
             android:exported="false"
             android:parentActivityName=".ClientMainActivity" />

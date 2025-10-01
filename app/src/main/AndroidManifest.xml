@@ -178,6 +178,11 @@
             android:parentActivityName=".ClientMainActivity" />
 
         <activity
+            android:name=".ClientChatDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientChatActivity" />
+
+        <activity
             android:name=".RealTimeTrackingActivity"
             android:exported="false"
             android:parentActivityName=".ClientMainActivity" />

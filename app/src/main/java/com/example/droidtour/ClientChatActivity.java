@@ -1,5 +1,6 @@
 package com.example.droidtour;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.LayoutInflater;
@@ -41,8 +42,9 @@ public class ClientChatActivity extends AppCompatActivity {
         rvCompanyChats.setLayoutManager(new LinearLayoutManager(this));
         rvCompanyChats.setAdapter(new ClientCompanyChatsAdapter(company -> {
             // Abrir chat con empresa específica
-            Toast.makeText(this, "Abriendo chat con " + company.name, Toast.LENGTH_SHORT).show();
-            // En producción: startActivity(new Intent(this, ChatDetailActivity.class));
+            Intent intent = new Intent(this, ClientChatDetailActivity.class);
+            intent.putExtra("COMPANY_NAME", company.name);
+            startActivity(intent);
         }));
     }
     

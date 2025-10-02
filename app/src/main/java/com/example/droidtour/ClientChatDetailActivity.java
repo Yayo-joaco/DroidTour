@@ -186,21 +186,21 @@ class ClientChatMessagesAdapter extends RecyclerView.Adapter<ClientChatMessagesA
         ClientChatMessage message = messages.get(position);
 
         if (message.isFromCompany) {
-            // Mensaje de la empresa (lado izquierdo, gris)
+            // Mensaje de la empresa (mostrar como mensaje de empresa en el layout)
             holder.layoutIncoming.setVisibility(View.VISIBLE);
             holder.layoutOutgoing.setVisibility(View.GONE);
-            holder.layoutSystem.setVisibility(View.GONE);
 
             holder.tvIncomingMessage.setText(message.message);
-            holder.tvIncomingTime.setText(message.timestamp);
+            if (holder.tvIncomingTime != null) {
+                holder.tvIncomingTime.setText(message.timestamp);
+            }
         } else {
-            // Mensaje del cliente (lado derecho, azul)
+            // Mensaje del cliente (mostrar como mensaje de usuario en el layout)
             holder.layoutIncoming.setVisibility(View.GONE);
             holder.layoutOutgoing.setVisibility(View.VISIBLE);
-            holder.layoutSystem.setVisibility(View.GONE);
 
             holder.tvOutgoingMessage.setText(message.message);
-            holder.tvOutgoingTime.setText(message.timestamp);
+            // No hay campo de tiempo para mensajes salientes en este layout
         }
     }
 
@@ -218,17 +218,20 @@ class ClientChatMessagesAdapter extends RecyclerView.Adapter<ClientChatMessagesA
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
 
-            layoutIncoming = itemView.findViewById(R.id.layout_incoming_message);
-            layoutOutgoing = itemView.findViewById(R.id.layout_outgoing_message);
-            layoutSystem = itemView.findViewById(R.id.layout_system_message);
+            layoutIncoming = itemView.findViewById(R.id.layout_company_message);
+            layoutOutgoing = itemView.findViewById(R.id.layout_user_message);
+            // No hay layout_system_message en el layout actual
+            layoutSystem = null;
 
-            tvIncomingMessage = itemView.findViewById(R.id.tv_incoming_message);
-            tvIncomingTime = itemView.findViewById(R.id.tv_incoming_time);
+            tvIncomingMessage = itemView.findViewById(R.id.tv_company_message);
+            tvIncomingTime = itemView.findViewById(R.id.tv_message_time);
 
-            tvOutgoingMessage = itemView.findViewById(R.id.tv_outgoing_message);
-            tvOutgoingTime = itemView.findViewById(R.id.tv_outgoing_time);
+            tvOutgoingMessage = itemView.findViewById(R.id.tv_user_message);
+            // No hay tv_outgoing_time en el layout actual
+            tvOutgoingTime = null;
 
-            tvSystemMessage = itemView.findViewById(R.id.tv_system_message);
+            // No hay tv_system_message en el layout actual
+            tvSystemMessage = null;
         }
     }
 }

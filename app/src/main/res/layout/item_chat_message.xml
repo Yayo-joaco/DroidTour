@@ -6,30 +6,62 @@
     android:orientation="vertical"
     android:padding="4dp">
 
-    <!-- Incoming Message Layout -->
+    <!-- Mensaje del usuario (derecha) -->
     <LinearLayout
-        android:id="@+id/layout_incoming_message"
+        android:id="@+id/layout_user_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="60dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/primary">
+
+            <TextView
+                android:id="@+id/tv_user_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hola, tengo una consulta sobre el tour"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:padding="12dp"
+                android:maxWidth="250dp" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+
+    <!-- Mensaje de la empresa (izquierda) -->
+    <LinearLayout
+        android:id="@+id/layout_company_message"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="start"
-        android:layout_marginEnd="64dp"
-        android:visibility="visible">
+        android:layout_marginBottom="8dp"
+        android:visibility="gone">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/iv_sender_avatar"
+        <ImageView
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@android:drawable/ic_menu_myplaces"
-            android:scaleType="centerCrop"
-            app:shapeAppearanceOverlay="@style/CircleImageView"
-            android:background="@color/light_gray"
+            android:src="@android:drawable/ic_menu_gallery"
+            android:background="@drawable/circle_primary"
+            android:tint="@color/white"
+            android:padding="6dp"
             android:layout_marginEnd="8dp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_marginEnd="60dp">
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="wrap_content"
@@ -39,122 +71,28 @@
                 app:cardBackgroundColor="@color/white">
 
                 <TextView
-                    android:id="@+id/tv_incoming_message"
+                    android:id="@+id/tv_company_message"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Hola, tengo una pregunta sobre el tour de mañana"
-                    android:textSize="14sp"
+                    android:text="¡Hola! Claro, estaremos encantados de ayudarte"
                     android:textColor="@color/black"
-                    android:padding="12dp"
-                    android:maxWidth="280dp" />
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <TextView
-                android:id="@+id/tv_incoming_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="14:25"
-                android:textSize="11sp"
-                android:textColor="@color/gray"
-                android:layout_marginTop="4dp"
-                android:layout_marginStart="12dp" />
-
-        </LinearLayout>
-
-    </LinearLayout>
-
-    <!-- Outgoing Message Layout -->
-    <LinearLayout
-        android:id="@+id/layout_outgoing_message"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="end"
-        android:layout_marginStart="64dp"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@color/primary">
-
-                <TextView
-                    android:id="@+id/tv_outgoing_message"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="¡Hola María! Con gusto te ayudo. ¿Cuál es tu pregunta?"
                     android:textSize="14sp"
-                    android:textColor="@color/white"
                     android:padding="12dp"
-                    android:maxWidth="280dp" />
+                    android:maxWidth="250dp" />
 
             </com.google.android.material.card.MaterialCardView>
 
-            <LinearLayout
+            <TextView
+                android:id="@+id/tv_message_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="end"
-                android:layout_marginTop="4dp"
-                android:layout_marginEnd="12dp">
-
-                <TextView
-                    android:id="@+id/tv_outgoing_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="14:26"
-                    android:textSize="11sp"
-                    android:textColor="@color/gray"
-                    android:layout_marginEnd="4dp" />
-
-                <ImageView
-                    android:id="@+id/iv_message_status"
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
-                    android:src="@android:drawable/ic_menu_agenda"
-                    android:tint="@color/primary" />
-
-            </LinearLayout>
+                android:text="10:30 AM"
+                android:textSize="10sp"
+                android:textColor="@color/gray"
+                android:layout_marginTop="2dp"
+                android:layout_marginStart="8dp" />
 
         </LinearLayout>
-
-    </LinearLayout>
-
-    <!-- System Message Layout -->
-    <LinearLayout
-        android:id="@+id/layout_system_message"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginVertical="8dp"
-        android:visibility="gone">
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="1dp"
-            app:cardBackgroundColor="@color/light_gray">
-
-            <TextView
-                android:id="@+id/tv_system_message"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="María se unió a la conversación"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:padding="8dp" />
-
-        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 

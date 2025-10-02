@@ -6,9 +6,11 @@
     android:layout_height="match_parent">
 
     <!-- Main Content -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/light_gray">
 
         <!-- Toolbar -->
         <com.google.android.material.appbar.MaterialToolbar
@@ -16,155 +18,221 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/primary"
-            app:title="@string/client"
+            app:title="DroidTour"
             app:titleTextColor="@color/white"
-            app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically" />
 
-        <!-- Search Bar -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_search"
+        <!-- Scrollable Content -->
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:hint="Buscar empresas o tours"
-            app:startIconDrawable="@android:drawable/ic_menu_search"
-            app:layout_constraintTop_toBottomOf="@id/toolbar">
+            android:layout_height="match_parent">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_search"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="text" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Quick Actions -->
-        <LinearLayout
-            android:id="@+id/layout_quick_actions"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="16dp"
-            app:layout_constraintTop_toBottomOf="@id/til_search">
-
-            <!-- Primera fila -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:orientation="vertical">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_my_reservations"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                <!-- Welcome Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_welcome"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:text="@string/my_reservations"
-                    android:textSize="12sp"
-                    android:drawableTop="@android:drawable/ic_menu_agenda" />
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="12dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/primary">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_tour_history"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="16dp"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@android:drawable/ic_menu_myplaces"
+                            android:tint="@color/white" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="16dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tv_welcome_message"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="¡Hola, Ana!"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Descubre increíbles tours locales"
+                                android:textSize="14sp"
+                                android:textColor="@color/white"
+                                android:layout_marginTop="4dp" />
+
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_active_reservations"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2"
+                            android:textSize="14sp"
+                            android:textColor="@color/white"
+                            android:background="@drawable/circle_orange"
+                            android:gravity="center"
+                            android:minWidth="28dp"
+                            android:minHeight="28dp" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Quick Actions -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:text="@string/tour_history"
-                    android:textSize="12sp"
-                    android:drawableTop="@android:drawable/ic_menu_recent_history" />
+                    android:orientation="horizontal"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="16dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_explore_tours"
+                        android:layout_width="0dp"
+                        android:layout_height="100dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="12dp">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@android:drawable/ic_menu_search"
+                                android:tint="@color/primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Explorar Tours"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/black"
+                                android:textAlignment="center"
+                                android:layout_marginTop="8dp" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_my_reservations"
+                        android:layout_width="0dp"
+                        android:layout_height="100dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="12dp">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@android:drawable/ic_menu_agenda"
+                                android:tint="@color/accent" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Mis Reservas"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/black"
+                                android:textAlignment="center"
+                                android:layout_marginTop="8dp" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+                <!-- Featured Tours Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tours Destacados"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="12dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_featured_tours"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:nestedScrollingEnabled="false"
+                    android:orientation="horizontal" />
+
+                <!-- Popular Companies Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Empresas Populares"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="12dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_popular_companies"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="16dp"
+                    android:nestedScrollingEnabled="false" />
 
             </LinearLayout>
 
-            <!-- Segunda fila -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+        </androidx.core.widget.NestedScrollView>
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_chat"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
-                    android:text="Chat Soporte"
-                    android:textSize="12sp"
-                    android:drawableTop="@android:drawable/ic_menu_send" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_real_time_tracking"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:text="Seguimiento"
-                    android:textSize="12sp"
-                    android:drawableTop="@android:drawable/ic_menu_mylocation" />
-
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- Companies List -->
-        <TextView
-            android:id="@+id/tv_companies_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/available_companies"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/black"
-            android:layout_marginStart="16dp"
-            android:layout_marginBottom="8dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/layout_quick_actions" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_companies"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:padding="16dp"
-            app:layout_constraintTop_toBottomOf="@id/tv_companies_title"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-        <!-- Empty State -->
-        <LinearLayout
-            android:id="@+id/layout_empty_state"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:visibility="gone"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <ImageView
-                android:layout_width="120dp"
-                android:layout_height="120dp"
-                android:src="@android:drawable/ic_menu_mapmode"
-                android:tint="@color/gray"
-                android:alpha="0.5" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="No hay empresas disponibles"
-                android:textSize="18sp"
-                android:textColor="@color/gray"
-                android:layout_marginTop="16dp" />
-
-        </LinearLayout>
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
 
     <!-- Navigation Drawer -->
     <com.google.android.material.navigation.NavigationView

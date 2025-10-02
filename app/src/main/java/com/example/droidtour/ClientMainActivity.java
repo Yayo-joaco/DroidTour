@@ -17,6 +17,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
 
 public class ClientMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -24,21 +25,46 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private ActionBarDrawerToggle drawerToggle;
-    private RecyclerView rvCompanies;
+    private RecyclerView rvFeaturedTours, rvPopularCompanies;
+    private MaterialCardView cardExploreTours, cardMyReservations;
+    private TextView tvWelcomeMessage, tvActiveReservations;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_main);
 
+        initializeViews();
         setupToolbarAndDrawer();
-        setupCompaniesList();
+        setupDashboardData();
+        setupClickListeners();
+        setupRecyclerViews();
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawer_layout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
+
+    private void initializeViews() {
+        // Dashboard elements
+        tvWelcomeMessage = findViewById(R.id.tv_welcome_message);
+        tvActiveReservations = findViewById(R.id.tv_active_reservations);
+        cardExploreTours = findViewById(R.id.card_explore_tours);
+        cardMyReservations = findViewById(R.id.card_my_reservations);
+        
+        // RecyclerViews
+        rvFeaturedTours = findViewById(R.id.rv_featured_tours);
+        rvPopularCompanies = findViewById(R.id.rv_popular_companies);
+    }
+
+    private void setupDashboardData() {
+        // Set welcome message (could be dynamic based on user)
+        tvWelcomeMessage.setText("¡Hola, Ana!");
+        
+        // Set active reservations count
+        tvActiveReservations.setText("2");
     }
 
     private void setupToolbarAndDrawer() {
@@ -55,34 +81,45 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         navigationView.setNavigationItemSelectedListener(this);
     }
 
-    private void setupCompaniesList() {
-        rvCompanies = findViewById(R.id.rv_companies);
-        rvCompanies.setLayoutManager(new LinearLayoutManager(this));
-        rvCompanies.setAdapter(new ExampleCompaniesAdapter(v -> {
-            // Al hacer click en una empresa, abrir reserva con un tour ejemplo
-            Intent i = new Intent(this, TourBookingActivity.class);
-            i.putExtra("tourName", "Tour Machu Picchu Completo");
-            i.putExtra("companyName", "Tours Cusco Adventures");
-            i.putExtra("price", 250.0);
-            startActivity(i);
-        }));
-
-        // Configurar botones de acceso rápido
-        findViewById(R.id.btn_my_reservations).setOnClickListener(v -> {
-            startActivity(new Intent(this, ClientReservationsActivity.class));
+    private void setupClickListeners() {
+        // Quick action cards
+        cardExploreTours.setOnClickListener(v -> {
+            Intent intent = new Intent(ClientMainActivity.this, CompaniesListActivity.class);
+            startActivity(intent);
         });
 
-        findViewById(R.id.btn_tour_history).setOnClickListener(v -> {
-            startActivity(new Intent(this, ClientHistoryActivity.class));
+        cardMyReservations.setOnClickListener(v -> {
+            Intent intent = new Intent(ClientMainActivity.this, MyReservationsActivity.class);
+            startActivity(intent);
         });
+    }
 
-        findViewById(R.id.btn_chat).setOnClickListener(v -> {
-            startActivity(new Intent(this, ClientChatActivity.class));
-        });
+    private void setupRecyclerViews() {
+        // Featured Tours (horizontal)
+        rvFeaturedTours.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        rvFeaturedTours.setAdapter(new FeaturedToursAdapter(this::onFeaturedTourClick));
 
-        findViewById(R.id.btn_real_time_tracking).setOnClickListener(v -> {
-            startActivity(new Intent(this, RealTimeTrackingActivity.class));
-        });
+        // Popular Companies (vertical)
+        rvPopularCompanies.setLayoutManager(new LinearLayoutManager(this));
+        rvPopularCompanies.setAdapter(new PopularCompaniesAdapter(this::onCompanyClick));
+    }
+
+    private void onFeaturedTourClick(int position) {
+        // Navigate to tour detail
+        Intent intent = new Intent(this, TourDetailActivity.class);
+        intent.putExtra("tour_id", position);
+        intent.putExtra("tour_name", "City Tour Lima Centro Histórico");
+        intent.putExtra("company_name", "Lima Adventure Tours");
+        intent.putExtra("price", 85.0);
+        startActivity(intent);
+    }
+
+    private void onCompanyClick(int position) {
+        // Navigate to company's tours catalog
+        Intent intent = new Intent(this, ToursCatalogActivity.class);
+        intent.putExtra("company_id", position);
+        intent.putExtra("company_name", "Lima Adventure Tours");
+        startActivity(intent);
     }
 
     @Override
@@ -94,72 +131,152 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.nav_home || id == R.id.nav_available_companies) {
+        
+        if (id == R.id.nav_dashboard) {
+            // Already on dashboard
             drawerLayout.closeDrawers();
+        } else if (id == R.id.nav_explore_tours) {
+            startActivity(new Intent(this, CompaniesListActivity.class));
+        } else if (id == R.id.nav_companies) {
+            startActivity(new Intent(this, CompaniesListActivity.class));
         } else if (id == R.id.nav_my_reservations) {
-            startActivity(new Intent(this, ClientReservationsActivity.class));
-        } else if (id == R.id.nav_tour_history) {
-            startActivity(new Intent(this, ClientHistoryActivity.class));
+            startActivity(new Intent(this, MyReservationsActivity.class));
+        } else if (id == R.id.nav_qr_codes) {
+            startActivity(new Intent(this, ClientQRCodesActivity.class));
+        } else if (id == R.id.nav_payment_methods) {
+            startActivity(new Intent(this, PaymentMethodsActivity.class));
         } else if (id == R.id.nav_profile) {
-            Toast.makeText(this, "Perfil próximamente", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, ClientProfileActivity.class));
+        } else if (id == R.id.nav_settings) {
+            startActivity(new Intent(this, ClientSettingsActivity.class));
         } else if (id == R.id.nav_logout) {
             Intent i = new Intent(this, MainActivity.class);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(i);
             finish();
         }
+        
+        drawerLayout.closeDrawers();
         return true;
     }
 }
 
-// Adaptador de empresas con ejemplos
-class ExampleCompaniesAdapter extends RecyclerView.Adapter<ExampleCompaniesAdapter.ViewHolder> {
-    interface OnCompanyClick { void onClick(View v); }
-    private final OnCompanyClick onCompanyClick;
-    ExampleCompaniesAdapter(OnCompanyClick listener) { this.onCompanyClick = listener; }
+// Adaptador para tours destacados (horizontal)
+class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.ViewHolder> {
+    interface OnTourClick { void onClick(int position); }
+    private final OnTourClick onTourClick;
+    
+    FeaturedToursAdapter(OnTourClick listener) { 
+        this.onTourClick = listener; 
+    }
 
     @Override
     public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
         android.view.View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_company, parent, false);
+                .inflate(R.layout.item_featured_tour, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        android.view.View item = holder.itemView;
-        TextView name = item.findViewById(R.id.tv_company_name);
-        TextView location = item.findViewById(R.id.tv_company_location);
-        TextView toursCount = item.findViewById(R.id.tv_tours_count);
-        TextView priceRange = item.findViewById(R.id.tv_price_range);
-        android.view.View button = item.findViewById(R.id.btn_view_tours);
+        TextView tourName = holder.itemView.findViewById(R.id.tv_tour_name);
+        TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
+        TextView rating = holder.itemView.findViewById(R.id.tv_rating);
+        TextView price = holder.itemView.findViewById(R.id.tv_price);
 
-        switch (position % 3) {
+        switch (position % 4) {
             case 0:
-                name.setText("Tours Cusco Adventures");
-                location.setText("Cusco, Perú");
-                toursCount.setText("12 tours disponibles");
-                priceRange.setText("Desde S/. 120");
+                tourName.setText("City Tour Lima Centro");
+                companyName.setText("Lima Adventure Tours");
+                rating.setText("⭐ 4.8");
+                price.setText("S/. 85");
                 break;
             case 1:
-                name.setText("Lima City Travel");
-                location.setText("Lima, Perú");
-                toursCount.setText("8 tours disponibles");
-                priceRange.setText("Desde S/. 90");
+                tourName.setText("Machu Picchu Full Day");
+                companyName.setText("Cusco Explorer");
+                rating.setText("⭐ 4.9");
+                price.setText("S/. 180");
+                break;
+            case 2:
+                tourName.setText("Islas Ballestas");
+                companyName.setText("Paracas Tours");
+                rating.setText("⭐ 4.7");
+                price.setText("S/. 65");
                 break;
             default:
-                name.setText("Arequipa Andes Tours");
-                location.setText("Arequipa, Perú");
-                toursCount.setText("5 tours disponibles");
-                priceRange.setText("Desde S/. 110");
+                tourName.setText("Cañón del Colca");
+                companyName.setText("Arequipa Adventures");
+                rating.setText("⭐ 4.6");
+                price.setText("S/. 120");
         }
 
-        item.setOnClickListener(v -> onCompanyClick.onClick(v));
-        button.setOnClickListener(v -> onCompanyClick.onClick(v));
+        holder.itemView.setOnClickListener(v -> onTourClick.onClick(position));
     }
 
     @Override
-    public int getItemCount() { return 9; }
+    public int getItemCount() { return 4; }
 
-    static class ViewHolder extends RecyclerView.ViewHolder { ViewHolder(android.view.View v) { super(v);} }
+    static class ViewHolder extends RecyclerView.ViewHolder { 
+        ViewHolder(android.view.View v) { super(v); } 
+    }
+}
+
+// Adaptador para empresas populares (vertical)
+class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapter.ViewHolder> {
+    interface OnCompanyClick { void onClick(int position); }
+    private final OnCompanyClick onCompanyClick;
+    
+    PopularCompaniesAdapter(OnCompanyClick listener) { 
+        this.onCompanyClick = listener; 
+    }
+
+    @Override
+    public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
+        android.view.View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_popular_company, parent, false);
+        return new ViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(ViewHolder holder, int position) {
+        TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
+        TextView location = holder.itemView.findViewById(R.id.tv_company_location);
+        TextView rating = holder.itemView.findViewById(R.id.tv_rating);
+        TextView toursCount = holder.itemView.findViewById(R.id.tv_tours_count);
+        TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
+        android.view.View btnViewTours = holder.itemView.findViewById(R.id.btn_view_tours);
+
+        switch (position % 3) {
+            case 0:
+                companyName.setText("Lima Adventure Tours");
+                location.setText("📍 Lima, Perú");
+                rating.setText("⭐ 4.8");
+                toursCount.setText("• 12 tours");
+                reviewsCount.setText("• 245 reseñas");
+                break;
+            case 1:
+                companyName.setText("Cusco Explorer");
+                location.setText("📍 Cusco, Perú");
+                rating.setText("⭐ 4.9");
+                toursCount.setText("• 8 tours");
+                reviewsCount.setText("• 189 reseñas");
+                break;
+            default:
+                companyName.setText("Arequipa Adventures");
+                location.setText("📍 Arequipa, Perú");
+                rating.setText("⭐ 4.7");
+                toursCount.setText("• 6 tours");
+                reviewsCount.setText("• 156 reseñas");
+        }
+
+        holder.itemView.setOnClickListener(v -> onCompanyClick.onClick(position));
+        btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(position));
+    }
+
+    @Override
+    public int getItemCount() { return 3; }
+
+    static class ViewHolder extends RecyclerView.ViewHolder { 
+        ViewHolder(android.view.View v) { super(v); } 
+    }
 }

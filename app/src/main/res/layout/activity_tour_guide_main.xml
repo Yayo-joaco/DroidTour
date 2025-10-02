@@ -84,15 +84,6 @@
 
                         </LinearLayout>
 
-                        <TextView
-                            android:id="@+id/tv_earnings_today"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="S/. 150"
-                            android:textSize="20sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/white" />
-
                     </LinearLayout>
 
                 </com.google.android.material.card.MaterialCardView>

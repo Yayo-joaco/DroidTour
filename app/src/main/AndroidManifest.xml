@@ -108,9 +108,61 @@
 
         <!-- Client Activities -->
         <activity
-            android:name=".TourBookingActivity"
+            android:name=".CompaniesListActivity"
             android:exported="false"
             android:parentActivityName=".ClientMainActivity" />
+        
+        <activity
+            android:name=".ToursCatalogActivity"
+            android:exported="false"
+            android:parentActivityName=".CompaniesListActivity" />
+        
+        <activity
+            android:name=".TourDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".ToursCatalogActivity" />
+        
+        <activity
+            android:name=".MyReservationsActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+        
+        <activity
+            android:name=".ClientQRCodesActivity"
+            android:exported="false"
+            android:parentActivityName=".MyReservationsActivity" />
+        
+        <activity
+            android:name=".PaymentMethodsActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+        
+        <activity
+            android:name=".CompanyChatActivity"
+            android:exported="false"
+            android:parentActivityName=".TourDetailActivity" />
+        
+        <activity
+            android:name=".ClientProfileActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+        
+        <activity
+            android:name=".ClientSettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".ClientMainActivity" />
+        
+        <activity
+            android:name=".TourRatingActivity"
+            android:exported="false"
+            android:parentActivityName=".MyReservationsActivity" />
+        
+        <activity
+            android:name=".TourBookingActivity"
+            android:exported="false"
+            android:parentActivityName=".TourDetailActivity" />
+        
+        <!-- Legacy Client Activities -->
         <activity
             android:name=".ClientReservationsActivity"
             android:exported="false"
@@ -149,10 +201,6 @@
             android:name=".GuideRegistrationActivity"
             android:exported="false"
             android:parentActivityName=".TourGuideMainActivity" />
-        <activity
-            android:name=".TourRatingActivity"
-            android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
 
         <!-- Actividades de Autenticación -->
         <activity
@@ -193,6 +241,21 @@
             android:name=".AdminChatListActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
+
+        <activity
+            android:name=".TourOfferDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".TourOffersActivity" />
+
+        <activity
+            android:name=".TourMapActivity"
+            android:exported="false"
+            android:parentActivityName=".GuideActiveToursActivity" />
+
+        <activity
+            android:name=".TourGuideActiveActivity"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
 
         <activity
             android:name=".RealTimeTrackingActivity"

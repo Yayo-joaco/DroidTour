@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
-        app:title="Mis Tours"
+        app:title="Empresas de Turismo"
         app:titleTextColor="@color/white"
         app:navigationIcon="@android:drawable/ic_menu_revert" />
 
@@ -26,9 +26,35 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <!-- Search -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_search"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
 
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Buscar empresa o destino"
+                    app:startIconDrawable="@android:drawable/ic_menu_search"
+                    android:padding="8dp">
 
-            <!-- Filter Section (Chips) -->
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:imeOptions="actionSearch" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Filter Section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -48,7 +74,7 @@
                     app:chipSpacingVertical="8dp">
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_todas"
+                        android:id="@+id/chip_all"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -58,29 +84,29 @@
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_en_progreso"
+                        android:id="@+id/chip_best_rated"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="En progreso"
+                        android:text="Mejor Valoradas"
                         android:checkable="true"
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_programados"
+                        android:id="@+id/chip_most_tours"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Programados"
+                        android:text="Más Tours"
                         android:checkable="true"
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_completados"
+                        android:id="@+id/chip_best_price"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Completados"
+                        android:text="Mejor Precio"
                         android:checkable="true"
                         app:checkedIconVisible="true" />
 
@@ -88,9 +114,9 @@
 
             </LinearLayout>
 
-            <!-- Tours List -->
+            <!-- Companies List -->
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_my_tours"
+                android:id="@+id/rv_companies"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="8dp"
@@ -103,3 +129,4 @@
     </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>
+

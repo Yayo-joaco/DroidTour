@@ -53,9 +53,10 @@
 
         <!-- QR Frame Overlay -->
         <LinearLayout
-            android:layout_width="250dp"
-            android:layout_height="250dp"
-            android:layout_marginTop="32dp"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
             android:background="@drawable/qr_frame_overlay"
             android:gravity="center">
 
@@ -63,7 +64,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Coloca el QR aquí"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textColor="@color/white"
                 android:textStyle="bold" />
 
@@ -76,10 +77,13 @@
         android:id="@+id/card_scan_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
         app:cardCornerRadius="12dp"
         app:cardElevation="4dp"
-        app:layout_constraintBottom_toTopOf="@id/layout_scan_actions">
+        app:layout_constraintBottom_toTopOf="@id/card_scan_history">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -166,6 +170,76 @@
                     android:textColor="@color/orange" />
 
             </LinearLayout>
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Scan History Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_scan_history"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toTopOf="@id/layout_scan_actions">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="8dp"
+                android:background="@color/primary">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/ic_menu_recent_history"
+                    android:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Historial de Escaneos"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:layout_marginStart="6dp" />
+
+                <TextView
+                    android:id="@+id/tv_scans_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3 escaneos"
+                    android:textSize="11sp"
+                    android:textColor="@color/white" />
+
+            </LinearLayout>
+
+            <!-- Scans List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_scan_history"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="8dp"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:overScrollMode="never" />
 
         </LinearLayout>
 

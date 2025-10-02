@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <!-- Point Number Circle -->
+        <LinearLayout
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/circle_primary"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/tv_point_number"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/white" />
+
+        </LinearLayout>
+
+        <!-- Point Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_point_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Plaza de Armas"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/black" />
+
+            <TextView
+                android:id="@+id/tv_point_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Centro histórico de Lima"
+                android:textSize="14sp"
+                android:textColor="@color/gray"
+                android:layout_marginTop="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <TextView
+                    android:id="@+id/tv_arrival_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⏰ 10:15 AM"
+                    android:textSize="12sp"
+                    android:textColor="@color/primary"
+                    android:background="@drawable/rounded_background_light"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp" />
+
+                <TextView
+                    android:id="@+id/tv_duration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="• ⏱️ 30 min"
+                    android:textSize="12sp"
+                    android:textColor="@color/gray"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/rounded_background_light"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Status and Action -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <!-- Status Indicator -->
+            <View
+                android:id="@+id/view_status_indicator"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:background="@drawable/circle_green"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Action Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_register_arrival"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:text="Registrar"
+                android:textSize="10sp"
+                android:minWidth="0dp"
+                android:paddingHorizontal="12dp"
+                android:visibility="visible" />
+
+            <!-- Completed Status -->
+            <TextView
+                android:id="@+id/tv_status_completed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✓ Completado"
+                android:textSize="12sp"
+                android:textColor="@color/green"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

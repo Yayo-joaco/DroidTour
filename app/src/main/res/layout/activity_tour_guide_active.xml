@@ -108,58 +108,123 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Tour Points List -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_tour_points"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        app:layout_constraintTop_toBottomOf="@id/card_map"
+        app:layout_constraintBottom_toTopOf="@id/layout_action_buttons"
+        app:layout_constraintHeight_percent="0.3">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:background="@color/primary">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    android:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Puntos del Tour"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:layout_marginStart="12dp" />
+
+                <TextView
+                    android:id="@+id/tv_points_progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2/5 completados"
+                    android:textSize="14sp"
+                    android:textColor="@color/white" />
+
+            </LinearLayout>
+
+            <!-- Points List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_tour_points"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="8dp"
+                android:clipToPadding="false" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- Action Buttons -->
     <LinearLayout
         android:id="@+id/layout_action_buttons"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:padding="16dp"
+        android:weightSum="3"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Check-in/Check-out Buttons -->
+        <!-- Register Location Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_register_location"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="Registrar Llegada a Punto"
-            android:textSize="16sp"
-            android:drawableStart="@android:drawable/ic_menu_mylocation"
-            app:cornerRadius="8dp"
-            android:layout_marginBottom="8dp" />
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Registrar"
+            android:textSize="12sp"
+            android:drawableTop="@android:drawable/ic_menu_mylocation"
+            app:cornerRadius="8dp" />
 
-        <!-- QR Scanner Buttons -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="2">
+        <!-- QR Check-in Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_scan_checkin"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="Check-in"
+            android:textSize="12sp"
+            android:drawableTop="@android:drawable/ic_menu_camera"
+            app:cornerRadius="8dp" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_scan_checkin"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                android:text="@string/check_in"
-                android:textSize="14sp"
-                android:drawableTop="@android:drawable/ic_menu_camera"
-                app:cornerRadius="8dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_scan_checkout"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="@string/check_out"
-                android:textSize="14sp"
-                android:drawableTop="@android:drawable/ic_menu_camera"
-                app:cornerRadius="8dp" />
-
-        </LinearLayout>
+        <!-- QR Check-out Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_scan_checkout"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Check-out"
+            android:textSize="12sp"
+            android:drawableTop="@android:drawable/ic_menu_camera"
+            app:cornerRadius="8dp" />
 
     </LinearLayout>
 

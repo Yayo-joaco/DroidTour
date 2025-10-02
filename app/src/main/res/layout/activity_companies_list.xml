@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
-        app:title="Mis Tours"
+        app:title="Empresas de Turismo"
         app:titleTextColor="@color/white"
         app:navigationIcon="@android:drawable/ic_menu_revert" />
 
@@ -26,9 +26,9 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Summary Card -->
+            <!-- Search -->
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_summary"
+                android:id="@+id/card_search"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
@@ -37,60 +37,24 @@
                 app:cardCornerRadius="12dp"
                 app:cardElevation="2dp">
 
-                <LinearLayout
+                <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp"
-                    android:gravity="center_vertical">
+                    android:hint="Buscar empresa o destino"
+                    app:startIconDrawable="@android:drawable/ic_menu_search"
+                    android:padding="8dp">
 
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:src="@android:drawable/ic_menu_today"
-                        android:tint="@color/primary" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_search"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="12dp"
-                        android:orientation="vertical">
+                        android:imeOptions="actionSearch" />
 
-                        <TextView
-                            android:id="@+id/tv_today_count"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Tours de hoy: 2"
-                            android:textStyle="bold"
-                            android:textSize="16sp"
-                            android:textColor="@color/black" />
-
-                        <TextView
-                            android:id="@+id/tv_next_count"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Próximos: 3 • Historial: 12"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray"
-                            android:layout_marginTop="2dp" />
-
-                    </LinearLayout>
-
-                    <TextView
-                        android:id="@+id/tv_earnings_today"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="S/. 150"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/green" />
-
-                </LinearLayout>
+                </com.google.android.material.textfield.TextInputLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Filter Section (Chips) -->
+            <!-- Filter Section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -110,39 +74,39 @@
                     app:chipSpacingVertical="8dp">
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_activos"
+                        android:id="@+id/chip_all"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Activos"
+                        android:text="Todas"
                         android:checkable="true"
                         android:checked="true"
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_programados"
+                        android:id="@+id/chip_best_rated"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Programados"
+                        android:text="Mejor Valoradas"
                         android:checkable="true"
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_historial"
+                        android:id="@+id/chip_most_tours"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Historial"
+                        android:text="Más Tours"
                         android:checkable="true"
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_completados"
+                        android:id="@+id/chip_best_price"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Completados"
+                        android:text="Mejor Precio"
                         android:checkable="true"
                         app:checkedIconVisible="true" />
 
@@ -150,9 +114,9 @@
 
             </LinearLayout>
 
-            <!-- Tours List -->
+            <!-- Companies List -->
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_my_tours"
+                android:id="@+id/rv_companies"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="8dp"
@@ -165,3 +129,4 @@
     </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>
+

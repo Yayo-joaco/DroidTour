@@ -18,7 +18,7 @@ public class GuideRegistrationActivity extends AppCompatActivity {
     // private TextInputEditText etExperience;
     // private TextInputEditText etLanguages;
     // private TextInputEditText etSpecialties;
-    private Button btnSave;
+    private Button btnRegister;
     private Button btnCancel;
     
     private boolean isEditMode = false;
@@ -31,11 +31,11 @@ public class GuideRegistrationActivity extends AppCompatActivity {
         // Verificar si es modo edición
         String mode = getIntent().getStringExtra("mode");
         isEditMode = "edit_profile".equals(mode);
-        
-        setupToolbar();
+
         initializeViews();
+        setupToolbar();
         setupClickListeners();
-        
+
         if (isEditMode) {
             loadExistingData();
         }
@@ -45,11 +45,13 @@ public class GuideRegistrationActivity extends AppCompatActivity {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        
+
         if (isEditMode) {
             getSupportActionBar().setTitle("Editar Perfil");
+            btnRegister.setText("Guardar Cambios");
         } else {
             getSupportActionBar().setTitle("Registro de Guía");
+            btnRegister.setText("Registrarse");
         }
     }
     
@@ -63,12 +65,12 @@ public class GuideRegistrationActivity extends AppCompatActivity {
         // etExperience = findViewById(R.id.et_experience);
         // etLanguages = findViewById(R.id.et_languages);
         // etSpecialties = findViewById(R.id.et_specialties);
-        btnSave = findViewById(R.id.btn_register); // En el layout se llama btn_register
+        btnRegister = findViewById(R.id.btn_register);
         btnCancel = findViewById(R.id.btn_cancel);
     }
     
     private void setupClickListeners() {
-        btnSave.setOnClickListener(v -> {
+        btnRegister.setOnClickListener(v -> {
             if (validateForm()) {
                 saveGuideData();
             }

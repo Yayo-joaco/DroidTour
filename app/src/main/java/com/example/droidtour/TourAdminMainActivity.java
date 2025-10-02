@@ -111,7 +111,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         // Customer Chat Card
         MaterialCardView customerChatCard = findViewById(R.id.card_customer_chat);
         customerChatCard.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, CustomerChatActivity.class);
+            Intent intent = new Intent(TourAdminMainActivity.this, AdminChatListActivity.class);
             startActivity(intent);
         });
     }
@@ -147,7 +147,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         } else if (id == R.id.nav_sales_reports) {
             startActivity(new Intent(this, SalesReportsActivity.class));
         } else if (id == R.id.nav_customer_chat) {
-            startActivity(new Intent(this, CustomerChatActivity.class));
+            startActivity(new Intent(this, AdminChatListActivity.class));
         } else if (id == R.id.nav_logout) {
             // Implementar logout
             Intent intent = new Intent(this, MainActivity.class);

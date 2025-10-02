@@ -1,5 +1,6 @@
 package com.example.droidtour;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -8,23 +9,24 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.chip.ChipGroup;
 
 public class GuideActiveToursActivity extends AppCompatActivity {
-    
-    private TabLayout tabLayout;
+
+    private ChipGroup chipGroupFilter;
     private RecyclerView rvMyTours;
+    private MyToursAdapter toursAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide_active_tours);
-        
+
         setupToolbar();
         initializeViews();
-        setupTabs();
+        setupChips();
         setupRecycler();
-        loadToursForTab(0);
+        loadToursForFilter("activos");
     }
     
     private void setupToolbar() {
@@ -35,44 +37,48 @@ public class GuideActiveToursActivity extends AppCompatActivity {
     }
     
     private void initializeViews() {
-        tabLayout = findViewById(R.id.tab_layout);
+        chipGroupFilter = findViewById(R.id.chip_group_filter);
         rvMyTours = findViewById(R.id.rv_my_tours);
     }
-    
-    private void setupTabs() {
-        tabLayout.addTab(tabLayout.newTab().setText("Activos"));
-        tabLayout.addTab(tabLayout.newTab().setText("Programados"));
-        tabLayout.addTab(tabLayout.newTab().setText("Completados"));
-        
-        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                loadToursForTab(tab.getPosition());
+
+    private void setupChips() {
+        chipGroupFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (!checkedIds.isEmpty()) {
+                int checkedId = checkedIds.get(0);
+                String filterType = "";
+
+                if (checkedId == R.id.chip_activos) {
+                    filterType = "activos";
+                } else if (checkedId == R.id.chip_programados) {
+                    filterType = "programados";
+                } else if (checkedId == R.id.chip_historial) {
+                    filterType = "historial";
+                } else if (checkedId == R.id.chip_completados) {
+                    filterType = "completados";
+                }
+
+                loadToursForFilter(filterType);
             }
-            
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {}
-            
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {}
         });
     }
-    
+
     private void setupRecycler() {
         rvMyTours.setLayoutManager(new LinearLayoutManager(this));
-        rvMyTours.setAdapter(new ExampleMyToursAdapter());
+        toursAdapter = new MyToursAdapter(this::openTourMap);
+        rvMyTours.setAdapter(toursAdapter);
     }
-    
-    private void loadToursForTab(int tabPosition) {
-        String status = "";
-        switch (tabPosition) {
-            case 0: status = "activos"; break;
-            case 1: status = "programados"; break;
-            case 2: status = "completados"; break;
-        }
-        Toast.makeText(this, "Cargando tours " + status + "...", Toast.LENGTH_SHORT).show();
-        // TODO: Cargar tours según el estado seleccionado
-        rvMyTours.getAdapter().notifyDataSetChanged();
+
+    private void loadToursForFilter(String filterType) {
+        Toast.makeText(this, "Cargando tours " + filterType + "...", Toast.LENGTH_SHORT).show();
+        // TODO: Cargar tours según el filtro seleccionado
+        toursAdapter.notifyDataSetChanged();
+    }
+
+    private void openTourMap(String tourName, String location) {
+        Intent intent = new Intent(this, TourMapActivity.class);
+        intent.putExtra("TOUR_NAME", tourName);
+        intent.putExtra("LOCATION", location);
+        startActivity(intent);
     }
     
     @Override
@@ -85,8 +91,15 @@ public class GuideActiveToursActivity extends AppCompatActivity {
     }
 }
 
-// Adaptador con ejemplos que continúan el flujo de Ofertas aceptadas
-class ExampleMyToursAdapter extends RecyclerView.Adapter<ExampleMyToursAdapter.ViewHolder> {
+// Adaptador para tours del guía
+class MyToursAdapter extends RecyclerView.Adapter<MyToursAdapter.ViewHolder> {
+    interface OnTourMapClick { void onClick(String tourName, String location); }
+
+    private final OnTourMapClick onTourMapClick;
+
+    MyToursAdapter(OnTourMapClick listener) {
+        this.onTourMapClick = listener;
+    }
 
     @Override
     public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
@@ -105,37 +118,58 @@ class ExampleMyToursAdapter extends RecyclerView.Adapter<ExampleMyToursAdapter.V
         android.widget.TextView status = item.findViewById(R.id.tv_tour_status);
         android.widget.TextView progress = item.findViewById(R.id.tv_tour_progress);
         android.widget.TextView amount = item.findViewById(R.id.tv_payment_amount);
+        android.widget.TextView currentLocation = item.findViewById(R.id.tv_current_location);
         android.view.View fabScan = item.findViewById(R.id.fab_scan_qr);
+        android.widget.Button btnViewMap = item.findViewById(R.id.btn_view_map);
+
+        String tourName = "";
+        String location = "";
 
         switch (position % 3) {
             case 0:
-                name.setText("Inka Travel Peru - City Tour Centro Histórico");
+                tourName = "Inka Travel Peru - City Tour Centro Histórico";
+                location = "Plaza de Armas, Lima";
+                name.setText(tourName);
                 date.setText("Hoy, 15 Dic");
                 time.setText("09:30 - 12:30");
                 participants.setText("6 personas");
                 status.setText("EN PROGRESO");
                 progress.setText("Punto 2 de 4");
                 amount.setText("S/. 200");
+                currentLocation.setText("Plaza de Armas");
                 break;
             case 1:
-                name.setText("Lima Adventure - Barranco & Miraflores");
+                tourName = "Lima Adventure - Barranco & Miraflores";
+                location = "Malecón de Miraflores, Lima";
+                name.setText(tourName);
                 date.setText("Mañana, 16 Dic");
                 time.setText("08:00 - 12:00");
                 participants.setText("10 personas");
                 status.setText("PROGRAMADO");
                 progress.setText("Inicio 08:00");
                 amount.setText("S/. 180");
+                currentLocation.setText("Malecón de Miraflores");
                 break;
             default:
-                name.setText("Cusco Heritage - Valle Sagrado");
+                tourName = "Cusco Heritage - Valle Sagrado";
+                location = "Ollantaytambo, Cusco";
+                name.setText(tourName);
                 date.setText("Ayer, 14 Dic");
                 time.setText("14:00 - 19:00");
                 participants.setText("8 personas");
                 status.setText("COMPLETADO");
                 progress.setText("Finalizado");
                 amount.setText("S/. 250");
+                currentLocation.setText("Ollantaytambo");
         }
 
+        final String finalTourName = tourName;
+        final String finalLocation = location;
+
+        // Configurar botón "Ver Mapa"
+        btnViewMap.setOnClickListener(v -> onTourMapClick.onClick(finalTourName, finalLocation));
+
+        // Configurar botón de escanear QR
         fabScan.setOnClickListener(v -> {
             android.content.Intent i = new android.content.Intent(item.getContext(), QRScannerActivity.class);
             item.getContext().startActivity(i);

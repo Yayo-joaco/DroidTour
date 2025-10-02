@@ -7,6 +7,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -44,10 +45,10 @@ public class CustomerChatActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         rvChatList.setLayoutManager(new LinearLayoutManager(this));
         rvChatList.setAdapter(new ChatConversationsAdapter(conversation -> {
-            // Abrir chat detallado
-            Intent intent = new Intent(this, ChatDetailActivity.class);
-            intent.putExtra("clientName", conversation.clientName);
-            intent.putExtra("lastMessage", conversation.lastMessage);
+            // Abrir chat detallado del administrador
+            Intent intent = new Intent(this, AdminChatDetailActivity.class);
+            intent.putExtra("CLIENT_NAME", conversation.clientName);
+            intent.putExtra("TOUR_NAME", conversation.tourName);
             startActivity(intent);
         }));
     }
@@ -114,25 +115,34 @@ class ChatConversationsAdapter extends RecyclerView.Adapter<ChatConversationsAda
         };
     }
 
+    @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_chat_conversation, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ChatConversation conversation = conversations[position];
-        
+
         holder.tvClientName.setText(conversation.clientName);
         holder.tvLastMessage.setText(conversation.lastMessage);
         holder.tvTimestamp.setText(conversation.timestamp);
         holder.tvTourName.setText(conversation.tourName);
-        
+
         // Mostrar indicador de no leído
         holder.viewUnreadIndicator.setVisibility(conversation.isUnread ? View.VISIBLE : View.GONE);
-        
+
+        // Mostrar contador de mensajes no leídos
+        if (conversation.isUnread) {
+            holder.tvUnreadCount.setVisibility(View.VISIBLE);
+            holder.tvUnreadCount.setText("1"); // Por ahora siempre 1
+        } else {
+            holder.tvUnreadCount.setVisibility(View.GONE);
+        }
+
         holder.itemView.setOnClickListener(v -> onConversationClick.onClick(conversation));
     }
 
@@ -142,15 +152,16 @@ class ChatConversationsAdapter extends RecyclerView.Adapter<ChatConversationsAda
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvClientName, tvLastMessage, tvTimestamp, tvTourName;
+        TextView tvClientName, tvLastMessage, tvTimestamp, tvTourName, tvUnreadCount;
         View viewUnreadIndicator;
 
         ViewHolder(View view) {
             super(view);
             tvClientName = view.findViewById(R.id.tv_client_name);
             tvLastMessage = view.findViewById(R.id.tv_last_message);
-            tvTimestamp = view.findViewById(R.id.tv_timestamp);
-            tvTourName = view.findViewById(R.id.tv_tour_name);
+            tvTimestamp = view.findViewById(R.id.tv_last_message_time);
+            tvTourName = view.findViewById(R.id.tv_tour_context);
+            tvUnreadCount = view.findViewById(R.id.tv_unread_count);
             viewUnreadIndicator = view.findViewById(R.id.view_unread_indicator);
         }
     }

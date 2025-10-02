@@ -14,7 +14,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,22 +21,21 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-public class ChatDetailActivity extends AppCompatActivity {
-
-    private TextView tvClientName, tvClientStatus, tvTourName, tvTourDate, tvBookingStatus;
-    private ImageView ivClientAvatar, ivCallClient;
+public class ClientChatDetailActivity extends AppCompatActivity {
+    
+    private TextView tvCompanyName, tvCompanyStatus;
+    private ImageView ivCompanyAvatar, ivCallCompany, ivSendMessage, ivAttach;
     private RecyclerView rvMessages;
     private TextInputEditText etMessage;
-    private FloatingActionButton fabSendMessage;
-
-    private String chatId, companyName, tourName;
-    private ChatMessagesAdapter messagesAdapter;
-    private List<ChatMessage> messagesList;
+    
+    private String companyName;
+    private ClientChatMessagesAdapter messagesAdapter;
+    private List<ClientChatMessage> messagesList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat_detail);
+        setContentView(R.layout.activity_client_chat_detail);
         
         getIntentData();
         setupToolbar();
@@ -48,13 +46,9 @@ public class ChatDetailActivity extends AppCompatActivity {
     }
     
     private void getIntentData() {
-        chatId = getIntent().getStringExtra("CHAT_ID");
         companyName = getIntent().getStringExtra("COMPANY_NAME");
-        tourName = getIntent().getStringExtra("TOUR_NAME");
-
-        // Para compatibilidad con llamadas desde CustomerChatActivity
         if (companyName == null) {
-            companyName = getIntent().getStringExtra("CLIENT_NAME");
+            companyName = "Empresa de Tours";
         }
     }
     
@@ -62,97 +56,90 @@ public class ChatDetailActivity extends AppCompatActivity {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setTitle("");
     }
     
     private void initializeViews() {
-        tvClientName = findViewById(R.id.tv_client_name);
-        tvClientStatus = findViewById(R.id.tv_client_status);
-        tvTourName = findViewById(R.id.tv_tour_name);
-        tvTourDate = findViewById(R.id.tv_tour_date);
-        tvBookingStatus = findViewById(R.id.tv_booking_status);
+        tvCompanyName = findViewById(R.id.tv_company_name);
+        tvCompanyStatus = findViewById(R.id.tv_company_status);
         
-        ivClientAvatar = findViewById(R.id.iv_client_avatar);
-        ivCallClient = findViewById(R.id.iv_call_client);
+        ivCompanyAvatar = findViewById(R.id.iv_company_avatar);
+        ivCallCompany = findViewById(R.id.iv_call_company);
+        ivSendMessage = findViewById(R.id.iv_send_message);
+        ivAttach = findViewById(R.id.iv_attach);
         
         rvMessages = findViewById(R.id.rv_messages);
         etMessage = findViewById(R.id.et_message);
-        fabSendMessage = findViewById(R.id.fab_send_message);
     }
     
     private void setupClickListeners() {
-        ivCallClient.setOnClickListener(v -> {
+        ivCallCompany.setOnClickListener(v -> {
             Toast.makeText(this, "Llamar a " + companyName, Toast.LENGTH_SHORT).show();
             // TODO: Implementar llamada telefónica
         });
         
-        fabSendMessage.setOnClickListener(v -> sendMessage());
+        ivSendMessage.setOnClickListener(v -> sendMessage());
+        
+        ivAttach.setOnClickListener(v -> {
+            Toast.makeText(this, "Adjuntar archivo", Toast.LENGTH_SHORT).show();
+            // TODO: Implementar adjuntar archivos
+        });
     }
     
     private void setupRecyclerView() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true); // Para mostrar mensajes más recientes abajo
+        layoutManager.setStackFromEnd(true);
         rvMessages.setLayoutManager(layoutManager);
-
+        
         messagesList = new ArrayList<>();
-        messagesAdapter = new ChatMessagesAdapter(messagesList);
+        messagesAdapter = new ClientChatMessagesAdapter(messagesList);
         rvMessages.setAdapter(messagesAdapter);
-
+        
         loadSampleMessages();
     }
     
     private void loadChatData() {
-        // TODO: Cargar datos reales desde base de datos
-        // Por ahora mostrar datos de prueba
-        if (companyName != null) {
-            tvClientName.setText(companyName);
-        }
-        if (tourName != null) {
-            tvTourName.setText(tourName);
-        }
-
-        tvClientStatus.setText("En línea");
-        tvTourDate.setText("Mañana, 15 Dic • 09:00 AM");
-        tvBookingStatus.setText("CONFIRMADO");
+        tvCompanyName.setText(companyName);
+        tvCompanyStatus.setText("En línea");
     }
-
+    
     private void loadSampleMessages() {
         // Mensajes de ejemplo basados en la imagen proporcionada
-        messagesList.add(new ChatMessage("Hola, buenas!", false, "14:20"));
-        messagesList.add(new ChatMessage("Me interesa comprar el top verde", false, "14:21"));
-        messagesList.add(new ChatMessage("¡Hola, buenas tardes!", true, "14:22"));
-        messagesList.add(new ChatMessage("Sí, claro. ¿Cómo pagará?", true, "14:23"));
-        messagesList.add(new ChatMessage("Con tarjeta.", false, "14:24"));
-        messagesList.add(new ChatMessage("¿Es seguro? nunca he comprado por esta app.", false, "14:25"));
-        messagesList.add(new ChatMessage("Sí, es seguro", true, "14:26"));
-        messagesList.add(new ChatMessage("La app tiene un sistema de protección contra robos y estafas", true, "14:27"));
-        messagesList.add(new ChatMessage("Perfecto! ¿Cómo es el envío?", false, "14:28"));
-        messagesList.add(new ChatMessage("Usted solo realiza la transacción y yo le enviaré un motorizado con un costo adicional de 5 soles.", true, "14:29"));
-
+        messagesList.add(new ClientChatMessage("Hola, buenas!", true, "14:20"));
+        messagesList.add(new ClientChatMessage("Me interesa comprar el top verde", false, "14:21"));
+        messagesList.add(new ClientChatMessage("¡Hola, buenas tardes!", true, "14:22"));
+        messagesList.add(new ClientChatMessage("Sí, claro. ¿Cómo pagará?", true, "14:23"));
+        messagesList.add(new ClientChatMessage("Con tarjeta.", false, "14:24"));
+        messagesList.add(new ClientChatMessage("¿Es seguro? nunca he comprado por esta app.", false, "14:25"));
+        messagesList.add(new ClientChatMessage("Sí, es seguro", true, "14:26"));
+        messagesList.add(new ClientChatMessage("La app tiene un sistema de protección contra robos y estafas", true, "14:27"));
+        messagesList.add(new ClientChatMessage("Perfecto! ¿Cómo es el envío?", false, "14:28"));
+        messagesList.add(new ClientChatMessage("Usted solo realiza la transacción y yo le enviaré un motorizado con un costo adicional de 5 soles.", true, "14:29"));
+        
         messagesAdapter.notifyDataSetChanged();
         rvMessages.scrollToPosition(messagesList.size() - 1);
     }
     
     private void sendMessage() {
         String messageText = etMessage.getText().toString().trim();
-
+        
         if (messageText.isEmpty()) {
             Toast.makeText(this, "Escriba un mensaje", Toast.LENGTH_SHORT).show();
             return;
         }
-
+        
         // Agregar mensaje a la lista
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
         String currentTime = timeFormat.format(new Date());
-
-        ChatMessage newMessage = new ChatMessage(messageText, false, currentTime); // false = mensaje del cliente
+        
+        ClientChatMessage newMessage = new ClientChatMessage(messageText, false, currentTime); // false = mensaje del cliente
         messagesList.add(newMessage);
         messagesAdapter.notifyItemInserted(messagesList.size() - 1);
         rvMessages.scrollToPosition(messagesList.size() - 1);
-
+        
         etMessage.setText("");
-
+        
         // TODO: Enviar mensaje a la base de datos
-        Toast.makeText(this, "Mensaje enviado", Toast.LENGTH_SHORT).show();
     }
     
     @Override
@@ -165,24 +152,24 @@ public class ChatDetailActivity extends AppCompatActivity {
     }
 }
 
-// Clase para representar un mensaje de chat
-class ChatMessage {
+// Clase para representar un mensaje de chat del cliente
+class ClientChatMessage {
     public String message;
     public boolean isFromCompany; // true = empresa, false = cliente
     public String timestamp;
 
-    public ChatMessage(String message, boolean isFromCompany, String timestamp) {
+    public ClientChatMessage(String message, boolean isFromCompany, String timestamp) {
         this.message = message;
         this.isFromCompany = isFromCompany;
         this.timestamp = timestamp;
     }
 }
 
-// Adaptador para los mensajes del chat
-class ChatMessagesAdapter extends RecyclerView.Adapter<ChatMessagesAdapter.MessageViewHolder> {
-    private List<ChatMessage> messages;
+// Adaptador para los mensajes del chat del cliente
+class ClientChatMessagesAdapter extends RecyclerView.Adapter<ClientChatMessagesAdapter.MessageViewHolder> {
+    private List<ClientChatMessage> messages;
 
-    public ChatMessagesAdapter(List<ChatMessage> messages) {
+    public ClientChatMessagesAdapter(List<ClientChatMessage> messages) {
         this.messages = messages;
     }
 
@@ -196,10 +183,10 @@ class ChatMessagesAdapter extends RecyclerView.Adapter<ChatMessagesAdapter.Messa
 
     @Override
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
-        ChatMessage message = messages.get(position);
+        ClientChatMessage message = messages.get(position);
 
         if (message.isFromCompany) {
-            // Mensaje de la empresa (lado izquierdo)
+            // Mensaje de la empresa (lado izquierdo, gris)
             holder.layoutIncoming.setVisibility(View.VISIBLE);
             holder.layoutOutgoing.setVisibility(View.GONE);
             holder.layoutSystem.setVisibility(View.GONE);
@@ -207,7 +194,7 @@ class ChatMessagesAdapter extends RecyclerView.Adapter<ChatMessagesAdapter.Messa
             holder.tvIncomingMessage.setText(message.message);
             holder.tvIncomingTime.setText(message.timestamp);
         } else {
-            // Mensaje del cliente (lado derecho)
+            // Mensaje del cliente (lado derecho, azul)
             holder.layoutIncoming.setVisibility(View.GONE);
             holder.layoutOutgoing.setVisibility(View.VISIBLE);
             holder.layoutSystem.setVisibility(View.GONE);

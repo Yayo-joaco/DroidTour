@@ -57,19 +57,15 @@ public class TourOffersActivity extends AppCompatActivity {
                 if (checkedId == R.id.chip_all) {
                     filterType = "Todas";
                 } else if (checkedId == R.id.chip_pending) {
-                    filterType = "Pendientes";
-                } else if (checkedId == R.id.chip_high_pay) {
-                    filterType = "Mejor Pago";
-                } else if (checkedId == R.id.chip_today) {
-                    filterType = "Hoy";
-                } else if (checkedId == R.id.chip_urgent) {
-                    filterType = "Urgente";
+                    filterType = "Pendiente";
                 } else if (checkedId == R.id.chip_accepted) {
-                    filterType = "Aceptadas";
+                    filterType = "Aceptado";
+                } else if (checkedId == R.id.chip_rejected) {
+                    filterType = "Rechazado";
                 }
 
                 Toast.makeText(this, "Filtro aplicado: " + filterType, Toast.LENGTH_SHORT).show();
-                // TODO: Implementar filtrado real
+                offersAdapter.filterByStatus(filterType);
             }
         });
     }
@@ -77,6 +73,9 @@ public class TourOffersActivity extends AppCompatActivity {
     private void loadTourOffers() {
         // TODO: Cargar ofertas de tours desde base de datos
         Toast.makeText(this, "Cargando ofertas de tours...", Toast.LENGTH_SHORT).show();
+
+        // Aplicar filtro inicial "Pendiente" ya que el chip está marcado por defecto
+        offersAdapter.filterByStatus("Pendiente");
     }
 
     private void openTourDetails(TourOffer offer) {
@@ -132,21 +131,23 @@ class TourOffersAdapter extends RecyclerView.Adapter<TourOffersAdapter.ViewHolde
     interface OnTourOfferClick { void onClick(TourOffer offer); }
 
     private final OnTourOfferClick onTourOfferClick;
-    private final TourOffer[] tourOffers;
+    private final TourOffer[] allTourOffers;
+    private java.util.List<TourOffer> filteredTourOffers;
 
     TourOffersAdapter(OnTourOfferClick listener) {
         this.onTourOfferClick = listener;
         // Datos mock de ofertas
-        this.tourOffers = new TourOffer[] {
+        this.allTourOffers = new TourOffer[] {
             new TourOffer("City Tour Lima Centro Histórico", "Inka Travel Peru", "Hoy", "09:30 AM",
-                         "3 horas", "S/. 200.00", "6 personas", "NUEVO", "Enviado hace 2 horas"),
+                         "3 horas", "S/. 200.00", "6 personas", "Pendiente", "Enviado hace 2 horas"),
             new TourOffer("City Tour Lima Centro Histórico", "Lima Adventure Tours", "Mañana", "08:00 AM",
-                         "4 horas", "S/. 180.00", "10 personas", "NUEVO", "Enviado hace 3 horas"),
+                         "4 horas", "S/. 180.00", "10 personas", "Aceptado", "Enviado hace 3 horas"),
             new TourOffer("Tour Gastronómico", "Cusco Heritage", "15 Dic, 2024", "02:00 PM",
-                         "5 horas", "S/. 250.00", "8 personas", "PENDIENTE", "Enviado ayer"),
+                         "5 horas", "S/. 250.00", "8 personas", "Rechazado", "Enviado ayer"),
             new TourOffer("Valle Sagrado Express", "Sacred Valley Tours", "16 Dic, 2024", "07:00 AM",
-                         "8 horas", "S/. 300.00", "12 personas", "NUEVO", "Enviado hace 1 hora")
+                         "8 horas", "S/. 300.00", "12 personas", "Pendiente", "Enviado hace 1 hora")
         };
+        this.filteredTourOffers = java.util.Arrays.asList(allTourOffers);
     }
 
     @Override
@@ -158,7 +159,7 @@ class TourOffersAdapter extends RecyclerView.Adapter<TourOffersAdapter.ViewHolde
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        TourOffer offer = tourOffers[position];
+        TourOffer offer = filteredTourOffers.get(position);
 
         holder.tvCompanyName.setText(offer.companyName);
         holder.tvOfferDate.setText(offer.offerDate);
@@ -170,19 +171,82 @@ class TourOffersAdapter extends RecyclerView.Adapter<TourOffersAdapter.ViewHolde
         holder.tvPaymentAmount.setText(offer.paymentAmount);
         holder.tvParticipants.setText(offer.participants);
 
+        // Configurar background y color del estado
+        if (offer.status.equals("Aceptado")) {
+            holder.tvOfferStatus.setBackgroundResource(R.drawable.status_background_green);
+            holder.tvOfferStatus.setTextColor(holder.itemView.getContext().getColor(R.color.white));
+        } else if (offer.status.equals("Rechazado")) {
+            holder.tvOfferStatus.setBackgroundResource(R.drawable.status_background_red);
+            holder.tvOfferStatus.setTextColor(holder.itemView.getContext().getColor(R.color.white));
+        } else {
+            holder.tvOfferStatus.setBackgroundResource(R.drawable.status_background_orange);
+            holder.tvOfferStatus.setTextColor(holder.itemView.getContext().getColor(R.color.white));
+        }
+
+        // Mostrar/ocultar botones según el estado
+        if (offer.status.equals("Aceptado") || offer.status.equals("Rechazado")) {
+            holder.layoutPendingActions.setVisibility(android.view.View.GONE);
+            holder.layoutResponseStatus.setVisibility(android.view.View.VISIBLE);
+
+            if (offer.status.equals("Aceptado")) {
+                holder.ivResponseIcon.setImageResource(android.R.drawable.ic_menu_agenda);
+                holder.ivResponseIcon.setColorFilter(holder.itemView.getContext().getColor(R.color.green));
+                holder.tvResponseMessage.setText("Oferta aceptada - Tour asignado");
+                holder.tvResponseMessage.setTextColor(holder.itemView.getContext().getColor(R.color.green));
+            } else {
+                holder.ivResponseIcon.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+                holder.ivResponseIcon.setColorFilter(holder.itemView.getContext().getColor(R.color.red));
+                holder.tvResponseMessage.setText("Oferta rechazada");
+                holder.tvResponseMessage.setTextColor(holder.itemView.getContext().getColor(R.color.red));
+            }
+            holder.tvResponseDate.setText(offer.offerDate);
+        } else {
+            holder.layoutPendingActions.setVisibility(android.view.View.VISIBLE);
+            holder.layoutResponseStatus.setVisibility(android.view.View.GONE);
+        }
+
         // Configurar botón "Ver Detalles"
         holder.btnViewDetails.setOnClickListener(v -> onTourOfferClick.onClick(offer));
+
+        // Configurar botones de aceptar/rechazar
+        holder.btnAcceptOffer.setOnClickListener(v -> {
+            // TODO: Implementar lógica de aceptar oferta
+            android.widget.Toast.makeText(v.getContext(), "Oferta aceptada", android.widget.Toast.LENGTH_SHORT).show();
+        });
+
+        holder.btnRejectOffer.setOnClickListener(v -> {
+            // TODO: Implementar lógica de rechazar oferta
+            android.widget.Toast.makeText(v.getContext(), "Oferta rechazada", android.widget.Toast.LENGTH_SHORT).show();
+        });
     }
 
     @Override
     public int getItemCount() {
-        return tourOffers.length;
+        return filteredTourOffers.size();
+    }
+
+    public void filterByStatus(String status) {
+        if (status.equals("Todas")) {
+            filteredTourOffers = java.util.Arrays.asList(allTourOffers);
+        } else {
+            filteredTourOffers = new java.util.ArrayList<>();
+            for (TourOffer offer : allTourOffers) {
+                if (offer.status.equals(status)) {
+                    filteredTourOffers.add(offer);
+                }
+            }
+        }
+        notifyDataSetChanged();
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         android.widget.TextView tvCompanyName, tvOfferDate, tvOfferStatus, tvTourName;
         android.widget.TextView tvTourDate, tvTourTime, tvTourDuration, tvPaymentAmount, tvParticipants;
+        android.widget.TextView tvResponseMessage, tvResponseDate;
+        android.widget.ImageView ivResponseIcon;
         android.widget.Button btnViewDetails;
+        com.google.android.material.button.MaterialButton btnAcceptOffer, btnRejectOffer;
+        android.widget.LinearLayout layoutPendingActions, layoutResponseStatus;
 
         ViewHolder(android.view.View itemView) {
             super(itemView);
@@ -195,7 +259,14 @@ class TourOffersAdapter extends RecyclerView.Adapter<TourOffersAdapter.ViewHolde
             tvTourDuration = itemView.findViewById(R.id.tv_tour_duration);
             tvPaymentAmount = itemView.findViewById(R.id.tv_payment_amount);
             tvParticipants = itemView.findViewById(R.id.tv_participants);
+            tvResponseMessage = itemView.findViewById(R.id.tv_response_message);
+            tvResponseDate = itemView.findViewById(R.id.tv_response_date);
+            ivResponseIcon = itemView.findViewById(R.id.iv_response_icon);
             btnViewDetails = itemView.findViewById(R.id.btn_view_details);
+            btnAcceptOffer = itemView.findViewById(R.id.btn_accept_offer);
+            btnRejectOffer = itemView.findViewById(R.id.btn_reject_offer);
+            layoutPendingActions = itemView.findViewById(R.id.layout_pending_actions);
+            layoutResponseStatus = itemView.findViewById(R.id.layout_response_status);
         }
     }
 }

@@ -27,32 +27,24 @@
             android:orientation="vertical">
 
             <!-- Search -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_search"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout_search"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:layout_marginTop="12dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                android:hint="Buscar tour o empresa"
+                app:startIconDrawable="@android:drawable/ic_menu_search"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
-                <com.google.android.material.textfield.TextInputLayout
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_search"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Buscar tour o empresa"
-                    app:startIconDrawable="@android:drawable/ic_menu_search"
-                    android:padding="8dp">
+                    android:imeOptions="actionSearch" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_search"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:imeOptions="actionSearch" />
-
-                </com.google.android.material.textfield.TextInputLayout>
-
-            </com.google.android.material.card.MaterialCardView>
+            </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Filter Section (Sin card, transparente) -->
             <LinearLayout
@@ -80,7 +72,6 @@
                         android:layout_height="wrap_content"
                         android:text="Todas"
                         android:checkable="true"
-                        android:checked="true"
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
@@ -90,33 +81,7 @@
                         android:layout_height="wrap_content"
                         android:text="Pendientes"
                         android:checkable="true"
-                        app:checkedIconVisible="true" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_high_pay"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Mejor Pago"
-                        android:checkable="true"
-                        app:checkedIconVisible="true" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_today"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Hoy"
-                        android:checkable="true"
-                        app:checkedIconVisible="true" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_urgent"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Urgente"
-                        android:checkable="true"
+                        android:checked="true"
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
@@ -127,6 +92,17 @@
                         android:text="Aceptadas"
                         android:checkable="true"
                         app:checkedIconVisible="true" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_rejected"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Rechazadas"
+                        android:checkable="true"
+                        app:checkedIconVisible="true" />
+
+
 
                 </com.google.android.material.chip.ChipGroup>
 

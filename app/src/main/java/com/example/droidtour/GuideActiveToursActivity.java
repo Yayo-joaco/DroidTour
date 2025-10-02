@@ -224,7 +224,11 @@ class MyToursAdapter extends RecyclerView.Adapter<MyToursAdapter.ViewHolder> {
         // Configurar botón de registrar/comenzar
         btnRegisterLocation.setOnClickListener(v -> {
             if (tour.status.equals("En progreso")) {
-                android.widget.Toast.makeText(v.getContext(), "Registrando llegada...", android.widget.Toast.LENGTH_SHORT).show();
+                // Redirigir a LocationTrackingActivity
+                android.content.Intent intent = new android.content.Intent(v.getContext(), LocationTrackingActivity.class);
+                intent.putExtra("TOUR_NAME", tour.company + " - " + tour.name);
+                intent.putExtra("TOUR_PROGRESS", tour.progress);
+                v.getContext().startActivity(intent);
             } else if (tour.status.equals("Programado")) {
                 android.widget.Toast.makeText(v.getContext(), "Comenzando tour...", android.widget.Toast.LENGTH_SHORT).show();
             }

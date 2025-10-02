@@ -15,6 +15,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -33,7 +35,10 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
                     Bundle extras = result.getData().getExtras();
                     assert extras != null;
                     Bitmap imageBitmap = (Bitmap) extras.get("data");
-                    ivProfilePhoto.setImageBitmap(imageBitmap);
+                    Glide.with(this)
+                        .load(imageBitmap)
+                        .transform(new CircleCrop())
+                        .into(ivProfilePhoto);
                 }
             });
 
@@ -41,7 +46,10 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     photoUri = result.getData().getData();
-                    ivProfilePhoto.setImageURI(photoUri);
+                    Glide.with(this)
+                        .load(photoUri)
+                        .transform(new CircleCrop())
+                        .into(ivProfilePhoto);
                 }
             });
 
@@ -96,14 +104,9 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
         fabEditPhoto.setOnClickListener(v -> showPhotoOptions());
 
         btnSiguiente.setOnClickListener(v -> {
-            // Continuar al siguiente paso o guardar
-            Toast.makeText(this, "Registro completado", Toast.LENGTH_SHORT).show();
-
-            // Navegar a la pantalla principal o login
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            // Redirigir a la pantalla de creación de contraseña
+            Intent intent = new Intent(this, ClientCreatePasswordActivity.class);
             startActivity(intent);
-            finish();
         });
     }
 

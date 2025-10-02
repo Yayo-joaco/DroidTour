@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -208,6 +210,7 @@
             android:parentActivityName=".ForgotPasswordActivity" />
 
         <activity android:name=".ClientRegistrationPhotoActivity" android:exported="false" />
+        <activity android:name=".ClientCreatePasswordActivity" android:exported="false" />
 
         <meta-data
             android:name="preloaded_fonts"

@@ -1,136 +1,176 @@
 package com.example.droidtour;
 
+import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.widget.Button;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.hbb20.CountryCodePicker;
+import java.util.Calendar;
 
 public class GuideRegistrationActivity extends AppCompatActivity {
-    
-    private TextInputEditText etFirstName;
-    private TextInputEditText etLastName;
-    private TextInputEditText etEmail;
-    private TextInputEditText etPhone;
-    private TextInputEditText etDocumentNumber;
-    // private TextInputEditText etExperience;
-    // private TextInputEditText etLanguages;
-    // private TextInputEditText etSpecialties;
-    private Button btnSave;
-    private Button btnCancel;
-    
-    private boolean isEditMode = false;
+
+    private TextInputEditText etNombres, etApellidos, etNumeroDocumento,
+            etFechaNacimiento, etCorreo;
+    private AutoCompleteTextView etDocumento;  // Cambiado a AutoCompleteTextView
+    private TextInputEditText etTelefono;
+    private MaterialButton btnSiguiente;
+    private CountryCodePicker ccp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide_registration);
-        
-        // Verificar si es modo edición
-        String mode = getIntent().getStringExtra("mode");
-        isEditMode = "edit_profile".equals(mode);
-        
-        setupToolbar();
+
         initializeViews();
+        setupDocumentTypeSpinner();
+        setupCountryCodePicker();
         setupClickListeners();
-        
-        if (isEditMode) {
-            loadExistingData();
-        }
     }
-    
-    private void setupToolbar() {
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        
-        if (isEditMode) {
-            getSupportActionBar().setTitle("Editar Perfil");
-        } else {
-            getSupportActionBar().setTitle("Registro de Guía");
-        }
-    }
-    
+
     private void initializeViews() {
-        etFirstName = findViewById(R.id.et_first_name);
-        etLastName = findViewById(R.id.et_last_name);
-        etEmail = findViewById(R.id.et_email);
-        etPhone = findViewById(R.id.et_phone);
-        etDocumentNumber = findViewById(R.id.et_document_number);
-        // Los campos de experiencia, idiomas y especialidades no existen en el layout actual
-        // etExperience = findViewById(R.id.et_experience);
-        // etLanguages = findViewById(R.id.et_languages);
-        // etSpecialties = findViewById(R.id.et_specialties);
-        btnSave = findViewById(R.id.btn_register); // En el layout se llama btn_register
-        btnCancel = findViewById(R.id.btn_cancel);
+        etNombres = findViewById(R.id.etNombres);
+        etApellidos = findViewById(R.id.etApellidos);
+        etDocumento = findViewById(R.id.etDocumento);
+        etNumeroDocumento = findViewById(R.id.etNumeroDocumento);
+        etFechaNacimiento = findViewById(R.id.etFechaNacimiento);
+        etCorreo = findViewById(R.id.etCorreo);
+        etTelefono = findViewById(R.id.etTelefono);
+        btnSiguiente = findViewById(R.id.btnSiguiente);
+        ccp = findViewById(R.id.ccp);
+        findViewById(R.id.tvRegresar).setOnClickListener(v -> finish());
     }
-    
+
+
+    private void setupDocumentTypeSpinner() {
+        String[] documentTypes = {"DNI", "Carnet de Extranjería"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                documentTypes
+        );
+        etDocumento.setAdapter(adapter);
+
+        // Opcional: establecer valor por defecto
+        // etDocumento.setText("DNI", false);
+    }
+
+    private void setupCountryCodePicker() {
+        ccp.registerCarrierNumberEditText(etTelefono);
+        ccp.setDefaultCountryUsingNameCode("PE");
+        ccp.resetToDefaultCountry();
+    }
+
     private void setupClickListeners() {
-        btnSave.setOnClickListener(v -> {
+        etFechaNacimiento.setOnClickListener(v -> showDatePicker());
+
+        btnSiguiente.setOnClickListener(v -> {
             if (validateForm()) {
-                saveGuideData();
+                proceedToNext();
             }
         });
-        
-        btnCancel.setOnClickListener(v -> {
-            finish();
-        });
     }
-    
-    private void loadExistingData() {
-        // TODO: Cargar datos existentes del guía desde base de datos
-        // Por ahora cargar datos de ejemplo
-        etFirstName.setText("Carlos");
-        etLastName.setText("Mendoza");
-        etEmail.setText("carlos.mendoza@email.com");
-        etPhone.setText("987654321");
-        etDocumentNumber.setText("12345678");
-        // Los campos de experiencia, idiomas y especialidades no están disponibles en el layout actual
-        // etExperience.setText("5 años de experiencia en turismo cultural");
-        // etLanguages.setText("Español, Inglés, Quechua");
-        // etSpecialties.setText("Historia, Arqueología, Gastronomía");
+
+    private void showDatePicker() {
+        Calendar calendar = Calendar.getInstance();
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    String date = String.format("%02d/%02d/%d", dayOfMonth, month + 1, year);
+                    etFechaNacimiento.setText(date);
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
+        datePickerDialog.show();
     }
-    
+
     private boolean validateForm() {
-        if (etFirstName.getText().toString().trim().isEmpty()) {
-            etFirstName.setError("Campo requerido");
+        if (etNombres.getText().toString().trim().isEmpty()) {
+            etNombres.setError("Campo obligatorio");
+            etNombres.requestFocus();
             return false;
         }
-        
-        if (etLastName.getText().toString().trim().isEmpty()) {
-            etLastName.setError("Campo requerido");
+
+        if (etApellidos.getText().toString().trim().isEmpty()) {
+            etApellidos.setError("Campo obligatorio");
+            etApellidos.requestFocus();
             return false;
         }
-        
-        if (etEmail.getText().toString().trim().isEmpty()) {
-            etEmail.setError("Campo requerido");
+
+        if (etDocumento.getText().toString().trim().isEmpty()) {
+            etDocumento.setError("Seleccione tipo de documento");
+            etDocumento.requestFocus();
             return false;
         }
-        
-        if (etPhone.getText().toString().trim().isEmpty()) {
-            etPhone.setError("Campo requerido");
+
+        if (etNumeroDocumento.getText().toString().trim().isEmpty()) {
+            etNumeroDocumento.setError("Campo obligatorio");
+            etNumeroDocumento.requestFocus();
             return false;
         }
-        
-        if (etDocumentNumber.getText().toString().trim().isEmpty()) {
-            etDocumentNumber.setError("Campo requerido");
+
+        if (etFechaNacimiento.getText().toString().trim().isEmpty()) {
+            etFechaNacimiento.setError("Campo obligatorio");
+            etFechaNacimiento.requestFocus();
             return false;
         }
-        
+
+        if (etCorreo.getText().toString().trim().isEmpty()) {
+            etCorreo.setError("Campo obligatorio");
+            etCorreo.requestFocus();
+            return false;
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(etCorreo.getText().toString()).matches()) {
+            etCorreo.setError("Correo electrónico inválido");
+            etCorreo.requestFocus();
+            return false;
+        }
+
+        if (etTelefono.getText().toString().trim().isEmpty()) {
+            etTelefono.setError("Campo obligatorio");
+            etTelefono.requestFocus();
+            return false;
+        }
+
+        if (!ccp.isValidFullNumber()) {
+            etTelefono.setError("Número de teléfono inválido");
+            etTelefono.requestFocus();
+            return false;
+        }
+
         return true;
     }
-    
-    private void saveGuideData() {
-        // TODO: Guardar datos del guía en base de datos
-        
-        String message = isEditMode ? "Perfil actualizado correctamente" : "Registro enviado para aprobación";
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-        
-        finish();
+
+    private void proceedToNext() {
+        String nombres = etNombres.getText().toString().trim();
+        String apellidos = etApellidos.getText().toString().trim();
+        String tipoDocumento = etDocumento.getText().toString().trim();
+        String numeroDocumento = etNumeroDocumento.getText().toString().trim();
+        String fechaNacimiento = etFechaNacimiento.getText().toString().trim();
+        String correo = etCorreo.getText().toString().trim();
+        String fullPhoneNumber = ccp.getFullNumberWithPlus();
+
+        // Navegar a la actividad de foto y pasar los datos necesarios
+        Intent intent = new Intent(this, GuideRegistrationPhotoActivity.class);
+        intent.putExtra("nombres", nombres);
+        intent.putExtra("apellidos", apellidos);
+        intent.putExtra("correo", correo);
+        intent.putExtra("tipoDocumento", tipoDocumento);
+        intent.putExtra("numeroDocumento", numeroDocumento);
+        intent.putExtra("fechaNacimiento", fechaNacimiento);
+        intent.putExtra("telefono", fullPhoneNumber);
+        startActivity(intent);
     }
-    
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {

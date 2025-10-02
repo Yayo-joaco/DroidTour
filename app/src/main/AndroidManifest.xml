@@ -211,6 +211,10 @@
 
         <activity android:name=".ClientRegistrationPhotoActivity" android:exported="false" />
         <activity android:name=".ClientCreatePasswordActivity" android:exported="false" />
+        <activity android:name=".GuideRegistrationLanguagesActivity" android:exported="false" />
+        <activity android:name=".GuideRegistrationPhotoActivity" android:exported="false" />
+        <activity android:name=".GuideCreatePasswordActivity" android:exported="false" />
+
 
         <meta-data
             android:name="preloaded_fonts"

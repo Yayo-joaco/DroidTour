@@ -9,6 +9,8 @@ import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.hbb20.CountryCodePicker;
@@ -27,9 +29,9 @@ public class ClientRegistrationActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_registration);
-
+        //getWindow().setStatusBarColor(ContextCompat.getColor("#FF6200EE"));
         initializeViews();
-        setupDocumentTypeSpinner();  // Nuevo método
+        setupDocumentTypeSpinner();
         setupCountryCodePicker();
         setupClickListeners();
     }

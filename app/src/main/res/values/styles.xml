@@ -1,6 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Circle Image View Style -->
+    <style name="CustomToolbarTitle" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <style name="CircleImageView">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">50%</item>
@@ -11,12 +14,23 @@
         <item name="android:textStyle">bold</item>
     </style>
     <style name="droidtour.white">
-        <item name="android:textSize">60sp</item>
-        <item name="android:textColor">#FFFFFF</item>
-        <item name="android:textStyle">bold</item>
+    <item name="android:textSize">60sp</item>
+    <item name="android:textColor">#FFFFFF</item>
+    <item name="android:textStyle">bold</item>
     </style>
+
     <style name="ToolbarTitleBold" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
         <item name="android:textStyle">bold</item>
         <item name="android:textSize">22sp</item>
     </style>
+
+    <style name="CCPDialogTheme" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:windowBackground">@drawable/dialog_rounded_background</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:windowMinWidthMajor">85%</item>
+        <item name="android:windowMinWidthMinor">85%</item>
+    </style>
+
 </resources>
+

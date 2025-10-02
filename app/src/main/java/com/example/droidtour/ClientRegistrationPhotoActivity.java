@@ -1,0 +1,152 @@
+package com.example.droidtour;
+
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.MediaStore;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+public class ClientRegistrationPhotoActivity extends AppCompatActivity {
+
+    private ImageView ivProfilePhoto;
+    private TextView tvFullName, tvEmail, tvRegresar;
+    private MaterialButton btnSiguiente;
+    private FloatingActionButton fabEditPhoto;
+
+    private Uri photoUri;
+
+    private final ActivityResultLauncher<Intent> cameraLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Bundle extras = result.getData().getExtras();
+                    assert extras != null;
+                    Bitmap imageBitmap = (Bitmap) extras.get("data");
+                    ivProfilePhoto.setImageBitmap(imageBitmap);
+                }
+            });
+
+    private final ActivityResultLauncher<Intent> galleryLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    photoUri = result.getData().getData();
+                    ivProfilePhoto.setImageURI(photoUri);
+                }
+            });
+
+    private final ActivityResultLauncher<String> permissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    openCamera();
+                } else {
+                    Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_client_registration_photo);
+
+        initializeViews();
+        loadUserData();
+        setupClickListeners();
+    }
+
+    private void initializeViews() {
+
+        tvFullName = findViewById(R.id.tvFullName);
+        tvEmail = findViewById(R.id.tvEmail);
+        tvRegresar = findViewById(R.id.tvRegresar);
+        btnSiguiente = findViewById(R.id.btnSiguiente);
+        fabEditPhoto = findViewById(R.id.fabEditPhoto);
+        ivProfilePhoto = findViewById(R.id.ivProfilePhoto); // Inicialización agregada
+    }
+
+    private void loadUserData() {
+        // Obtener datos del Intent anterior
+        Intent intent = getIntent();
+        String nombres = intent.getStringExtra("nombres");
+        String apellidos = intent.getStringExtra("apellidos");
+        String correo = intent.getStringExtra("correo");
+
+        if (nombres != null && apellidos != null) {
+            tvFullName.setText(nombres + " " + apellidos);
+        }
+
+        if (correo != null) {
+            tvEmail.setText(correo);
+        }
+    }
+
+    private void setupClickListeners() {
+        tvRegresar.setOnClickListener(v -> finish());
+
+        fabEditPhoto.setOnClickListener(v -> showPhotoOptions());
+
+        btnSiguiente.setOnClickListener(v -> {
+            // Continuar al siguiente paso o guardar
+            Toast.makeText(this, "Registro completado", Toast.LENGTH_SHORT).show();
+
+            // Navegar a la pantalla principal o login
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+        });
+    }
+
+    private void showPhotoOptions() {
+        String[] options = {"Tomar foto", "Elegir de galería", "Cancelar"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Selecciona una opción");
+        builder.setItems(options, (dialog, which) -> {
+            switch (which) {
+                case 0: // Tomar foto
+                    checkCameraPermission();
+                    break;
+                case 1: // Galería
+                    openGallery();
+                    break;
+                case 2: // Cancelar
+                    dialog.dismiss();
+                    break;
+            }
+        });
+        builder.show();
+    }
+
+    private void checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED) {
+            openCamera();
+        } else {
+            permissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+
+    private void openCamera() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            cameraLauncher.launch(takePictureIntent);
+        }
+    }
+
+    private void openGallery() {
+        Intent pickPhotoIntent = new Intent(Intent.ACTION_PICK,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        galleryLauncher.launch(pickPhotoIntent);
+    }
+}

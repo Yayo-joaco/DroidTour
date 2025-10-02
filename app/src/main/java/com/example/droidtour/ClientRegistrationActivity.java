@@ -6,20 +6,22 @@ import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.hbb20.CountryCodePicker;
 import java.util.Calendar;
 
 public class ClientRegistrationActivity extends AppCompatActivity {
-    
-    private TextInputEditText etFirstName, etLastName, etDocumentNumber, etBirthDate,
-            etEmail, etPhone, etAddress, etPassword, etConfirmPassword;
-    private AutoCompleteTextView spinnerDocumentType;
-    private MaterialButton btnRegister, btnSelectPhoto;
-    private MaterialToolbar toolbar;
+
+    private TextInputEditText etNombres, etApellidos, etNumeroDocumento,
+            etFechaNacimiento, etCorreo;
+    private AutoCompleteTextView etDocumento;  // Cambiado a AutoCompleteTextView
+    private TextInputEditText etTelefono;
+    private MaterialButton btnSiguiente;
+    private CountryCodePicker ccp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,50 +29,49 @@ public class ClientRegistrationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_client_registration);
 
         initializeViews();
-        setupToolbar();
-        setupDocumentTypeSpinner();
+        setupDocumentTypeSpinner();  // Nuevo método
+        setupCountryCodePicker();
         setupClickListeners();
     }
 
     private void initializeViews() {
-        toolbar = findViewById(R.id.toolbar);
-        etFirstName = findViewById(R.id.et_first_name);
-        etLastName = findViewById(R.id.et_last_name);
-        spinnerDocumentType = findViewById(R.id.spinner_document_type);
-        etDocumentNumber = findViewById(R.id.et_document_number);
-        etBirthDate = findViewById(R.id.et_birth_date);
-        etEmail = findViewById(R.id.et_email);
-        etPhone = findViewById(R.id.et_phone);
-        etAddress = findViewById(R.id.et_address);
-        etPassword = findViewById(R.id.et_password);
-        etConfirmPassword = findViewById(R.id.et_confirm_password);
-        btnRegister = findViewById(R.id.btn_register);
-        btnSelectPhoto = findViewById(R.id.btn_select_photo);
+        etNombres = findViewById(R.id.etNombres);
+        etApellidos = findViewById(R.id.etApellidos);
+        etDocumento = findViewById(R.id.etDocumento);
+        etNumeroDocumento = findViewById(R.id.etNumeroDocumento);
+        etFechaNacimiento = findViewById(R.id.etFechaNacimiento);
+        etCorreo = findViewById(R.id.etCorreo);
+        etTelefono = findViewById(R.id.etTelefono);
+        btnSiguiente = findViewById(R.id.btnSiguiente);
+        ccp = findViewById(R.id.ccp);
     }
 
-    private void setupToolbar() {
-        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("Registro de Cliente");
-    }
 
     private void setupDocumentTypeSpinner() {
-        String[] documentTypes = {"DNI", "Pasaporte", "Carnet de Extranjería"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, 
-                android.R.layout.simple_dropdown_item_1line, documentTypes);
-        spinnerDocumentType.setAdapter(adapter);
+        String[] documentTypes = {"DNI", "Carnet de Extranjería"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                documentTypes
+        );
+        etDocumento.setAdapter(adapter);
+
+        // Opcional: establecer valor por defecto
+        // etDocumento.setText("DNI", false);
+    }
+
+    private void setupCountryCodePicker() {
+        ccp.registerCarrierNumberEditText(etTelefono);
+        ccp.setDefaultCountryUsingNameCode("PE");
+        ccp.resetToDefaultCountry();
     }
 
     private void setupClickListeners() {
-        etBirthDate.setOnClickListener(v -> showDatePicker());
-        
-        btnSelectPhoto.setOnClickListener(v -> {
-            Toast.makeText(this, "Funcionalidad de selección de foto - En desarrollo", Toast.LENGTH_SHORT).show();
-        });
+        etFechaNacimiento.setOnClickListener(v -> showDatePicker());
 
-        btnRegister.setOnClickListener(v -> {
+        btnSiguiente.setOnClickListener(v -> {
             if (validateForm()) {
-                registerClient();
+                proceedToNext();
             }
         });
     }
@@ -80,8 +81,8 @@ public class ClientRegistrationActivity extends AppCompatActivity {
         DatePickerDialog datePickerDialog = new DatePickerDialog(
                 this,
                 (view, year, month, dayOfMonth) -> {
-                    String date = dayOfMonth + "/" + (month + 1) + "/" + year;
-                    etBirthDate.setText(date);
+                    String date = String.format("%02d/%02d/%d", dayOfMonth, month + 1, year);
+                    etFechaNacimiento.setText(date);
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
@@ -91,58 +92,82 @@ public class ClientRegistrationActivity extends AppCompatActivity {
     }
 
     private boolean validateForm() {
-        if (etFirstName.getText().toString().trim().isEmpty()) {
-            etFirstName.setError("Campo obligatorio");
+        if (etNombres.getText().toString().trim().isEmpty()) {
+            etNombres.setError("Campo obligatorio");
+            etNombres.requestFocus();
             return false;
         }
-        if (etLastName.getText().toString().trim().isEmpty()) {
-            etLastName.setError("Campo obligatorio");
+
+        if (etApellidos.getText().toString().trim().isEmpty()) {
+            etApellidos.setError("Campo obligatorio");
+            etApellidos.requestFocus();
             return false;
         }
-        if (spinnerDocumentType.getText().toString().trim().isEmpty()) {
-            spinnerDocumentType.setError("Seleccione tipo de documento");
+
+        if (etDocumento.getText().toString().trim().isEmpty()) {
+            etDocumento.setError("Seleccione tipo de documento");
+            etDocumento.requestFocus();
             return false;
         }
-        if (etDocumentNumber.getText().toString().trim().isEmpty()) {
-            etDocumentNumber.setError("Campo obligatorio");
+
+        if (etNumeroDocumento.getText().toString().trim().isEmpty()) {
+            etNumeroDocumento.setError("Campo obligatorio");
+            etNumeroDocumento.requestFocus();
             return false;
         }
-        if (etBirthDate.getText().toString().trim().isEmpty()) {
-            etBirthDate.setError("Campo obligatorio");
+
+        if (etFechaNacimiento.getText().toString().trim().isEmpty()) {
+            etFechaNacimiento.setError("Campo obligatorio");
+            etFechaNacimiento.requestFocus();
             return false;
         }
-        if (etEmail.getText().toString().trim().isEmpty()) {
-            etEmail.setError("Campo obligatorio");
+
+        if (etCorreo.getText().toString().trim().isEmpty()) {
+            etCorreo.setError("Campo obligatorio");
+            etCorreo.requestFocus();
             return false;
         }
-        if (etPhone.getText().toString().trim().isEmpty()) {
-            etPhone.setError("Campo obligatorio");
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(etCorreo.getText().toString()).matches()) {
+            etCorreo.setError("Correo electrónico inválido");
+            etCorreo.requestFocus();
             return false;
         }
-        if (etAddress.getText().toString().trim().isEmpty()) {
-            etAddress.setError("Campo obligatorio");
+
+        if (etTelefono.getText().toString().trim().isEmpty()) {
+            etTelefono.setError("Campo obligatorio");
+            etTelefono.requestFocus();
             return false;
         }
-        if (etPassword.getText().toString().trim().isEmpty()) {
-            etPassword.setError("Campo obligatorio");
+
+        if (!ccp.isValidFullNumber()) {
+            etTelefono.setError("Número de teléfono inválido");
+            etTelefono.requestFocus();
             return false;
         }
-        if (!etPassword.getText().toString().equals(etConfirmPassword.getText().toString())) {
-            etConfirmPassword.setError("Las contraseñas no coinciden");
-            return false;
-        }
+
         return true;
     }
 
-    private void registerClient() {
-        // Mock registration - En producción esto se guardaría en la base de datos
-        Toast.makeText(this, "Cliente registrado exitosamente", Toast.LENGTH_LONG).show();
-        
-        // Redirigir al login
-        Intent intent = new Intent(this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+    private void proceedToNext() {
+        String nombres = etNombres.getText().toString().trim();
+        String apellidos = etApellidos.getText().toString().trim();
+        String tipoDocumento = etDocumento.getText().toString().trim();
+        String numeroDocumento = etNumeroDocumento.getText().toString().trim();
+        String fechaNacimiento = etFechaNacimiento.getText().toString().trim();
+        String correo = etCorreo.getText().toString().trim();
+        String fullPhoneNumber = ccp.getFullNumberWithPlus();
+
+        // Navegar a la actividad de foto y pasar los datos necesarios
+        Intent intent = new Intent(this, ClientRegistrationPhotoActivity.class);
+        intent.putExtra("nombres", nombres);
+        intent.putExtra("apellidos", apellidos);
+        intent.putExtra("correo", correo);
+        intent.putExtra("tipoDocumento", tipoDocumento);
+        intent.putExtra("numeroDocumento", numeroDocumento);
+        intent.putExtra("fechaNacimiento", fechaNacimiento);
+        intent.putExtra("telefono", fullPhoneNumber);
         startActivity(intent);
-        finish();
     }
 
     @Override

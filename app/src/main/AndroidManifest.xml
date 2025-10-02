@@ -193,6 +193,11 @@
             android:parentActivityName=".TourAdminMainActivity" />
 
         <activity
+            android:name=".TourOfferDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".TourOffersActivity" />
+
+        <activity
             android:name=".RealTimeTrackingActivity"
             android:exported="false"
             android:parentActivityName=".ClientMainActivity" />

@@ -20,8 +20,6 @@ public class LocationTrackingActivity extends AppCompatActivity {
     private TextView tvLocationTime;
     private Button btnMarkLocation;
     private RecyclerView rvLocationHistory;
-    private FloatingActionButton fabToggleTracking;
-    private boolean isTrackingActive = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,7 +30,6 @@ public class LocationTrackingActivity extends AppCompatActivity {
         initializeViews();
         setupClickListeners();
         setupRecyclerView();
-        updateTrackingStatus();
     }
     
     private void setupToolbar() {
@@ -49,18 +46,13 @@ public class LocationTrackingActivity extends AppCompatActivity {
         tvLocationTime = findViewById(R.id.tv_current_time);
         btnMarkLocation = findViewById(R.id.btn_center_location); // Reutilizar botón existente
         rvLocationHistory = findViewById(R.id.rv_location_points);
-        fabToggleTracking = findViewById(R.id.fab_register_location);
     }
     
     private void setupClickListeners() {
         btnMarkLocation.setOnClickListener(v -> {
             markCurrentLocation();
         });
-        
-        fabToggleTracking.setOnClickListener(v -> {
-            toggleLocationTracking();
-        });
-        
+
         // cardCurrentLocation.setOnClickListener(v -> {
         //     refreshCurrentLocation();
         // });
@@ -80,31 +72,10 @@ public class LocationTrackingActivity extends AppCompatActivity {
         tvLocationTime.setText("Última actualización: " + new java.util.Date().toString());
     }
     
-    private void toggleLocationTracking() {
-        isTrackingActive = !isTrackingActive;
-        updateTrackingStatus();
-        
-        if (isTrackingActive) {
-            Toast.makeText(this, "Seguimiento de ubicación activado", Toast.LENGTH_SHORT).show();
-            // TODO: Iniciar servicio de seguimiento GPS
-        } else {
-            Toast.makeText(this, "Seguimiento de ubicación desactivado", Toast.LENGTH_SHORT).show();
-            // TODO: Detener servicio de seguimiento GPS
-        }
-    }
-    
     private void refreshCurrentLocation() {
         Toast.makeText(this, "Actualizando ubicación...", Toast.LENGTH_SHORT).show();
         // TODO: Forzar actualización de ubicación GPS
         markCurrentLocation();
-    }
-    
-    private void updateTrackingStatus() {
-        if (isTrackingActive) {
-            fabToggleTracking.setImageResource(android.R.drawable.ic_media_pause);
-        } else {
-            fabToggleTracking.setImageResource(android.R.drawable.ic_media_play);
-        }
     }
     
     @Override

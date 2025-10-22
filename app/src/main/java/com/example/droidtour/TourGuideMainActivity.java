@@ -38,7 +38,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_guide_main);
-
+        
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
         prefsManager = new PreferencesManager(this);
@@ -56,6 +56,13 @@ public class TourGuideMainActivity extends AppCompatActivity {
         // Simular carga de datos de ejemplo (solo primera vez)
         loadSampleDataIfNeeded();
     }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // ✅ RECARGAR DASHBOARD CADA VEZ QUE REGRESAS
+        setupRecyclerViews();
+    }
 
     private void initializeViews() {
         drawerLayout = findViewById(R.id.drawer_layout);
@@ -67,12 +74,12 @@ public class TourGuideMainActivity extends AppCompatActivity {
         tvViewAllOffers = findViewById(R.id.tv_view_all_offers);
         tvViewAllTours = findViewById(R.id.tv_view_all_tours);
     }
-
+    
     private void setupToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
     }
-
+    
     private void setupNavigationDrawer() {
         NavigationView navigationView = findViewById(R.id.nav_view);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -105,16 +112,32 @@ public class TourGuideMainActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerViews() {
+        // ✅ CARGAR OFERTAS PENDIENTES DE LA BD
+        List<DatabaseHelper.Offer> pendingOffers = new java.util.ArrayList<>();
+        for (DatabaseHelper.Offer offer : dbHelper.getAllOffers()) {
+            if (offer.getStatus().equals("PENDIENTE")) {
+                pendingOffers.add(offer);
+            }
+        }
+        
+        // ✅ CARGAR TOURS PROGRAMADOS DE LA BD
+        List<DatabaseHelper.Tour> upcomingTours = new java.util.ArrayList<>();
+        for (DatabaseHelper.Tour tour : dbHelper.getAllTours()) {
+            if (tour.getStatus().equals("PROGRAMADO")) {
+                upcomingTours.add(tour);
+            }
+        }
+        
         // Pending Offers RecyclerView (Horizontal)
         LinearLayoutManager offersLayoutManager = new LinearLayoutManager(
                 this, LinearLayoutManager.HORIZONTAL, false);
         rvPendingOffers.setLayoutManager(offersLayoutManager);
-        rvPendingOffers.setAdapter(new PendingOffersAdapter(this::onOfferClick));
+        rvPendingOffers.setAdapter(new PendingOffersAdapter(pendingOffers, this::onOfferClick));
 
         // Upcoming Tours RecyclerView (Vertical)
         LinearLayoutManager toursLayoutManager = new LinearLayoutManager(this);
         rvUpcomingTours.setLayoutManager(toursLayoutManager);
-        rvUpcomingTours.setAdapter(new UpcomingToursAdapter(this::onTourClick));
+        rvUpcomingTours.setAdapter(new UpcomingToursAdapter(upcomingTours, this::onTourClick));
     }
 
     private void setupClickListeners() {
@@ -141,20 +164,20 @@ public class TourGuideMainActivity extends AppCompatActivity {
             Intent intent = new Intent(this, TourOffersActivity.class);
             startActivity(intent);
         });
-
+        
         // View All Tours
         tvViewAllTours.setOnClickListener(v -> {
             Intent intent = new Intent(this, GuideActiveToursActivity.class);
             startActivity(intent);
         });
-
+        
         // QR Scanner
         cardQRScanner.setOnClickListener(v -> {
             Intent intent = new Intent(this, QRScannerActivity.class);
             intent.putExtra("tour_name", "City Tour Lima - Centro Histórico");
             startActivity(intent);
         });
-
+        
         // Location Tracking
         cardLocationTracking.setOnClickListener(v -> {
             Intent intent = new Intent(this, LocationTrackingActivity.class);
@@ -190,30 +213,10 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private class PendingOffersAdapter extends RecyclerView.Adapter<PendingOffersAdapter.ViewHolder> {
         
         private final OnOfferClickListener listener;
-        private final String[] tourNames = {
-                "City Tour Lima Centro",
-                "Cusco Mágico",
-                "Paracas y Huacachina"
-        };
-        private final String[] companyNames = {
-                "Lima Adventure",
-                "Cusco Explorer",
-                "Paracas Tours"
-        };
-        private final String[] dates = {
-                "15 Dic, 2024",
-                "20 Dic, 2024",
-                "22 Dic, 2024"
-        };
-        private final String[] times = {
-                "09:00 AM",
-                "08:00 AM",
-                "07:00 AM"
-        };
-        private final double[] payments = {180.0, 250.0, 200.0};
-        private final int[] participants = {8, 12, 6};
+        private final List<DatabaseHelper.Offer> offers;
 
-        PendingOffersAdapter(OnOfferClickListener listener) {
+        PendingOffersAdapter(List<DatabaseHelper.Offer> offers, OnOfferClickListener listener) {
+            this.offers = offers;
             this.listener = listener;
         }
 
@@ -222,22 +225,27 @@ public class TourGuideMainActivity extends AppCompatActivity {
         public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
             View view = getLayoutInflater().inflate(R.layout.item_pending_offer, parent, false);
             return new ViewHolder(view);
-        }
+    }
 
-        @Override
+    @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            holder.tvTourName.setText(tourNames[position]);
-            holder.tvCompanyName.setText(companyNames[position]);
-            holder.tvTourDate.setText(dates[position]);
-            holder.tvTourTime.setText(times[position]);
-            holder.tvPaymentAmount.setText(String.format("S/. %.0f", payments[position]));
-            holder.tvParticipants.setText(participants[position] + " personas");
+            // ✅ USAR DATOS DE LA BD
+            DatabaseHelper.Offer offer = offers.get(position);
+            
+            holder.tvTourName.setText(offer.getTourName());
+            holder.tvCompanyName.setText(offer.getCompany());
+            holder.tvTourDate.setText(offer.getDate());
+            holder.tvTourTime.setText(offer.getTime());
+            holder.tvPaymentAmount.setText(String.format("S/. %.0f", offer.getPayment()));
+            holder.tvParticipants.setText(offer.getParticipants() + " personas");
 
             holder.btnAccept.setOnClickListener(v -> {
-                // Handle accept offer
-                android.widget.Toast.makeText(TourGuideMainActivity.this, 
-                    "Oferta aceptada: " + tourNames[position], 
-                    android.widget.Toast.LENGTH_SHORT).show();
+                // ✅ ACEPTAR OFERTA Y GUARDAR EN BD
+                acceptOffer(offer.getId(), offer.getTourName(), offer.getCompany(), 
+                    offer.getDate(), offer.getTime(), offer.getPayment(), offer.getParticipants());
+                
+                // Recargar dashboard
+                setupRecyclerViews();
             });
 
             holder.btnReject.setOnClickListener(v -> {
@@ -252,7 +260,8 @@ public class TourGuideMainActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return tourNames.length;
+            // ✅ RETORNAR NÚMERO REAL DE OFERTAS
+            return offers.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
@@ -278,26 +287,10 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private class UpcomingToursAdapter extends RecyclerView.Adapter<UpcomingToursAdapter.ViewHolder> {
         
         private final OnOfferClickListener listener;
-        private final String[] tourNames = {
-                "Cusco Mágico Full Day",
-                "Paracas y Huacachina"
-        };
-        private final String[] companyNames = {
-                "Cusco Explorer Tours",
-                "Paracas Adventure"
-        };
-        private final String[] dates = {
-                "Mañana",
-                "20 Dic"
-        };
-        private final String[] times = {
-                "08:00 AM",
-                "07:00 AM"
-        };
-        private final double[] payments = {250.0, 200.0};
-        private final int[] participants = {12, 6};
+        private final List<DatabaseHelper.Tour> tours;
 
-        UpcomingToursAdapter(OnOfferClickListener listener) {
+        UpcomingToursAdapter(List<DatabaseHelper.Tour> tours, OnOfferClickListener listener) {
+            this.tours = tours;
             this.listener = listener;
         }
 
@@ -306,23 +299,27 @@ public class TourGuideMainActivity extends AppCompatActivity {
         public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
             View view = getLayoutInflater().inflate(R.layout.item_upcoming_tour, parent, false);
             return new ViewHolder(view);
-        }
-
-        @Override
+    }
+    
+    @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            holder.tvTourName.setText(tourNames[position]);
-            holder.tvCompanyName.setText(companyNames[position]);
-            holder.tvTourDate.setText(dates[position]);
-            holder.tvTourTime.setText(times[position]);
-            holder.tvPaymentAmount.setText(String.format("S/. %.0f", payments[position]));
-            holder.tvParticipants.setText(participants[position] + " personas");
+            // ✅ USAR DATOS DE LA BD
+            DatabaseHelper.Tour tour = tours.get(position);
+            
+            holder.tvTourName.setText(tour.getName());
+            holder.tvCompanyName.setText(tour.getCompany());
+            holder.tvTourDate.setText(tour.getDate());
+            holder.tvTourTime.setText(tour.getTime());
+            holder.tvPaymentAmount.setText(String.format("S/. %.0f", tour.getPayment()));
+            holder.tvParticipants.setText(tour.getParticipants() + " personas");
 
             holder.itemView.setOnClickListener(v -> listener.onClick(position));
-        }
-
-        @Override
+    }
+    
+    @Override
         public int getItemCount() {
-            return tourNames.length;
+            // ✅ RETORNAR NÚMERO REAL DE TOURS
+            return tours.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
@@ -403,15 +400,22 @@ public class TourGuideMainActivity extends AppCompatActivity {
     public void acceptOffer(int offerId, String tourName, String company, String date, 
                            String time, double payment, int participants) {
         // Actualizar oferta a aceptada (se mueve a "Mis Tours")
-        dbHelper.updateOfferStatus(offerId, "ACEPTADA");
+        int rowsUpdated = dbHelper.updateOfferStatus(offerId, "ACEPTADA");
         
         // Agregar tour a "Mis Tours"
-        dbHelper.addTour(tourName, company, date, time, "PROGRAMADO", payment, participants);
+        long tourId = dbHelper.addTour(tourName, company, date, time, "PROGRAMADO", payment, participants);
         
         // Enviar notificación de confirmación
         notificationHelper.sendTourReminderNotification(tourName, time);
         
-        Toast.makeText(this, "Oferta aceptada exitosamente", Toast.LENGTH_SHORT).show();
+        // Mostrar mensaje con detalles
+        Toast.makeText(this, "✅ Oferta aceptada: " + tourName + 
+            "\nOferta actualizada: " + rowsUpdated + 
+            "\nTour creado con ID: " + tourId, 
+            Toast.LENGTH_LONG).show();
+        
+        // ✅ RECARGAR DASHBOARD INMEDIATAMENTE
+        setupRecyclerViews();
     }
     
     // ==================== NOTIFICACIONES ====================

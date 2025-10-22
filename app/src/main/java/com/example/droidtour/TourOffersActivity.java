@@ -7,24 +7,47 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.utils.NotificationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
+import java.util.List;
 
 public class TourOffersActivity extends AppCompatActivity {
 
     private RecyclerView rvTourOffers;
     private Chip chipAll, chipPending, chipRejected;
     private String currentFilter = "PENDING";
+    
+    // Storage Local
+    private DatabaseHelper dbHelper;
+    private NotificationHelper notificationHelper;
+    private List<DatabaseHelper.Offer> allOffers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_offers);
 
+        // Inicializar Storage Local
+        dbHelper = new DatabaseHelper(this);
+        notificationHelper = new NotificationHelper(this);
+
         initializeViews();
         setupToolbar();
+        loadOffersFromDatabase();
         setupRecyclerView();
         setupFilters();
+    }
+    
+    private void loadOffersFromDatabase() {
+        // ✅ CARGAR OFERTAS DE LA BASE DE DATOS
+        allOffers = dbHelper.getAllOffers();
+        
+        if (allOffers.isEmpty()) {
+            android.widget.Toast.makeText(this, "No hay ofertas disponibles", 
+                android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void initializeViews() {
@@ -43,7 +66,8 @@ public class TourOffersActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         rvTourOffers.setLayoutManager(layoutManager);
-        rvTourOffers.setAdapter(new TourOffersAdapter(currentFilter));
+        // ✅ PASAR OFERTAS DE LA BD AL ADAPTADOR
+        rvTourOffers.setAdapter(new TourOffersAdapter(allOffers, currentFilter));
     }
 
     private void setupFilters() {
@@ -66,53 +90,29 @@ public class TourOffersActivity extends AppCompatActivity {
     }
 
     private void refreshList() {
-        // Reload adapter with filtered data
-        rvTourOffers.setAdapter(new TourOffersAdapter(currentFilter));
+        // ✅ RECARGAR DATOS DE LA BD Y ACTUALIZAR ADAPTADOR
+        allOffers = dbHelper.getAllOffers();
+        rvTourOffers.setAdapter(new TourOffersAdapter(allOffers, currentFilter));
     }
 
     // Adapter for Tour Offers
     private class TourOffersAdapter extends RecyclerView.Adapter<TourOffersAdapter.ViewHolder> {
         
-        private final String[] allTourNames = {
-                "City Tour Centro",
-                "Cusco Mágico",
-                "Paracas y Huacachina"
-        };
-        private final String[] allCompanyNames = {
-                "Lima Adventure",
-                "Cusco Explorer",
-                "Paracas Tours"
-        };
-        private final String[] allDates = {
-                "15 Dic, 2024",
-                "20 Dic, 2024",
-                "22 Dic, 2024"
-        };
-        private final String[] allTimes = {
-                "09:00 AM",
-                "08:00 AM",
-                "07:00 AM"
-        };
-        private final String[] allDurations = {
-                "4 horas",
-                "8 horas",
-                "2 días"
-        };
-        private final double[] allPayments = {180.0, 250.0, 200.0};
-        private final int[] allParticipants = {8, 12, 6};
-        private final String[] allStatuses = {"PENDIENTE", "PENDIENTE", "RECHAZADA"};
+        private final List<DatabaseHelper.Offer> offers;
+        private final List<DatabaseHelper.Offer> filteredOffers;
         
-        private java.util.List<Integer> filteredIndices;
-        
-        TourOffersAdapter(String filter) {
-            filteredIndices = new java.util.ArrayList<>();
-            for (int i = 0; i < allTourNames.length; i++) {
+        TourOffersAdapter(List<DatabaseHelper.Offer> allOffers, String filter) {
+            this.offers = allOffers;
+            this.filteredOffers = new java.util.ArrayList<>();
+            
+            // ✅ FILTRAR OFERTAS SEGÚN EL FILTRO SELECCIONADO
+            for (DatabaseHelper.Offer offer : allOffers) {
                 if (filter.equals("ALL")) {
-                    filteredIndices.add(i);
-                } else if (filter.equals("PENDING") && allStatuses[i].equals("PENDIENTE")) {
-                    filteredIndices.add(i);
-                } else if (filter.equals("REJECTED") && allStatuses[i].equals("RECHAZADA")) {
-                    filteredIndices.add(i);
+                    filteredOffers.add(offer);
+                } else if (filter.equals("PENDING") && offer.getStatus().equals("PENDIENTE")) {
+                    filteredOffers.add(offer);
+                } else if (filter.equals("REJECTED") && offer.getStatus().equals("RECHAZADA")) {
+                    filteredOffers.add(offer);
                 }
             }
         }
@@ -125,62 +125,99 @@ public class TourOffersActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
-            int actualIndex = filteredIndices.get(position);
+            // ✅ OBTENER OFERTA DE LA BASE DE DATOS
+            DatabaseHelper.Offer offer = filteredOffers.get(position);
             
-            holder.tvTourName.setText(allTourNames[actualIndex]);
-            holder.tvCompanyName.setText(allCompanyNames[actualIndex]);
-            holder.tvTourDate.setText(allDates[actualIndex]);
-            holder.tvTourTime.setText(allTimes[actualIndex]);
-            holder.tvTourDuration.setText(allDurations[actualIndex]);
-            holder.tvPaymentAmount.setText(String.format("S/. %.2f", allPayments[actualIndex]));
-            holder.tvParticipants.setText(allParticipants[actualIndex] + " personas");
-            holder.tvOfferStatus.setText(allStatuses[actualIndex]);
+            holder.tvTourName.setText(offer.getTourName());
+            holder.tvCompanyName.setText(offer.getCompany());
+            holder.tvTourDate.setText(offer.getDate());
+            holder.tvTourTime.setText(offer.getTime());
+            holder.tvTourDuration.setText("4 horas"); // Duración por defecto
+            holder.tvPaymentAmount.setText(String.format("S/. %.2f", offer.getPayment()));
+            holder.tvParticipants.setText(offer.getParticipants() + " personas");
+            holder.tvOfferStatus.setText(offer.getStatus());
             
             // Set status color
-            if (allStatuses[actualIndex].equals("PENDIENTE")) {
+            if (offer.getStatus().equals("PENDIENTE")) {
                 holder.tvOfferStatus.setTextColor(getColor(R.color.white));
                 holder.tvOfferStatus.setBackgroundResource(R.drawable.circle_orange);
-            } else if (allStatuses[actualIndex].equals("RECHAZADA")) {
+            } else if (offer.getStatus().equals("RECHAZADA")) {
                 holder.tvOfferStatus.setTextColor(getColor(R.color.white));
                 holder.tvOfferStatus.setBackgroundResource(R.drawable.circle_red);
             }
 
             // Handle button clicks
             holder.btnAcceptOffer.setOnClickListener(v -> {
-                android.widget.Toast.makeText(TourOffersActivity.this, 
-                    "Oferta aceptada: " + allTourNames[actualIndex], 
-                    android.widget.Toast.LENGTH_SHORT).show();
+                // ✅ GUARDAR ACEPTACIÓN EN BASE DE DATOS
                 
-                // Hide buttons and show accepted status
+                // 1. Marcar oferta como ACEPTADA
+                dbHelper.updateOfferStatus(offer.getId(), "ACEPTADA");
+                
+                // 2. Agregar tour a "Mis Tours"
+                dbHelper.addTour(
+                    offer.getTourName(),
+                    offer.getCompany(),
+                    offer.getDate(),
+                    offer.getTime(),
+                    "PROGRAMADO",                    // estado inicial
+                    offer.getPayment(),
+                    offer.getParticipants()
+                );
+                
+                // 3. Enviar notificación
+                notificationHelper.sendTourReminderNotification(
+                    offer.getTourName(), 
+                    offer.getTime()
+                );
+                
+                // 4. Mostrar mensaje
+                android.widget.Toast.makeText(TourOffersActivity.this, 
+                    "✅ Oferta aceptada: " + offer.getTourName(), 
+                    android.widget.Toast.LENGTH_LONG).show();
+                
+                // 5. Actualizar UI
                 holder.layoutPendingActions.setVisibility(View.GONE);
                 holder.layoutResponseStatus.setVisibility(View.VISIBLE);
                 holder.tvResponseMessage.setText("Oferta aceptada - Tour asignado");
                 holder.tvResponseMessage.setTextColor(getColor(R.color.green));
                 holder.ivResponseIcon.setColorFilter(getColor(R.color.green));
+                
+                // 6. Recargar lista para actualizar dashboard
+                refreshList();
             });
 
             holder.btnRejectOffer.setOnClickListener(v -> {
+                // ✅ GUARDAR RECHAZO EN BASE DE DATOS
+                
+                // 1. Marcar oferta como RECHAZADA
+                dbHelper.updateOfferStatus(offer.getId(), "RECHAZADA");
+                
+                // 2. Mostrar mensaje
                 android.widget.Toast.makeText(TourOffersActivity.this, 
                     "Oferta rechazada", 
                     android.widget.Toast.LENGTH_SHORT).show();
                 
-                // Hide buttons and show rejected status
+                // 3. Actualizar UI
                 holder.layoutPendingActions.setVisibility(View.GONE);
                 holder.layoutResponseStatus.setVisibility(View.VISIBLE);
                 holder.tvResponseMessage.setText("Oferta rechazada");
                 holder.tvResponseMessage.setTextColor(getColor(R.color.red));
                 holder.ivResponseIcon.setColorFilter(getColor(R.color.red));
+                
+                // 4. Recargar lista
+                refreshList();
             });
 
             holder.btnViewDetails.setOnClickListener(v -> {
-                // Show details dialog or toast
-                String details = "Tour: " + allTourNames[actualIndex] + "\n" +
-                        "Empresa: " + allCompanyNames[actualIndex] + "\n" +
-                        "Fecha: " + allDates[actualIndex] + "\n" +
-                        "Hora: " + allTimes[actualIndex] + "\n" +
-                        "Duración: " + allDurations[actualIndex] + "\n" +
-                        "Pago: S/. " + String.format("%.2f", allPayments[actualIndex]) + "\n" +
-                        "Participantes: " + allParticipants[actualIndex] + " personas";
+                // ✅ MOSTRAR DETALLES DE LA OFERTA DESDE LA BD
+                String details = "Tour: " + offer.getTourName() + "\n" +
+                        "Empresa: " + offer.getCompany() + "\n" +
+                        "Fecha: " + offer.getDate() + "\n" +
+                        "Hora: " + offer.getTime() + "\n" +
+                        "Duración: 4 horas\n" +
+                        "Pago: S/. " + String.format("%.2f", offer.getPayment()) + "\n" +
+                        "Participantes: " + offer.getParticipants() + " personas\n" +
+                        "Estado: " + offer.getStatus();
                 
                 new android.app.AlertDialog.Builder(TourOffersActivity.this)
                     .setTitle("Detalles de la Oferta")
@@ -192,7 +229,8 @@ public class TourOffersActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return filteredIndices.size();
+            // ✅ RETORNAR EL NÚMERO REAL DE OFERTAS FILTRADAS
+            return filteredOffers.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {

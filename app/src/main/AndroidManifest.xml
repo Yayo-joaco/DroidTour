@@ -200,6 +200,16 @@
             android:exported="false"
             android:parentActivityName=".TourGuideMainActivity" />
 
+        <activity
+            android:name=".GuideProfileActivity"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+
+        <activity
+            android:name=".GuideActiveTourDetailActivity"
+            android:exported="false"
+            android:parentActivityName=".GuideActiveToursActivity" />
+
         <!-- Actividades de Autenticación -->
         <activity
             android:name=".LoginActivity"

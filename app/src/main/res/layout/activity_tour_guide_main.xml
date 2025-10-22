@@ -22,17 +22,17 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <!-- Dashboard Content -->
-        <ScrollView
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:padding="16dp"
             app:layout_constraintTop_toBottomOf="@id/toolbar"
             app:layout_constraintBottom_toBottomOf="parent">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
 
                 <!-- Status Card -->
                 <com.google.android.material.card.MaterialCardView
@@ -77,7 +77,7 @@
                                 android:id="@+id/tv_guide_rating"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Calificación: ⭐ 4.8 (25 tours)"
+                                android:text="Calificación: ⭐ 4.8 (8 tours)"
                                 android:textSize="14sp"
                                 android:textColor="@color/white"
                                 android:layout_marginTop="4dp" />
@@ -88,271 +88,337 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Tour Offers Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_tour_offers"
+                <!-- Statistics Row -->
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp"
-                    android:clickable="true"
-                    android:focusable="true">
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_agenda"
-                            android:tint="@color/orange" />
+                    <!-- Earnings Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp">
 
                         <LinearLayout
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:orientation="vertical">
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Ofertas de Tours"
+                                android:text="💰"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:id="@+id/tv_monthly_earnings"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S/. 1,450"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/black" />
+                                android:textColor="@color/green"
+                                android:layout_marginTop="8dp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Ver propuestas de empresas"
-                                android:textSize="14sp"
+                                android:text="Este mes"
+                                android:textSize="12sp"
                                 android:textColor="@color/gray"
                                 android:layout_marginTop="4dp" />
 
                         </LinearLayout>
 
-                        <TextView
-                            android:id="@+id/tv_pending_offers_count"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="3"
-                            android:textSize="14sp"
-                            android:textColor="@color/white"
-                            android:background="@drawable/circle_orange"
-                            android:gravity="center"
-                            android:minWidth="28dp"
-                            android:minHeight="28dp"
-                            android:layout_marginEnd="8dp" />
+                    </com.google.android.material.card.MaterialCardView>
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
-
-                    </LinearLayout>
-
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- My Tours Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_my_tours"
-                    android:layout_width="match_parent"
-                    android:layout_height="120dp"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_mapmode"
-                            android:tint="@color/primary" />
+                    <!-- Completed Tours Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp">
 
                         <LinearLayout
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:orientation="vertical">
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Mis Tours"
+                                android:text="✅"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:id="@+id/tv_completed_tours"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="8 Tours"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/black" />
+                                android:textColor="@color/primary"
+                                android:layout_marginTop="8dp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Tours asignados y activos"
-                                android:textSize="14sp"
+                                android:text="Completados"
+                                android:textSize="12sp"
                                 android:textColor="@color/gray"
                                 android:layout_marginTop="4dp" />
 
                         </LinearLayout>
 
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+                <!-- Active Tour (if exists) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_active_tour"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/primary">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
                         <TextView
-                            android:id="@+id/tv_active_tours_count"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="2"
+                            android:text="🚌 Tour Activo Ahora"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/white"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:id="@+id/tv_active_tour_name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="City Tour Lima - Centro Histórico"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/white"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:id="@+id/tv_active_tour_progress"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📍 Punto 2 de 4 • Plaza de Armas"
                             android:textSize="14sp"
                             android:textColor="@color/white"
-                            android:background="@drawable/circle_primary"
-                            android:gravity="center"
-                            android:minWidth="28dp"
-                            android:minHeight="28dp"
-                            android:layout_marginEnd="8dp" />
+                            android:layout_marginBottom="16dp" />
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_continue_tour"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Continuar Tour"
+                            android:textColor="@color/primary"
+                            app:backgroundTint="@color/white" />
 
                     </LinearLayout>
 
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- QR Scanner Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_qr_scanner"
+                <!-- Quick Actions Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ Acciones Rápidas"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp"
-                    android:clickable="true"
-                    android:focusable="true">
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_camera"
-                            android:tint="@color/accent" />
+                    <!-- QR Scanner Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_qr_scanner"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
 
                         <LinearLayout
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:orientation="vertical">
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:src="@android:drawable/ic_menu_camera"
+                                android:tint="@color/accent" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Escanear QR"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/black" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Check-in y check-out de clientes"
                                 android:textSize="14sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="4dp" />
+                                android:textStyle="bold"
+                                android:textColor="@color/black"
+                                android:textAlignment="center"
+                                android:layout_marginTop="8dp" />
 
                         </LinearLayout>
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                    </com.google.android.material.card.MaterialCardView>
 
-                    </LinearLayout>
-
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Location Tracking Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_location_tracking"
-                    android:layout_width="match_parent"
-                    android:layout_height="120dp"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="4dp"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical">
-
-                        <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_mylocation"
-                            android:tint="@color/green" />
+                    <!-- Location Tracking Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_location_tracking"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
 
                         <LinearLayout
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:orientation="vertical">
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:src="@android:drawable/ic_menu_mylocation"
+                                android:tint="@color/green" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Registrar Ubicación"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/black" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Marcar puntos del tour"
+                                android:text="Ubicación"
                                 android:textSize="14sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="4dp" />
+                                android:textStyle="bold"
+                                android:textColor="@color/black"
+                                android:textAlignment="center"
+                                android:layout_marginTop="8dp" />
 
                         </LinearLayout>
 
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                    </com.google.android.material.card.MaterialCardView>
 
-                    </LinearLayout>
+                </LinearLayout>
 
-                </com.google.android.material.card.MaterialCardView>
+                <!-- Pending Offers Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🎯 Ofertas Pendientes"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black" />
+
+                    <TextView
+                        android:id="@+id/tv_view_all_offers"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ver todas"
+                        android:textSize="14sp"
+                        android:textColor="@color/primary"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="8dp" />
+
+                </LinearLayout>
+
+                <!-- Pending Offers RecyclerView (Horizontal) -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_pending_offers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:clipToPadding="false"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp" />
+
+                <!-- Upcoming Tours Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="📅 Próximos Tours"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black" />
+
+                    <TextView
+                        android:id="@+id/tv_view_all_tours"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ver todos"
+                        android:textSize="14sp"
+                        android:textColor="@color/primary"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="8dp" />
+
+                </LinearLayout>
+
+                <!-- Upcoming Tours RecyclerView (Vertical) -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_upcoming_tours"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
 
             </LinearLayout>
 
-        </ScrollView>
+        </androidx.core.widget.NestedScrollView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

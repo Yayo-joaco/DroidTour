@@ -60,11 +60,11 @@
                 android:id="@+id/tv_offer_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="NUEVO"
+                android:text="PENDIENTE"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                android:textColor="@color/orange"
-                android:background="@drawable/bg_status_pending"
+                android:textColor="@color/white"
+                android:background="@drawable/circle_orange"
                 android:padding="6dp" />
 
         </LinearLayout>

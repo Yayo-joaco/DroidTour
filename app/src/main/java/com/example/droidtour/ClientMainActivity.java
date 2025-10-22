@@ -16,9 +16,13 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.utils.NotificationHelper;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
+import java.util.List;
 
 public class ClientMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -28,17 +32,33 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private RecyclerView rvFeaturedTours, rvPopularCompanies;
     private MaterialCardView cardExploreTours, cardMyReservations;
     private TextView tvWelcomeMessage, tvActiveReservations;
+    
+    // Storage y Notificaciones
+    private DatabaseHelper dbHelper;
+    private PreferencesManager prefsManager;
+    private NotificationHelper notificationHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_main);
 
+        // Inicializar helpers
+        dbHelper = new DatabaseHelper(this);
+        prefsManager = new PreferencesManager(this);
+        notificationHelper = new NotificationHelper(this);
+
         initializeViews();
         setupToolbarAndDrawer();
         setupDashboardData();
         setupClickListeners();
         setupRecyclerViews();
+        
+        // Cargar datos del usuario
+        loadUserData();
+        
+        // Cargar reservas de ejemplo
+        loadSampleReservations();
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawer_layout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -158,6 +178,113 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         
         drawerLayout.closeDrawers();
         return true;
+    }
+    
+    // ==================== STORAGE LOCAL ====================
+    
+    private void loadUserData() {
+        // Simular login de cliente (en producción vendría del servidor)
+        if (!prefsManager.isLoggedIn()) {
+            prefsManager.saveUserData(
+                "CLIENT001", 
+                "María López", 
+                "maria.lopez@example.com", 
+                "912345678", 
+                "CLIENT"
+            );
+        }
+        
+        // Actualizar mensaje de bienvenida
+        String userName = prefsManager.getUserName();
+        tvWelcomeMessage.setText("¡Hola, " + userName + "!");
+        Toast.makeText(this, "Bienvenida " + userName, Toast.LENGTH_SHORT).show();
+    }
+    
+    private void loadSampleReservations() {
+        // Cargar reservas de ejemplo solo si la BD está vacía
+        List<DatabaseHelper.Reservation> existingReservations = dbHelper.getAllReservations();
+        
+        if (existingReservations.isEmpty()) {
+            // Agregar reservas de ejemplo
+            dbHelper.addReservation(
+                "City Tour Lima Centro", 
+                "Lima Adventure Tours", 
+                "28 Oct", 
+                "09:00 AM",
+                "CONFIRMADA", 
+                150.0, 
+                2, 
+                "QR-2024-001"
+            );
+            
+            dbHelper.addReservation(
+                "Tour Machu Picchu", 
+                "Cusco Explorer", 
+                "02 Nov", 
+                "06:00 AM",
+                "CONFIRMADA", 
+                450.0, 
+                2, 
+                "QR-2024-002"
+            );
+            
+            Toast.makeText(this, "Reservas cargadas", Toast.LENGTH_SHORT).show();
+            
+            // Enviar notificación de confirmación
+            notificationHelper.sendReservationConfirmedNotification(
+                "City Tour Lima Centro", 
+                "28 Oct", 
+                "QR-2024-001"
+            );
+            
+            // Actualizar contador de reservas activas
+            updateActiveReservationsCount();
+        }
+    }
+    
+    private void updateActiveReservationsCount() {
+        List<DatabaseHelper.Reservation> allReservations = dbHelper.getAllReservations();
+        int activeCount = 0;
+        
+        for (DatabaseHelper.Reservation res : allReservations) {
+            if (res.getStatus().equals("CONFIRMADA")) {
+                activeCount++;
+            }
+        }
+        
+        tvActiveReservations.setText(activeCount + " reservas activas");
+    }
+    
+    // Método para crear una nueva reserva
+    public void createReservation(String tourName, String company, String date, String time,
+                                  double price, int people) {
+        // Generar código QR único
+        String qrCode = "QR-" + System.currentTimeMillis();
+        
+        // Guardar en BD
+        dbHelper.addReservation(tourName, company, date, time, "CONFIRMADA", price, people, qrCode);
+        
+        // Enviar notificación
+        notificationHelper.sendReservationConfirmedNotification(tourName, date, qrCode);
+        
+        // Enviar notificación de pago
+        notificationHelper.sendPaymentConfirmedNotification(tourName, price);
+        
+        Toast.makeText(this, "¡Reserva confirmada! Código: " + qrCode, Toast.LENGTH_LONG).show();
+        
+        // Actualizar contador
+        updateActiveReservationsCount();
+    }
+    
+    // ==================== NOTIFICACIONES ====================
+    
+    private void testClientNotifications() {
+        // Método de prueba para enviar notificaciones de ejemplo
+        notificationHelper.sendTourReminderForClient(
+            "City Tour Lima Centro", 
+            "28 Oct", 
+            "09:00 AM"
+        );
     }
 }
 

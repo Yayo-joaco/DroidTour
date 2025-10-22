@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,10 +13,14 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.utils.NotificationHelper;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
+import java.util.List;
 
 public class TourGuideMainActivity extends AppCompatActivity {
 
@@ -23,17 +28,33 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private RecyclerView rvPendingOffers, rvUpcomingTours;
     private MaterialCardView cardActiveTour, cardQRScanner, cardLocationTracking;
     private TextView tvViewAllOffers, tvViewAllTours;
+    
+    // Storage y Notificaciones
+    private DatabaseHelper dbHelper;
+    private PreferencesManager prefsManager;
+    private NotificationHelper notificationHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_guide_main);
 
+        // Inicializar helpers
+        dbHelper = new DatabaseHelper(this);
+        prefsManager = new PreferencesManager(this);
+        notificationHelper = new NotificationHelper(this);
+        
         initializeViews();
         setupToolbar();
         setupNavigationDrawer();
         setupRecyclerViews();
         setupClickListeners();
+        
+        // Cargar datos del usuario
+        loadUserData();
+        
+        // Simular carga de datos de ejemplo (solo primera vez)
+        loadSampleDataIfNeeded();
     }
 
     private void initializeViews() {
@@ -326,5 +347,81 @@ public class TourGuideMainActivity extends AppCompatActivity {
     // Click listener interface
     private interface OnOfferClickListener {
         void onClick(int position);
+    }
+    
+    // ==================== STORAGE LOCAL ====================
+    
+    private void loadUserData() {
+        // Simular login de guía (en producción vendría del servidor)
+        if (!prefsManager.isLoggedIn()) {
+            prefsManager.saveUserData(
+                "GUIDE001", 
+                "Carlos Mendoza", 
+                "carlos.mendoza@example.com", 
+                "987654321", 
+                "GUIDE"
+            );
+            prefsManager.setGuideApproved(true);
+            prefsManager.setGuideRating(4.8f);
+        }
+        
+        // Mostrar mensaje de bienvenida
+        String userName = prefsManager.getUserName();
+        Toast.makeText(this, "¡Bienvenido " + userName + "!", Toast.LENGTH_SHORT).show();
+    }
+    
+    private void loadSampleDataIfNeeded() {
+        // Cargar datos de ejemplo solo si la BD está vacía
+        List<DatabaseHelper.Offer> existingOffers = dbHelper.getAllOffers();
+        
+        if (existingOffers.isEmpty()) {
+            // Agregar ofertas de ejemplo
+            dbHelper.addOffer("City Tour Lima Centro", "Perú Grand Travel", 
+                "25 Oct", "09:00 AM", 180.0, "PENDIENTE", 15);
+            dbHelper.addOffer("Tour Pachacamac", "Lima Explorer", 
+                "26 Oct", "08:00 AM", 200.0, "PENDIENTE", 12);
+            
+            Toast.makeText(this, "Datos de ejemplo cargados", Toast.LENGTH_SHORT).show();
+            
+            // Enviar notificación de nueva oferta
+            notificationHelper.sendNewOfferNotification(
+                "City Tour Lima Centro", 
+                "Perú Grand Travel", 
+                180.0
+            );
+        }
+        
+        // Cargar tours aceptados de ejemplo
+        List<DatabaseHelper.Tour> existingTours = dbHelper.getAllTours();
+        if (existingTours.isEmpty()) {
+            dbHelper.addTour("Tour Islas Palomino", "Oceanic Adventures", 
+                "27 Oct", "07:00 AM", "PROGRAMADO", 250.0, 20);
+        }
+    }
+    
+    // Método para aceptar una oferta
+    public void acceptOffer(int offerId, String tourName, String company, String date, 
+                           String time, double payment, int participants) {
+        // Actualizar oferta a aceptada (se mueve a "Mis Tours")
+        dbHelper.updateOfferStatus(offerId, "ACEPTADA");
+        
+        // Agregar tour a "Mis Tours"
+        dbHelper.addTour(tourName, company, date, time, "PROGRAMADO", payment, participants);
+        
+        // Enviar notificación de confirmación
+        notificationHelper.sendTourReminderNotification(tourName, time);
+        
+        Toast.makeText(this, "Oferta aceptada exitosamente", Toast.LENGTH_SHORT).show();
+    }
+    
+    // ==================== NOTIFICACIONES ====================
+    
+    private void testNotifications() {
+        // Método de prueba para enviar notificaciones de ejemplo
+        notificationHelper.sendNewOfferNotification(
+            "Tour Paracas Full Day", 
+            "Coastal Adventures", 
+            350.0
+        );
     }
 }

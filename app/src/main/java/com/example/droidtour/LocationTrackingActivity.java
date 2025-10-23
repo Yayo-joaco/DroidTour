@@ -1,173 +1,169 @@
 package com.example.droidtour;
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.MenuItem;
-import android.widget.Button;
+import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.button.MaterialButton;
 
 public class LocationTrackingActivity extends AppCompatActivity {
-    
-    // private MaterialCardView cardCurrentLocation;
-    private TextView tvCurrentLocation;
-    private TextView tvLocationTime;
-    private Button btnMarkLocation;
-    private RecyclerView rvLocationHistory;
+
+    private RecyclerView rvLocationPoints;
+    private TextView tvTourName, tvTourProgress, tvPointsCompleted;
+    private MaterialButton btnCenterLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location_tracking);
-        
-        setupToolbar();
+
         initializeViews();
-        setupClickListeners();
+        setupToolbar();
         setupRecyclerView();
+        loadTourData();
     }
-    
+
+    private void initializeViews() {
+        rvLocationPoints = findViewById(R.id.rv_location_points);
+        tvTourName = findViewById(R.id.tv_tour_name);
+        tvTourProgress = findViewById(R.id.tv_tour_progress);
+        tvPointsCompleted = findViewById(R.id.tv_points_completed);
+        btnCenterLocation = findViewById(R.id.btn_center_location);
+    }
+
     private void setupToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("Registro de Ubicación");
+        toolbar.setNavigationOnClickListener(v -> finish());
     }
-    
-    private void initializeViews() {
-        // Usar los IDs que realmente existen en el layout
-        // cardCurrentLocation = findViewById(R.id.card_current_location);
-        tvCurrentLocation = findViewById(R.id.tv_tour_name); // Usar como placeholder
-        tvLocationTime = findViewById(R.id.tv_current_time);
-        btnMarkLocation = findViewById(R.id.btn_center_location); // Reutilizar botón existente
-        rvLocationHistory = findViewById(R.id.rv_location_points);
-    }
-    
-    private void setupClickListeners() {
-        btnMarkLocation.setOnClickListener(v -> {
-            markCurrentLocation();
-        });
 
-        // cardCurrentLocation.setOnClickListener(v -> {
-        //     refreshCurrentLocation();
-        // });
-    }
-    
     private void setupRecyclerView() {
-        rvLocationHistory.setLayoutManager(new LinearLayoutManager(this));
-        rvLocationHistory.setAdapter(new ExampleLocationPointsAdapter());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        rvLocationPoints.setLayoutManager(layoutManager);
+        rvLocationPoints.setAdapter(new LocationPointsAdapter());
     }
-    
-    private void markCurrentLocation() {
-        // TODO: Obtener ubicación GPS actual y marcarla
-        Toast.makeText(this, "Ubicación marcada correctamente", Toast.LENGTH_SHORT).show();
+
+    private void loadTourData() {
+        String tourName = getIntent().getStringExtra("tour_name");
+        if (tourName != null) {
+            tvTourName.setText(tourName);
+        } else {
+            tvTourName.setText("City Tour Lima Centro");
+        }
         
-        // Simular actualización de ubicación
-        tvCurrentLocation.setText("Plaza de Armas, Cusco\n-13.5164, -71.9785");
-        tvLocationTime.setText("Última actualización: " + new java.util.Date().toString());
-    }
-    
-    private void refreshCurrentLocation() {
-        Toast.makeText(this, "Actualizando ubicación...", Toast.LENGTH_SHORT).show();
-        // TODO: Forzar actualización de ubicación GPS
-        markCurrentLocation();
-    }
-    
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-}
+        updateProgressCounter();
 
-// Adaptador con ejemplos de puntos del tour
-class ExampleLocationPointsAdapter extends RecyclerView.Adapter<ExampleLocationPointsAdapter.ViewHolder> {
-
-    @Override
-    public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
-        android.view.View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_location_point, parent, false);
-        return new ViewHolder(view);
+        btnCenterLocation.setOnClickListener(v -> {
+            android.widget.Toast.makeText(this, 
+                "Centrando en tu ubicación actual", 
+                android.widget.Toast.LENGTH_SHORT).show();
+        });
     }
 
-    @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
-        android.view.View item = holder.itemView;
-        TextView pointNumber = item.findViewById(R.id.tv_point_number);
-        TextView locationName = item.findViewById(R.id.tv_location_name);
-        TextView description = item.findViewById(R.id.tv_location_description);
-        TextView arrivalTime = item.findViewById(R.id.tv_arrival_time);
-        TextView duration = item.findViewById(R.id.tv_duration);
-        android.widget.Button btnRegister = item.findViewById(R.id.btn_register_arrival);
-        TextView statusCompleted = item.findViewById(R.id.tv_status_completed);
-        android.view.View statusIndicator = item.findViewById(R.id.view_status_indicator);
-
-        pointNumber.setText(String.valueOf(position + 1));
-
-        switch (position) {
-            case 0:
-                locationName.setText("Plaza de Armas");
-                description.setText("Centro histórico de Lima");
-                arrivalTime.setText("⏰ 10:15 AM");
-                duration.setText("• ⏱️ 30 min");
-                // Completado
-                btnRegister.setVisibility(android.view.View.GONE);
-                statusCompleted.setVisibility(android.view.View.VISIBLE);
-                statusIndicator.setBackgroundResource(R.drawable.circle_green);
-                break;
-            case 1:
-                locationName.setText("Catedral de Lima");
-                description.setText("Arquitectura colonial");
-                arrivalTime.setText("⏰ 10:45 AM");
-                duration.setText("• ⏱️ 45 min");
-                // Completado
-                btnRegister.setVisibility(android.view.View.GONE);
-                statusCompleted.setVisibility(android.view.View.VISIBLE);
-                statusIndicator.setBackgroundResource(R.drawable.circle_green);
-                break;
-            case 2:
-                locationName.setText("Palacio de Gobierno");
-                description.setText("Sede del poder ejecutivo");
-                arrivalTime.setText("⏰ 11:30 AM");
-                duration.setText("• ⏱️ 20 min");
-                // En progreso (actual)
-                btnRegister.setVisibility(android.view.View.VISIBLE);
-                statusCompleted.setVisibility(android.view.View.GONE);
-                statusIndicator.setBackgroundResource(R.drawable.circle_orange);
-                btnRegister.setText("Registrar");
-                btnRegister.setOnClickListener(v -> {
-                    android.widget.Toast.makeText(item.getContext(), "Llegada registrada: " + locationName.getText(), android.widget.Toast.LENGTH_SHORT).show();
-                });
-                break;
-            case 3:
-                locationName.setText("Balcones de Lima");
-                description.setText("Arquitectura virreinal");
-                arrivalTime.setText("⏰ 11:50 AM");
-                duration.setText("• ⏱️ 25 min");
-                // Pendiente
-                btnRegister.setVisibility(android.view.View.VISIBLE);
-                statusCompleted.setVisibility(android.view.View.GONE);
-                statusIndicator.setBackgroundResource(R.drawable.circle_light_gray);
-                btnRegister.setText("Pendiente");
-                btnRegister.setEnabled(false);
-                break;
+    private void updateProgressCounter() {
+        RecyclerView.Adapter adapter = rvLocationPoints.getAdapter();
+        if (adapter instanceof LocationPointsAdapter) {
+            LocationPointsAdapter locationAdapter = (LocationPointsAdapter) adapter;
+            int completed = locationAdapter.getCompletedCount();
+            int total = locationAdapter.getItemCount();
+            
+            tvTourProgress.setText("Punto " + completed + " de " + total + " • 6 participantes");
+            tvPointsCompleted.setText(completed + "/" + total + " completados");
         }
     }
 
-    @Override
-    public int getItemCount() {
-        return 4;
-    }
+    // Adapter for Location Points
+    private class LocationPointsAdapter extends RecyclerView.Adapter<LocationPointsAdapter.ViewHolder> {
+        
+        private final String[] pointNames = {
+                "Punto de Encuentro",
+                "Plaza de Armas",
+                "Catedral de Lima",
+                "Palacio de Gobierno"
+        };
+        private boolean[] pointCompleted = {
+                true,
+                true,
+                false,
+                false
+        };
+        private final String[] arrivalTimes = {
+                "09:00 AM",
+                "10:15 AM",
+                "--:--",
+                "--:--"
+        };
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        ViewHolder(android.view.View itemView) { super(itemView); }
+        @Override
+        public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
+            View view = getLayoutInflater().inflate(R.layout.item_location_point, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position) {
+            holder.tvPointNumber.setText(String.valueOf(position + 1));
+            holder.tvLocationName.setText(pointNames[position]);
+            holder.tvArrivalTime.setText("⏰ " + arrivalTimes[position]);
+
+            // Set status and button visibility
+            if (pointCompleted[position]) {
+                holder.tvLocationDescription.setText("COMPLETADO");
+                holder.tvLocationDescription.setTextColor(getColor(R.color.green));
+                holder.btnRegisterArrival.setVisibility(android.view.View.GONE);
+                holder.tvStatusCompleted.setVisibility(android.view.View.VISIBLE);
+            } else {
+                holder.tvLocationDescription.setText("PENDIENTE");
+                holder.tvLocationDescription.setTextColor(getColor(R.color.gray));
+                holder.btnRegisterArrival.setVisibility(android.view.View.VISIBLE);
+                holder.tvStatusCompleted.setVisibility(android.view.View.GONE);
+            }
+
+            // Register button click
+            holder.btnRegisterArrival.setOnClickListener(v -> {
+                pointCompleted[position] = true;
+                arrivalTimes[position] = new java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+                        .format(new java.util.Date());
+                notifyItemChanged(position);
+                
+                // Update progress counter
+                updateProgressCounter();
+                
+                android.widget.Toast.makeText(LocationTrackingActivity.this, 
+                    "Llegada registrada: " + pointNames[position], 
+                    android.widget.Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return pointNames.length;
+        }
+
+        public int getCompletedCount() {
+            int count = 0;
+            for (boolean completed : pointCompleted) {
+                if (completed) count++;
+            }
+            return count;
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvPointNumber, tvLocationName, tvLocationDescription, tvArrivalTime, tvStatusCompleted;
+            MaterialButton btnRegisterArrival;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                tvPointNumber = itemView.findViewById(R.id.tv_point_number);
+                tvLocationName = itemView.findViewById(R.id.tv_location_name);
+                tvLocationDescription = itemView.findViewById(R.id.tv_location_description);
+                tvArrivalTime = itemView.findViewById(R.id.tv_arrival_time);
+                tvStatusCompleted = itemView.findViewById(R.id.tv_status_completed);
+                btnRegisterArrival = itemView.findViewById(R.id.btn_register_arrival);
+            }
+        }
     }
 }

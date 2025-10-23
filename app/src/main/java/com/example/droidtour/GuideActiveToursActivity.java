@@ -2,251 +2,211 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.MenuItem;
-import android.widget.Toast;
-import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.chip.Chip;
 
 public class GuideActiveToursActivity extends AppCompatActivity {
 
-    private ChipGroup chipGroupFilter;
     private RecyclerView rvMyTours;
-    private MyToursAdapter toursAdapter;
+    private Chip chipTodas, chipEnProgreso, chipProgramados, chipCompletados;
+    private String currentFilter = "ALL";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide_active_tours);
 
-        setupToolbar();
         initializeViews();
-        setupChips();
-        setupRecycler();
-        loadToursForFilter("todas");
+        setupToolbar();
+        setupRecyclerView();
+        setupFilters();
+    }
+
+    private void initializeViews() {
+        rvMyTours = findViewById(R.id.rv_my_tours);
+        chipTodas = findViewById(R.id.chip_todas);
+        chipEnProgreso = findViewById(R.id.chip_en_progreso);
+        chipProgramados = findViewById(R.id.chip_programados);
+        chipCompletados = findViewById(R.id.chip_completados);
     }
     
     private void setupToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("Mis Tours");
-    }
-    
-    private void initializeViews() {
-        chipGroupFilter = findViewById(R.id.chip_group_filter);
-        rvMyTours = findViewById(R.id.rv_my_tours);
+        toolbar.setNavigationOnClickListener(v -> finish());
     }
 
-    private void setupChips() {
-        chipGroupFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
-            if (!checkedIds.isEmpty()) {
-                int checkedId = checkedIds.get(0);
-                String filterType = "";
+    private void setupRecyclerView() {
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        rvMyTours.setLayoutManager(layoutManager);
+        rvMyTours.setAdapter(new MyToursAdapter(currentFilter));
+    }
 
-                if (checkedId == R.id.chip_todas) {
-                    filterType = "todas";
-                } else if (checkedId == R.id.chip_en_progreso) {
-                    filterType = "en_progreso";
-                } else if (checkedId == R.id.chip_programados) {
-                    filterType = "programados";
-                } else if (checkedId == R.id.chip_completados) {
-                    filterType = "completados";
-                }
-
-                loadToursForFilter(filterType);
-            }
+    private void setupFilters() {
+        chipTodas.setChecked(true);
+        
+        chipTodas.setOnClickListener(v -> {
+            currentFilter = "ALL";
+            refreshList();
+        });
+        
+        chipEnProgreso.setOnClickListener(v -> {
+            currentFilter = "IN_PROGRESS";
+            refreshList();
+        });
+        
+        chipProgramados.setOnClickListener(v -> {
+            currentFilter = "SCHEDULED";
+            refreshList();
+        });
+        
+        chipCompletados.setOnClickListener(v -> {
+            currentFilter = "COMPLETED";
+            refreshList();
         });
     }
 
-    private void setupRecycler() {
-        rvMyTours.setLayoutManager(new LinearLayoutManager(this));
-        toursAdapter = new MyToursAdapter(this::openTourMap);
-        rvMyTours.setAdapter(toursAdapter);
+    private void refreshList() {
+        rvMyTours.setAdapter(new MyToursAdapter(currentFilter));
     }
 
-    private void loadToursForFilter(String filterType) {
-        Toast.makeText(this, "Cargando tours " + filterType + "...", Toast.LENGTH_SHORT).show();
-        toursAdapter.setFilter(filterType);
-        toursAdapter.notifyDataSetChanged();
-    }
-
-    private void openTourMap(String tourName, String location) {
-        Intent intent = new Intent(this, TourMapActivity.class);
-        intent.putExtra("TOUR_NAME", tourName);
-        intent.putExtra("LOCATION", location);
-        startActivity(intent);
-    }
-    
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-}
-
-// Clase para representar un tour
-class Tour {
-    String name, company, date, time, participants, status, progress, amount, location, currentLocation;
-    int statusOrder; // Para ordenamiento: 1=En progreso, 2=Programado, 3=Completado
-
-    Tour(String name, String company, String date, String time, String participants,
-         String status, String progress, String amount, String location, String currentLocation, int statusOrder) {
-        this.name = name;
-        this.company = company;
-        this.date = date;
-        this.time = time;
-        this.participants = participants;
-        this.status = status;
-        this.progress = progress;
-        this.amount = amount;
-        this.location = location;
-        this.currentLocation = currentLocation;
-        this.statusOrder = statusOrder;
-    }
-}
-
-// Adaptador para tours del guía
-class MyToursAdapter extends RecyclerView.Adapter<MyToursAdapter.ViewHolder> {
-    interface OnTourMapClick { void onClick(String tourName, String location); }
-
-    private final OnTourMapClick onTourMapClick;
-    private String currentFilter = "todas";
-    private final Tour[] allTours;
-    private java.util.List<Tour> filteredTours;
-
-    MyToursAdapter(OnTourMapClick listener) {
-        this.onTourMapClick = listener;
-
-        // Datos mock de tours
-        this.allTours = new Tour[] {
-            new Tour("City Tour Lima Centro Histórico", "Inka Travel Peru", "Hoy, 15 Dic", "09:30 - 12:30",
-                    "6 personas", "En progreso", "Punto 2 de 4", "S/. 200", "Plaza de Armas, Lima", "Plaza de Armas", 1),
-            new Tour("Barranco & Miraflores", "Lima Adventure", "Mañana, 16 Dic", "08:00 - 12:00",
-                    "10 personas", "Programado", "Inicio 08:00", "S/. 180", "Malecón de Miraflores, Lima", "Malecón de Miraflores", 2),
-            new Tour("Valle Sagrado Express", "Cusco Heritage", "Ayer, 14 Dic", "14:00 - 19:00",
-                    "8 personas", "Completado", "Finalizado", "S/. 250", "Ollantaytambo, Cusco", "Ollantaytambo", 3),
-            new Tour("Tour Gastronómico", "Lima Food Tours", "Hoy, 15 Dic", "18:00 - 21:00",
-                    "4 personas", "Programado", "Inicio 18:00", "S/. 120", "Miraflores, Lima", "Miraflores", 2),
-            new Tour("Circuito Mágico del Agua", "Water Tours", "Ayer, 14 Dic", "19:00 - 21:00",
-                    "12 personas", "Completado", "Finalizado", "S/. 80", "Parque de la Reserva, Lima", "Parque de la Reserva", 3)
+    // Adapter for My Tours
+    private class MyToursAdapter extends RecyclerView.Adapter<MyToursAdapter.ViewHolder> {
+        
+        private final String[] allTourNames = {
+                "City Tour Lima Centro Histórico",
+                "Cusco Mágico Full Day",
+                "Paracas y Huacachina"
         };
-
-        updateFilteredTours();
-    }
-
-    public void setFilter(String filter) {
-        this.currentFilter = filter;
-        updateFilteredTours();
-    }
-
-    private void updateFilteredTours() {
-        if (currentFilter.equals("todas")) {
-            // Mostrar todos, ordenados por estado: En progreso, Programado, Completado
-            filteredTours = java.util.Arrays.asList(allTours);
-            filteredTours.sort((t1, t2) -> Integer.compare(t1.statusOrder, t2.statusOrder));
-        } else {
-            filteredTours = new java.util.ArrayList<>();
-            for (Tour tour : allTours) {
-                boolean matches = false;
-                switch (currentFilter) {
-                    case "en_progreso":
-                        matches = tour.status.equals("En progreso");
-                        break;
-                    case "programados":
-                        matches = tour.status.equals("Programado");
-                        break;
-                    case "completados":
-                        matches = tour.status.equals("Completado");
-                        break;
-                }
-                if (matches) {
-                    filteredTours.add(tour);
-                }
+        private final String[] allDates = {
+                "Hoy, 15 Dic",
+                "Mañana, 16 Dic",
+                "20 Dic, 2024"
+        };
+        private final String[] allTimes = {
+                "09:00 - 13:00",
+                "08:00 - 16:00",
+                "07:00 - 19:00"
+        };
+        private final String[] allStatuses = {
+                "EN PROGRESO",
+                "PROGRAMADO",
+                "PROGRAMADO"
+        };
+        private final String[] allProgress = {
+                "Punto 2 de 4",
+                "Próximo",
+                "Próximo"
+        };
+        private final String[] allCurrentLocations = {
+                "Plaza de Armas",
+                "Por iniciar",
+                "Por iniciar"
+        };
+        private final double[] allPayments = {180.0, 250.0, 450.0};
+        private final int[] allParticipants = {6, 12, 6};
+        
+        private java.util.List<Integer> filteredIndices;
+        
+        MyToursAdapter(String filter) {
+            filteredIndices = new java.util.ArrayList<>();
+            for (int i = 0; i < allTourNames.length; i++) {
+                if (filter.equals("ALL")) {
+                    filteredIndices.add(i);
+                } else if (filter.equals("IN_PROGRESS") && allStatuses[i].equals("EN PROGRESO")) {
+                    filteredIndices.add(i);
+                } else if (filter.equals("SCHEDULED") && allStatuses[i].equals("PROGRAMADO")) {
+                    filteredIndices.add(i);
+                } else if (filter.equals("COMPLETED") && allStatuses[i].equals("COMPLETADO")) {
+                    filteredIndices.add(i);
             }
         }
     }
 
     @Override
     public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
-        android.view.View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_guide_active_tour, parent, false);
+            View view = getLayoutInflater().inflate(R.layout.item_guide_active_tour, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        Tour tour = filteredTours.get(position);
-        android.view.View item = holder.itemView;
+            int actualIndex = filteredIndices.get(position);
+            
+            holder.tvTourName.setText(allTourNames[actualIndex]);
+            holder.tvTourDate.setText(allDates[actualIndex]);
+            holder.tvTourTime.setText(allTimes[actualIndex]);
+            holder.tvTourStatus.setText(allStatuses[actualIndex]);
+            holder.tvTourProgress.setText(allProgress[actualIndex]);
+            holder.tvCurrentLocation.setText(allCurrentLocations[actualIndex]);
+            holder.tvPaymentAmount.setText(String.format("S/. %.0f", allPayments[actualIndex]));
+            holder.tvParticipantsCount.setText(allParticipants[actualIndex] + " personas");
 
-        android.widget.TextView name = item.findViewById(R.id.tv_tour_name);
-        android.widget.TextView date = item.findViewById(R.id.tv_tour_date);
-        android.widget.TextView time = item.findViewById(R.id.tv_tour_time);
-        android.widget.TextView participants = item.findViewById(R.id.tv_participants_count);
-        android.widget.TextView status = item.findViewById(R.id.tv_tour_status);
-        android.widget.TextView progress = item.findViewById(R.id.tv_tour_progress);
-        android.widget.TextView amount = item.findViewById(R.id.tv_payment_amount);
-        android.widget.TextView currentLocation = item.findViewById(R.id.tv_current_location);
-        android.view.View fabScan = item.findViewById(R.id.fab_scan_qr);
-        android.widget.Button btnViewMap = item.findViewById(R.id.btn_view_map);
-        android.widget.Button btnRegisterLocation = item.findViewById(R.id.btn_register_location);
+            // Show/hide buttons based on tour status
+            boolean isInProgress = allStatuses[actualIndex].equals("EN PROGRESO");
+            holder.fabScanQR.setVisibility(isInProgress ? android.view.View.VISIBLE : android.view.View.GONE);
+            holder.btnRegisterLocation.setVisibility(isInProgress ? android.view.View.VISIBLE : android.view.View.GONE);
 
-        // Configurar datos del tour
-        name.setText(tour.company + " - " + tour.name);
-        date.setText(tour.date);
-        time.setText(tour.time);
-        participants.setText(tour.participants);
-        status.setText(tour.status.toUpperCase());
-        progress.setText(tour.progress);
-        amount.setText(tour.amount);
-        currentLocation.setText(tour.currentLocation);
+            // Handle button clicks - Ver Mapa abre vista simplificada
+            holder.btnViewMap.setOnClickListener(v -> {
+                android.widget.Toast.makeText(GuideActiveToursActivity.this, 
+                    "Ver Mapa: " + allTourNames[actualIndex], 
+                    android.widget.Toast.LENGTH_SHORT).show();
+                // TODO: Abrir vista de mapa simplificada
+            });
 
-        // Configurar botones según el estado
-        if (tour.status.equals("En progreso")) {
-            btnRegisterLocation.setVisibility(android.view.View.VISIBLE);
-            btnRegisterLocation.setText("Registrar Llegada");
-        } else if (tour.status.equals("Programado")) {
-            btnRegisterLocation.setVisibility(android.view.View.VISIBLE);
-            btnRegisterLocation.setText("Comenzar Tour");
-        } else if (tour.status.equals("Completado")) {
-            btnRegisterLocation.setVisibility(android.view.View.GONE);
-        }
+            holder.btnRegisterLocation.setOnClickListener(v -> {
+                Intent intent = new Intent(GuideActiveToursActivity.this, LocationTrackingActivity.class);
+                intent.putExtra("tour_name", allTourNames[actualIndex]);
+                intent.putExtra("register_mode", true);
+                startActivity(intent);
+            });
 
-        // Configurar botón "Ver Mapa"
-        btnViewMap.setOnClickListener(v -> onTourMapClick.onClick(tour.company + " - " + tour.name, tour.location));
+            holder.fabScanQR.setOnClickListener(v -> {
+                Intent intent = new Intent(GuideActiveToursActivity.this, QRScannerActivity.class);
+                intent.putExtra("tour_name", allTourNames[actualIndex]);
+                startActivity(intent);
+            });
 
-        // Configurar botón de registrar/comenzar
-        btnRegisterLocation.setOnClickListener(v -> {
-            if (tour.status.equals("En progreso")) {
-                // Redirigir a LocationTrackingActivity
-                android.content.Intent intent = new android.content.Intent(v.getContext(), LocationTrackingActivity.class);
-                intent.putExtra("TOUR_NAME", tour.company + " - " + tour.name);
-                intent.putExtra("TOUR_PROGRESS", tour.progress);
-                v.getContext().startActivity(intent);
-            } else if (tour.status.equals("Programado")) {
-                android.widget.Toast.makeText(v.getContext(), "Comenzando tour...", android.widget.Toast.LENGTH_SHORT).show();
-            }
-        });
-
-        // Configurar botón de escanear QR
-        fabScan.setOnClickListener(v -> {
-            android.content.Intent i = new android.content.Intent(item.getContext(), QRScannerActivity.class);
-            item.getContext().startActivity(i);
+            // Make the whole item clickable for details
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(GuideActiveToursActivity.this, GuideActiveTourDetailActivity.class);
+                intent.putExtra("tour_name", allTourNames[actualIndex]);
+                intent.putExtra("payment", allPayments[actualIndex]);
+                startActivity(intent);
         });
     }
 
     @Override
     public int getItemCount() {
-        return filteredTours.size();
-    }
+            return filteredIndices.size();
+        }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        ViewHolder(android.view.View itemView) { super(itemView); }
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvTourName, tvTourDate, tvTourTime, tvTourStatus, tvTourProgress,
+                    tvCurrentLocation, tvPaymentAmount, tvParticipantsCount;
+            com.google.android.material.button.MaterialButton btnViewMap, btnRegisterLocation;
+            com.google.android.material.floatingactionbutton.FloatingActionButton fabScanQR;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                tvTourName = itemView.findViewById(R.id.tv_tour_name);
+                tvTourDate = itemView.findViewById(R.id.tv_tour_date);
+                tvTourTime = itemView.findViewById(R.id.tv_tour_time);
+                tvTourStatus = itemView.findViewById(R.id.tv_tour_status);
+                tvTourProgress = itemView.findViewById(R.id.tv_tour_progress);
+                tvCurrentLocation = itemView.findViewById(R.id.tv_current_location);
+                tvPaymentAmount = itemView.findViewById(R.id.tv_payment_amount);
+                tvParticipantsCount = itemView.findViewById(R.id.tv_participants_count);
+                btnViewMap = itemView.findViewById(R.id.btn_view_map);
+                btnRegisterLocation = itemView.findViewById(R.id.btn_register_location);
+                fabScanQR = itemView.findViewById(R.id.fab_scan_qr);
+            }
+        }
     }
 }

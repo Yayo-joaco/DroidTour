@@ -85,15 +85,6 @@
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_accepted"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Aceptadas"
-                        android:checkable="true"
-                        app:checkedIconVisible="true" />
-
-                    <com.google.android.material.chip.Chip
                         android:id="@+id/chip_rejected"
                         style="@style/Widget.Material3.Chip.Filter"
                         android:layout_width="wrap_content"

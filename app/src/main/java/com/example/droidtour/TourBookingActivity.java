@@ -6,6 +6,8 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.utils.NotificationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -19,11 +21,19 @@ public class TourBookingActivity extends AppCompatActivity {
     
     private String tourName, companyName;
     private double pricePerPerson;
+    
+    // Storage Local
+    private DatabaseHelper dbHelper;
+    private NotificationHelper notificationHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_booking);
+
+        // Inicializar Storage Local
+        dbHelper = new DatabaseHelper(this);
+        notificationHelper = new NotificationHelper(this);
 
         getIntentData();
         setupToolbar();
@@ -103,16 +113,43 @@ public class TourBookingActivity extends AppCompatActivity {
     }
 
     private void confirmBooking() {
-        String participants = etParticipants.getText().toString().trim();
+        String participantsText = etParticipants.getText().toString().trim();
+        String dateText = etTourDate.getText().toString().trim();
         String comments = etComments.getText().toString().trim();
         
-        if (participants.isEmpty()) {
+        // Validaciones
+        if (participantsText.isEmpty()) {
             Toast.makeText(this, "Por favor ingresa el número de personas", Toast.LENGTH_SHORT).show();
             return;
         }
         
-        // TODO: Procesar reserva real
-        Toast.makeText(this, "¡Reserva confirmada! Redirigiendo a Mis Reservas...", Toast.LENGTH_LONG).show();
+        if (dateText.isEmpty()) {
+            dateText = "28 Oct"; // Fecha por defecto
+        }
+        
+        // Calcular datos de la reserva
+        int participants = Integer.parseInt(participantsText);
+        double totalPrice = pricePerPerson * participants;
+        String qrCode = "QR-" + System.currentTimeMillis(); // Código QR único
+        
+        // ✅ GUARDAR EN BASE DE DATOS
+        long reservationId = dbHelper.addReservation(
+            tourName,           // nombre del tour
+            companyName,        // empresa
+            dateText,           // fecha
+            "09:00 AM",         // hora por defecto
+            "CONFIRMADA",       // estado
+            totalPrice,         // precio total
+            participants,       // número de personas
+            qrCode              // código QR
+        );
+        
+        // ✅ ENVIAR NOTIFICACIONES
+        notificationHelper.sendReservationConfirmedNotification(tourName, dateText, qrCode);
+        notificationHelper.sendPaymentConfirmedNotification(tourName, totalPrice);
+        
+        // Mostrar mensaje de éxito
+        Toast.makeText(this, "¡Reserva confirmada! Código: " + qrCode, Toast.LENGTH_LONG).show();
         
         // Navegar a Mis Reservas
         Intent intent = new Intent(this, MyReservationsActivity.class);

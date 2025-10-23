@@ -10,9 +10,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.droidtour.database.DatabaseHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
+import java.util.List;
 
 public class MyReservationsActivity extends AppCompatActivity {
     
@@ -20,17 +22,35 @@ public class MyReservationsActivity extends AppCompatActivity {
     private ReservationsAdapter reservationsAdapter;
     private ChipGroup chipGroupFilter;
     private TextView tvTotalReservations, tvActiveReservations, tvTotalSpent;
+    
+    // Storage Local
+    private DatabaseHelper dbHelper;
+    private List<DatabaseHelper.Reservation> allReservations;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_reservations);
 
+        // Inicializar Storage Local
+        dbHelper = new DatabaseHelper(this);
+        
         setupToolbar();
         initializeViews();
+        loadReservationsFromDatabase();
         setupSummaryData();
         setupRecyclerView();
         setupFilters();
+    }
+    
+    private void loadReservationsFromDatabase() {
+        // ✅ CARGAR RESERVAS DE LA BASE DE DATOS
+        allReservations = dbHelper.getAllReservations();
+        
+        // Si no hay reservas, mostrar mensaje
+        if (allReservations.isEmpty()) {
+            Toast.makeText(this, "No tienes reservas aún", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void setupToolbar() {
@@ -51,14 +71,30 @@ public class MyReservationsActivity extends AppCompatActivity {
     }
 
     private void setupSummaryData() {
-        tvTotalReservations.setText("Total de reservas: 8");
-        tvActiveReservations.setText("Activas: 2 • Completadas: 6");
-        tvTotalSpent.setText("S/. 680");
+        // ✅ CALCULAR ESTADÍSTICAS DESDE LA BASE DE DATOS
+        int totalReservations = allReservations.size();
+        int activeCount = 0;
+        int completedCount = 0;
+        double totalSpent = 0.0;
+        
+        for (DatabaseHelper.Reservation res : allReservations) {
+            if (res.getStatus().equals("CONFIRMADA")) {
+                activeCount++;
+            } else if (res.getStatus().equals("COMPLETADA")) {
+                completedCount++;
+            }
+            totalSpent += res.getPrice();
+        }
+        
+        tvTotalReservations.setText("Total de reservas: " + totalReservations);
+        tvActiveReservations.setText("Activas: " + activeCount + " • Completadas: " + completedCount);
+        tvTotalSpent.setText("S/. " + String.format("%.0f", totalSpent));
     }
 
     private void setupRecyclerView() {
         rvReservations.setLayoutManager(new LinearLayoutManager(this));
-        reservationsAdapter = new ReservationsAdapter(this::onReservationClick);
+        // ✅ PASAR LAS RESERVAS DE LA BASE DE DATOS AL ADAPTADOR
+        reservationsAdapter = new ReservationsAdapter(allReservations, this::onReservationClick);
         rvReservations.setAdapter(reservationsAdapter);
     }
 
@@ -122,8 +158,10 @@ public class MyReservationsActivity extends AppCompatActivity {
 class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewHolder> {
     interface OnReservationClick { void onClick(int position); }
     private final OnReservationClick onReservationClick;
+    private final List<DatabaseHelper.Reservation> reservations;
     
-    ReservationsAdapter(OnReservationClick listener) { 
+    ReservationsAdapter(List<DatabaseHelper.Reservation> reservations, OnReservationClick listener) { 
+        this.reservations = reservations;
         this.onReservationClick = listener; 
     }
 
@@ -136,6 +174,9 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
+        // ✅ OBTENER RESERVA DE LA BASE DE DATOS
+        DatabaseHelper.Reservation reservation = reservations.get(position);
+        
         TextView tourName = holder.itemView.findViewById(R.id.tv_tour_name);
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
         TextView tourDate = holder.itemView.findViewById(R.id.tv_tour_date);
@@ -152,40 +193,20 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
         MaterialButton btnRateTour = holder.itemView.findViewById(R.id.btn_rate_tour);
         android.view.View layoutQRSection = holder.itemView.findViewById(R.id.layout_qr_section);
 
-        String[] tourNames = {
-            "City Tour Lima Centro Histórico",
-            "Machu Picchu Full Day",
-            "Islas Ballestas y Paracas",
-            "Cañón del Colca 2D/1N"
-        };
-        
-        String[] companyNames = {
-            "Lima Adventure Tours",
-            "Cusco Explorer",
-            "Paracas Tours",
-            "Arequipa Adventures"
-        };
-        
-        String[] dates = {"15 Dic, 2024", "18 Dic, 2024", "20 Dic, 2024", "22 Dic, 2024"};
-        String[] times = {"09:00 AM", "06:00 AM", "08:00 AM", "07:30 AM"};
-        String[] amounts = {"S/. 170.00", "S/. 360.00", "S/. 130.00", "S/. 240.00"};
-        String[] codes = {"#DT2024001", "#DT2024002", "#DT2024003", "#DT2024004"};
-
-        int index = position % tourNames.length;
-        
-        tourName.setText(tourNames[index]);
-        companyName.setText(companyNames[index]);
-        tourDate.setText(dates[index]);
-        tourTime.setText(times[index]);
-        participants.setText("2 personas");
+        // ✅ USAR DATOS DE LA RESERVA
+        tourName.setText(reservation.getTourName());
+        companyName.setText(reservation.getCompany());
+        tourDate.setText(reservation.getDate());
+        tourTime.setText(reservation.getTime());
+        participants.setText(reservation.getPeople() + " personas");
         paymentMethod.setText("Visa ****1234");
-        totalAmount.setText(amounts[index]);
-        reservationCode.setText("Código: " + codes[index]);
-        reservationDate.setText(dates[index].substring(0, 6));
+        totalAmount.setText("S/. " + String.format("%.2f", reservation.getPrice()));
+        reservationCode.setText("Código: " + reservation.getQrCode());
+        reservationDate.setText(reservation.getDate());
         
-        // Set status and button visibility based on position
-        boolean isCompleted = (position >= 2); // Positions 2 and 3 are completed
-        boolean isConfirmed = (position < 2);   // Positions 0 and 1 are confirmed
+        // Set status and button visibility based on status from database
+        boolean isCompleted = reservation.getStatus().equals("COMPLETADA");
+        boolean isConfirmed = reservation.getStatus().equals("CONFIRMADA");
         
         if (isCompleted) {
             reservationStatus.setText("COMPLETADA");
@@ -207,38 +228,39 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
             btnRateTour.setVisibility(android.view.View.GONE);
         }
 
-        // Button click listeners
+        // Button click listeners - ✅ USAR DATOS DE LA RESERVA
         btnViewQR.setOnClickListener(v -> {
             // Only for confirmed tours - go to QR codes
             Intent intent = new Intent(v.getContext(), ClientQRCodesActivity.class);
-            intent.putExtra("reservation_id", position);
-            intent.putExtra("tour_name", tourNames[index]);
-            intent.putExtra("company_name", companyNames[index]);
+            intent.putExtra("reservation_id", reservation.getId());
+            intent.putExtra("tour_name", reservation.getTourName());
+            intent.putExtra("company_name", reservation.getCompany());
+            intent.putExtra("qr_code", reservation.getQrCode());
             v.getContext().startActivity(intent);
         });
         
         btnContactCompany.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), CompanyChatActivity.class);
-            intent.putExtra("company_name", companyNames[index]);
-            intent.putExtra("tour_name", tourNames[index]);
+            intent.putExtra("company_name", reservation.getCompany());
+            intent.putExtra("tour_name", reservation.getTourName());
             v.getContext().startActivity(intent);
         });
         
         btnViewDetails.setOnClickListener(v -> {
             // Always go to tour details
             Intent intent = new Intent(v.getContext(), TourDetailActivity.class);
-            intent.putExtra("tour_id", position);
-            intent.putExtra("tour_name", tourNames[index]);
-            intent.putExtra("company_name", companyNames[index]);
-            intent.putExtra("price", 85.0 + (position * 30)); // Different prices
+            intent.putExtra("tour_id", reservation.getId());
+            intent.putExtra("tour_name", reservation.getTourName());
+            intent.putExtra("company_name", reservation.getCompany());
+            intent.putExtra("price", reservation.getPrice() / reservation.getPeople()); // Price per person
             v.getContext().startActivity(intent);
         });
         
         btnRateTour.setOnClickListener(v -> {
             // Only for completed tours - go to rating
             Intent intent = new Intent(v.getContext(), TourRatingActivity.class);
-            intent.putExtra("tour_name", tourNames[index]);
-            intent.putExtra("company_name", companyNames[index]);
+            intent.putExtra("tour_name", reservation.getTourName());
+            intent.putExtra("company_name", reservation.getCompany());
             v.getContext().startActivity(intent);
         });
         
@@ -247,7 +269,10 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
     }
 
     @Override
-    public int getItemCount() { return 4; }
+    public int getItemCount() { 
+        // ✅ RETORNAR EL NÚMERO REAL DE RESERVAS
+        return reservations.size(); 
+    }
 
     static class ViewHolder extends RecyclerView.ViewHolder { 
         ViewHolder(android.view.View v) { super(v); } 

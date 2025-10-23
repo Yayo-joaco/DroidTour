@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
@@ -10,23 +11,63 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- Toolbar -->
+        <!-- Toolbar - MISMO ESTILO QUE TU DISEÑO ORIGINAL -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/primary"
-            app:title="@string/superadmin"
+            app:title="DroidTour"
+            app:titleTextAppearance="@style/Toolbar.TitleText2"
+            app:titleCentered="true"
             app:titleTextColor="@color/white"
+            app:menu="@menu/top_app_bar_general"
             app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+
+
+        </com.google.android.material.appbar.MaterialToolbar>
+
+        <!-- Tabs para diferentes períodos -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tab_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/primary"
+            app:tabTextColor="@color/white"
+            app:tabSelectedTextColor="@color/white"
+            app:tabIndicatorColor="@color/white"
+            app:tabMode="fixed"
+            app:tabGravity="fill"
+            app:layout_constraintTop_toBottomOf="@id/toolbar">
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hoy" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Semana" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mes" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Año" />
+
+        </com.google.android.material.tabs.TabLayout>
 
         <!-- Dashboard Cards -->
         <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:padding="16dp"
-            app:layout_constraintTop_toBottomOf="@id/toolbar"
+            app:layout_constraintTop_toBottomOf="@id/tab_layout"
             app:layout_constraintBottom_toBottomOf="parent">
 
             <LinearLayout
@@ -34,16 +75,247 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <!-- User Management Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_user_management"
+                <!-- ===== TUS CARDS ORIGINALES ===== -->
+
+
+                <!-- ===== SEPARADOR VISUAL ===== -->
+                <View
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
+                    android:layout_height="1dp"
+                    android:background="@color/gray"
+                    android:alpha="0.3"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="📊 Analytics Dashboard"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:gravity="center"
+                    android:layout_marginBottom="24dp" />
+
+                <!-- ===== CONTENIDO DE ANALYTICS ===== -->
+
+                <!-- KPI Cards - adaptadas a tu estilo -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:layout_marginBottom="16dp">
+
+                    <!-- Total Usuarios -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center"
+                            android:background="@color/primary">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_people_24"
+                                android:tint="@color/white"
+                                android:layout_marginBottom="8dp" />
+
+                            <TextView
+                                android:id="@+id/tv_total_users"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="1,247"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Total Usuarios"
+                                android:textSize="11sp"
+                                android:textColor="@color/white"
+                                android:alpha="0.8" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Tours Activos -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center"
+                            android:background="@color/green">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_tour_24"
+                                android:tint="@color/white"
+                                android:layout_marginBottom="8dp" />
+
+                            <TextView
+                                android:id="@+id/tv_active_tours"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="23"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tours Activos"
+                                android:textSize="11sp"
+                                android:textColor="@color/white"
+                                android:alpha="0.8" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+                <!-- Ingresos y Reservas -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:paddingHorizontal="16dp">
+
+                    <!-- Ingresos -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center"
+                            android:background="@color/orange">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_attach_money_24"
+                                android:tint="@color/white"
+                                android:layout_marginBottom="8dp" />
+
+                            <TextView
+                                android:id="@+id/tv_revenue"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S/ 45,250"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Ingresos"
+                                android:textSize="11sp"
+                                android:textColor="@color/white"
+                                android:alpha="0.8" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Reservas -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="120dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:padding="16dp"
+                            android:gravity="center"
+                            android:background="@color/gray">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_book_24"
+                                android:tint="@color/white"
+                                android:layout_marginBottom="8dp" />
+
+                            <TextView
+                                android:id="@+id/tv_bookings"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="156"
+                                android:textSize="20sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/white" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Reservas"
+                                android:textSize="11sp"
+                                android:textColor="@color/white"
+                                android:alpha="0.8" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                </LinearLayout>
+
+                <!-- Gráfico de Ingresos - CON TU ESTILO DE CARD -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="280dp"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="4dp"
                     android:clickable="true"
-                    android:focusable="true">
+                    android:focusable="true"
+                    android:layout_marginHorizontal="16dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -52,15 +324,11 @@
                         android:padding="16dp"
                         android:gravity="center_vertical">
 
-                        <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_manage"
-                            android:tint="@color/primary" />
+
 
                         <LinearLayout
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:layout_weight="1"
                             android:layout_marginStart="16dp"
                             android:orientation="vertical">
@@ -68,41 +336,34 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/user_management"
+                                android:text="Ingresos Mensuales"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/black" />
+                                android:textColor="@color/black"
+                                android:layout_marginBottom="8dp" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Gestionar usuarios del sistema"
-                                android:textSize="14sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="4dp" />
+                            <com.github.mikephil.charting.charts.LineChart
+                                android:id="@+id/line_chart_revenue"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
 
                         </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
 
                     </LinearLayout>
 
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Reports Card -->
+                <!-- Gráfico de Distribución de Tours -->
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_reports"
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
+                    android:layout_height="280dp"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="4dp"
                     android:clickable="true"
-                    android:focusable="true">
+                    android:focusable="true"
+                    android:layout_marginHorizontal="16dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -111,15 +372,11 @@
                         android:padding="16dp"
                         android:gravity="center_vertical">
 
-                        <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_report_image"
-                            android:tint="@color/green" />
+
 
                         <LinearLayout
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:layout_weight="1"
                             android:layout_marginStart="16dp"
                             android:orientation="vertical">
@@ -127,41 +384,34 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/tour_reports"
+                                android:text="Tours por Categoría"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/black" />
+                                android:textColor="@color/black"
+                                android:layout_marginBottom="8dp" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Ver reportes de reservas"
-                                android:textSize="14sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="4dp" />
+                            <com.github.mikephil.charting.charts.PieChart
+                                android:id="@+id/pie_chart_tours"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
 
                         </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
 
                     </LinearLayout>
 
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- System Logs Card -->
+                <!-- Gráfico de Barras - Reservas por Mes -->
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_logs"
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
+                    android:layout_height="280dp"
                     android:layout_marginBottom="16dp"
                     app:cardCornerRadius="12dp"
                     app:cardElevation="4dp"
                     android:clickable="true"
-                    android:focusable="true">
+                    android:focusable="true"
+                    android:layout_marginHorizontal="16dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -170,15 +420,11 @@
                         android:padding="16dp"
                         android:gravity="center_vertical">
 
-                        <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_info_details"
-                            android:tint="@color/orange" />
+
 
                         <LinearLayout
                             android:layout_width="0dp"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:layout_weight="1"
                             android:layout_marginStart="16dp"
                             android:orientation="vertical">
@@ -186,26 +432,19 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/system_logs"
+                                android:text="Reservas por Mes"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/black" />
+                                android:textColor="@color/black"
+                                android:layout_marginBottom="8dp" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Ver logs del sistema"
-                                android:textSize="14sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="4dp" />
+                            <com.github.mikephil.charting.charts.BarChart
+                                android:id="@+id/bar_chart_bookings"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
 
                         </LinearLayout>
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
 
                     </LinearLayout>
 
@@ -214,15 +453,40 @@
             </LinearLayout>
 
         </ScrollView>
+        <!-- FAB para exportar reportes - POSICIONADO CORRECTAMENTE -->
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/fab_export"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:text="Exportar"
+            android:textColor="@color/white"
+            app:icon="@drawable/ic_download_24"
+            app:backgroundTint="@color/primary"
+            app:iconTint="@color/white"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Navigation Drawer -->
+    <!-- Navigation Drawer - MANTENGO TU DRAWER ORIGINAL -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
+        android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        app:menu="@menu/superadmin_nav_menu" />
+        android:fitsSystemWindows="true"
+        app:menu="@menu/superadmin_nav_menu"
+        app:headerLayout="@layout/nav_header_superadmin_neotest"
+        app:itemIconTint="?attr/colorOnSurfaceVariant"
+        app:itemTextColor="?attr/colorOnSurface"
+        app:itemShapeInsetStart="16dp"
+        app:itemShapeInsetEnd="16dp"
+        app:itemVerticalPadding="12dp"
+        app:dividerInsetStart="16dp"
+        app:dividerInsetEnd="16dp" />
+
+
 
 </androidx.drawerlayout.widget.DrawerLayout>

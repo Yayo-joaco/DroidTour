@@ -2,41 +2,33 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    style="@android:style/Widget.DeviceDefault.Light.ScrollView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/light_gray"
-    android:id="@+id/main" >
+    android:id="@+id/main">
 
+    <!-- Logo centrado arriba -->
+
+    <!-- ScrollView para el contenido principal -->
     <ImageView
         android:id="@+id/imageninit"
-        android:layout_width="421dp"
-        android:layout_height="483dp"
-        android:src="@drawable/head"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="-100dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/mensaje1"
-        app:layout_constraintVertical_bias="0.091" />
+        android:layout_width="456dp"
+        android:layout_height="487dp"
+        android:layout_gravity="top|center_horizontal"
+        android:contentDescription="@string/app_name"
+        android:src="@drawable/head" />
 
     <ScrollView
-        style="@android:style/Widget.DeviceDefault.Light.ScrollView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_marginTop="180dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="24dp">
 
-
-            <!-- Logo/Title -->
-
-            <!-- Login Form -->
-
+            <!-- Título de la app -->
             <TextView
                 android:id="@+id/tv_app_title"
                 android:layout_width="wrap_content"
@@ -46,23 +38,26 @@
                 android:textAppearance="@style/droidtour.white"
                 app:layout_constraintBottom_toTopOf="@+id/card_login"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.493"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginBottom="50dp" />
 
+            <!-- Card de login -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_login"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="50dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                tools:layout_editor_absoluteY="264dp">
+                app:layout_constraintTop_toBottomOf="@id/tv_app_title">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@color/white"
                     android:orientation="vertical"
                     android:padding="24dp">
 
@@ -71,13 +66,18 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="@string/email"
-                        app:startIconDrawable="@android:drawable/ic_dialog_email">
+                        app:startIconDrawable="@android:drawable/ic_dialog_email"
+                        app:hintTextColor="@color/primary"
+                        app:boxStrokeColor="@color/primary">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_email"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textEmailAddress" />
+                            android:inputType="textEmailAddress"
+                            app:hintTextColor="@color/primary"
+                            app:boxStrokeColor="@color/primary"
+                            />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -115,7 +115,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
                         android:layout_marginTop="24dp"
-
+                        android:backgroundTint="@color/primary"
                         android:text="@string/login"
                         android:textSize="16sp"
                         app:cornerRadius="8dp" />
@@ -124,7 +124,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Register Section -->
+            <!-- Sección de registro -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -150,7 +150,5 @@
             </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
-
-
     </ScrollView>
 </FrameLayout>

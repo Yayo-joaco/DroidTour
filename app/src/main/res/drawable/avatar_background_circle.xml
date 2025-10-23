@@ -1,0 +1,29 @@
+<!-- Archivo: res/drawable/avatar_background_circle.xml -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- Círculo blanco de fondo -->
+    <path
+        android:fillColor="@color/white"
+        android:pathData="M20,20m-20,0a20,20 0,1 1,40 0a20,20 0,1 1,-40 0" />
+
+    <!-- Borde gris sutil -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#E0E0E0"
+        android:strokeWidth="1"
+        android:pathData="M20,20m-19.5,0a19.5,19.5 0,1 1,39 0a19.5,19.5 0,1 1,-39 0" />
+
+    <!-- Icono de usuario centrado -->
+    <path
+        android:fillColor="#BDBDBD"
+        android:pathData="M20,12c2.21,0 4,-1.79 4,-4s-1.79,-4 -4,-4 -4,1.79 -4,4 1.79,4 4,4zM20,22c-2.67,0 -8,1.34 -8,4v2h16v-2c0,-2.66 -5.33,-4 -8,-4z"
+        android:translateX="8"
+        android:translateY="6"
+        android:scaleX="1.5"
+        android:scaleY="1.5"/>
+
+</vector>

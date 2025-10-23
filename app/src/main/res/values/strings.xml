@@ -86,4 +86,10 @@
     <string name="mensaje2">Reserva y gestiona tus tours de manera rápida y segura</string>
     <string name="mensaje3">¡Encuentra el tour perfecto para ti!</string>
     <string name="mensaje4">Animate a conocer el mundo, así como  puedes guiar a otros a conocerlo!</string>
+    <string name="DroidTour" />
+
+    <!-- Added for superadmin users layout -->
+    <string name="todos">Todos</string>
+    <string name="no_users">No hay usuarios</string>
+    <string name="no_users_image">Imagen estado vacío</string>
 </resources>

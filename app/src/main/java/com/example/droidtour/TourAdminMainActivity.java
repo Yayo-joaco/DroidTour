@@ -15,6 +15,9 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import android.widget.TextView;
+import android.widget.Toast;
+import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.FileManager;
 
 public class TourAdminMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     
@@ -22,11 +25,19 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     private ActionBarDrawerToggle toggle;
     private TextView tvPendingAlertsCount, tvActiveChatCount;
 
+    // Storage
+    private PreferencesManager prefsManager;
+    private FileManager fileManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_admin_main);
-        
+
+        // Inicializar storage
+        prefsManager = new PreferencesManager(this);
+        fileManager = new FileManager(this);
+
         setupToolbar();
         setupDrawer();
         setupCardClickListeners();
@@ -149,11 +160,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         } else if (id == R.id.nav_customer_chat) {
             startActivity(new Intent(this, AdminChatListActivity.class));
         } else if (id == R.id.nav_logout) {
-            // Implementar logout
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
+            performLogout();
         }
         
         drawerLayout.closeDrawers();
@@ -186,6 +193,28 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         }
     }
     
+    /**
+     * Realizar logout completo
+     */
+    private void performLogout() {
+        // 1. Limpiar SharedPreferences
+        prefsManager.logout();
+
+        // 2. Limpiar archivos de datos de usuario
+        if (fileManager != null) {
+            fileManager.limpiarDatosUsuario();
+        }
+
+        // 3. Mostrar mensaje de confirmación
+        Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
+
+        // 4. Redirigir al LoginActivity
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();

@@ -1,5 +1,6 @@
 package com.example.droidtour;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.Button;
@@ -7,9 +8,13 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
+import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.FileManager;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 public class GuideRegistrationActivity extends AppCompatActivity {
-    
+
     private TextInputEditText etFirstName;
     private TextInputEditText etLastName;
     private TextInputEditText etEmail;
@@ -20,18 +25,23 @@ public class GuideRegistrationActivity extends AppCompatActivity {
     // private TextInputEditText etSpecialties;
     private Button btnRegister;
     private Button btnCancel;
-    
+
     private boolean isEditMode = false;
+
+    // ==================== LOCAL STORAGE ====================
+    private PreferencesManager prefsManager;
+    private FileManager fileManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide_registration);
-        
+
         // Verificar si es modo edición
         String mode = getIntent().getStringExtra("mode");
         isEditMode = "edit_profile".equals(mode);
 
+        initializeLocalStorage();
         initializeViews();
         setupToolbar();
         setupClickListeners();
@@ -125,12 +135,100 @@ public class GuideRegistrationActivity extends AppCompatActivity {
     }
     
     private void saveGuideData() {
-        // TODO: Guardar datos del guía en base de datos
-        
-        String message = isEditMode ? "Perfil actualizado correctamente" : "Registro enviado para aprobación";
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-        
-        finish();
+        try {
+            // Obtener datos del formulario
+            String firstName = etFirstName.getText().toString().trim();
+            String lastName = etLastName.getText().toString().trim();
+            String email = etEmail.getText().toString().trim();
+            String phone = etPhone.getText().toString().trim();
+            String documentNumber = etDocumentNumber.getText().toString().trim();
+
+            // Generar ID único para el guía
+            String guideId = isEditMode ? prefsManager.getUserId() : "GUIDE_" + System.currentTimeMillis();
+            String fullName = firstName + " " + lastName;
+
+            if (!isEditMode) {
+                // 1. Guardar datos básicos en SharedPreferences (solo para registro nuevo)
+                prefsManager.saveUserData(guideId, fullName, email, phone, "GUIDE");
+                prefsManager.setGuideApproved(true); // Para demo, aprobamos automáticamente
+            }
+
+            // 2. Guardar datos completos en archivo JSON
+            JSONObject guideData = new JSONObject();
+            guideData.put("id", guideId);
+            guideData.put("firstName", firstName);
+            guideData.put("lastName", lastName);
+            guideData.put("fullName", fullName);
+            guideData.put("email", email);
+            guideData.put("phone", phone);
+            guideData.put("documentNumber", documentNumber);
+            guideData.put("userType", "GUIDE");
+            guideData.put("registrationDate", System.currentTimeMillis());
+            guideData.put("lastUpdateDate", System.currentTimeMillis());
+            guideData.put("status", "ACTIVE"); // Para demo, aprobamos automáticamente
+            guideData.put("approved", true);
+            guideData.put("rating", isEditMode ? 4.5 : 0.0);
+            guideData.put("toursCompleted", isEditMode ? 15 : 0);
+
+            // Datos específicos del guía
+            JSONObject guideSpecifics = new JSONObject();
+            guideSpecifics.put("experience", isEditMode ? "5 años de experiencia en turismo cultural" : "Nuevo guía");
+            guideSpecifics.put("languages", "Español, Inglés");
+            guideSpecifics.put("specialties", "Historia, Arqueología, Gastronomía");
+            guideSpecifics.put("certifications", new JSONObject()
+                .put("tourism_license", true)
+                .put("first_aid", false)
+                .put("language_certificates", true)
+            );
+            guideData.put("guide_info", guideSpecifics);
+
+            // Guardar perfil completo
+            boolean saved = fileManager.guardarDatosUsuario(guideData);
+
+            if (saved) {
+                // 3. Crear backup del registro
+                fileManager.crearBackup("guide_" + (isEditMode ? "update_" : "registration_") + guideId, guideData);
+
+                if (!isEditMode) {
+                    // 4. Guardar configuraciones por defecto (solo para registro nuevo)
+                    prefsManager.setNotificationsEnabled(true);
+                }
+
+                String message = isEditMode ?
+                    "Perfil actualizado correctamente" :
+                    "¡Registro exitoso!\nBienvenido como Guía de Turismo";
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+
+                if (!isEditMode) {
+                    // 5. Redirigir según el estado del guía
+                    // Para este demo, vamos a aprobar automáticamente al guía
+                    // En producción, esto sería manejado por un admin
+                    prefsManager.setGuideApproved(true);
+
+                    // Redirigir directamente a TourGuideMainActivity
+                    Intent intent = new Intent(this, TourGuideMainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                }
+
+                finish();
+            } else {
+                Toast.makeText(this, "Error al guardar los datos. Intente nuevamente.", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (JSONException e) {
+            Toast.makeText(this, "Error al procesar los datos: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // ==================== MÉTODOS DE LOCAL STORAGE ====================
+
+    /**
+     * Inicializar managers de local storage
+     */
+    private void initializeLocalStorage() {
+        prefsManager = new PreferencesManager(this);
+        fileManager = new FileManager(this);
     }
     
     @Override

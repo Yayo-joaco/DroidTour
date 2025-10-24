@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.NotificationHelper;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.FileManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
@@ -36,6 +37,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     // Storage y Notificaciones
     private DatabaseHelper dbHelper;
     private PreferencesManager prefsManager;
+    private FileManager fileManager;
     private NotificationHelper notificationHelper;
 
     @Override
@@ -46,6 +48,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
         prefsManager = new PreferencesManager(this);
+        fileManager = new FileManager(this);
         notificationHelper = new NotificationHelper(this);
 
         initializeViews();
@@ -170,10 +173,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         } else if (id == R.id.nav_settings) {
             startActivity(new Intent(this, ClientSettingsActivity.class));
         } else if (id == R.id.nav_logout) {
-            Intent i = new Intent(this, MainActivity.class);
-            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(i);
-            finish();
+            performLogout();
         }
         
         drawerLayout.closeDrawers();
@@ -183,21 +183,52 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     // ==================== STORAGE LOCAL ====================
     
     private void loadUserData() {
-        // Simular login de cliente (en producción vendría del servidor)
-        if (!prefsManager.isLoggedIn()) {
+        // Verificar si hay datos de usuario registrado
+        String userName = prefsManager.getUserName();
+        String userEmail = prefsManager.getUserEmail();
+        boolean isLoggedIn = prefsManager.isLoggedIn();
+
+        // Solo crear datos de ejemplo si NO hay sesión activa y NO hay datos de usuario
+        if (!isLoggedIn && (userName == null || userName.isEmpty() || userName.equals("Usuario"))) {
+            // Crear datos de ejemplo solo como último recurso
             prefsManager.saveUserData(
-                "CLIENT001", 
-                "María López", 
-                "maria.lopez@example.com", 
-                "912345678", 
+                "CLIENT001",
+                "María López",
+                "maria.lopez@example.com",
+                "912345678",
                 "CLIENT"
             );
+            userName = "María López";
         }
-        
-        // Actualizar mensaje de bienvenida
-        String userName = prefsManager.getUserName();
-        tvWelcomeMessage.setText("¡Hola, " + userName + "!");
-        Toast.makeText(this, "Bienvenida " + userName, Toast.LENGTH_SHORT).show();
+
+        // Usar el nombre real del usuario registrado
+        String finalUserName = prefsManager.getUserName();
+
+        // Actualizar mensaje de bienvenida con datos reales
+        tvWelcomeMessage.setText("¡Hola, " + finalUserName + "!");
+        Toast.makeText(this, "Bienvenido " + finalUserName, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Realizar logout completo
+     */
+    private void performLogout() {
+        // 1. Limpiar SharedPreferences
+        prefsManager.logout();
+
+        // 2. Limpiar archivos de datos de usuario
+        if (fileManager != null) {
+            fileManager.limpiarDatosUsuario();
+        }
+
+        // 3. Mostrar mensaje de confirmación
+        Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
+
+        // 4. Redirigir al LoginActivity
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
     
     private void loadSampleReservations() {

@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.NotificationHelper;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.FileManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -32,6 +33,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
     // Storage y Notificaciones
     private DatabaseHelper dbHelper;
     private PreferencesManager prefsManager;
+    private FileManager fileManager;
     private NotificationHelper notificationHelper;
 
     @Override
@@ -42,6 +44,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
         prefsManager = new PreferencesManager(this);
+        fileManager = new FileManager(this);
         notificationHelper = new NotificationHelper(this);
         
         initializeViews();
@@ -102,8 +105,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, GuideProfileActivity.class));
             } else if (id == R.id.nav_logout) {
-                // Handle logout
-                finish();
+                performLogout();
             }
             
             drawerLayout.closeDrawer(GravityCompat.START);
@@ -349,22 +351,27 @@ public class TourGuideMainActivity extends AppCompatActivity {
     // ==================== STORAGE LOCAL ====================
     
     private void loadUserData() {
-        // Simular login de guía (en producción vendría del servidor)
-        if (!prefsManager.isLoggedIn()) {
+        // Verificar si hay datos de usuario registrado
+        String userName = prefsManager.getUserName();
+        boolean isLoggedIn = prefsManager.isLoggedIn();
+
+        // Solo crear datos de ejemplo si NO hay sesión activa y NO hay datos de usuario
+        if (!isLoggedIn && (userName == null || userName.isEmpty() || userName.equals("Usuario"))) {
+            // Crear datos de ejemplo solo como último recurso
             prefsManager.saveUserData(
-                "GUIDE001", 
-                "Carlos Mendoza", 
-                "carlos.mendoza@example.com", 
-                "987654321", 
+                "GUIDE001",
+                "Carlos Mendoza",
+                "carlos.mendoza@example.com",
+                "987654321",
                 "GUIDE"
             );
             prefsManager.setGuideApproved(true);
             prefsManager.setGuideRating(4.8f);
         }
-        
-        // Mostrar mensaje de bienvenida
-        String userName = prefsManager.getUserName();
-        Toast.makeText(this, "¡Bienvenido " + userName + "!", Toast.LENGTH_SHORT).show();
+
+        // Mostrar mensaje de bienvenida con el nombre real del usuario
+        String finalUserName = prefsManager.getUserName();
+        Toast.makeText(this, "¡Bienvenido " + finalUserName + "!", Toast.LENGTH_SHORT).show();
     }
     
     private void loadSampleDataIfNeeded() {
@@ -423,9 +430,31 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private void testNotifications() {
         // Método de prueba para enviar notificaciones de ejemplo
         notificationHelper.sendNewOfferNotification(
-            "Tour Paracas Full Day", 
-            "Coastal Adventures", 
+            "Tour Paracas Full Day",
+            "Coastal Adventures",
             350.0
         );
+    }
+
+    /**
+     * Realizar logout completo
+     */
+    private void performLogout() {
+        // 1. Limpiar SharedPreferences
+        prefsManager.logout();
+
+        // 2. Limpiar archivos de datos de usuario
+        if (fileManager != null) {
+            fileManager.limpiarDatosUsuario();
+        }
+
+        // 3. Mostrar mensaje de confirmación
+        Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
+
+        // 4. Redirigir al LoginActivity
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 }

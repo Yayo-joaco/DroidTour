@@ -16,6 +16,8 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
+import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.FileManager;
 
 public class SuperadminMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -24,11 +26,19 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     private NavigationView navigationView;
     private MaterialCardView cardUserManagement, cardReports, cardLogs;
 
+    // Storage
+    private PreferencesManager prefsManager;
+    private FileManager fileManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_superadmin_main);
-        
+
+        // Inicializar storage
+        prefsManager = new PreferencesManager(this);
+        fileManager = new FileManager(this);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawer_layout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -94,12 +104,33 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         } else if (id == R.id.nav_profile) {
             Toast.makeText(this, "Perfil - En desarrollo", Toast.LENGTH_SHORT).show();
         } else if (id == R.id.nav_logout) {
-            Toast.makeText(this, "Cerrando sesión...", Toast.LENGTH_SHORT).show();
-            finish();
+            performLogout();
         }
         
         drawerLayout.closeDrawers();
         return true;
+    }
+
+    /**
+     * Realizar logout completo
+     */
+    private void performLogout() {
+        // 1. Limpiar SharedPreferences
+        prefsManager.logout();
+
+        // 2. Limpiar archivos de datos de usuario
+        if (fileManager != null) {
+            fileManager.limpiarDatosUsuario();
+        }
+
+        // 3. Mostrar mensaje de confirmación
+        Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
+
+        // 4. Redirigir al LoginActivity
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     @Override

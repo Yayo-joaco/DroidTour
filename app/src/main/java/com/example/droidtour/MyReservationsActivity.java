@@ -26,6 +26,7 @@ public class MyReservationsActivity extends AppCompatActivity {
     // Storage Local
     private DatabaseHelper dbHelper;
     private List<DatabaseHelper.Reservation> allReservations;
+    private List<DatabaseHelper.Reservation> filteredReservations;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +47,8 @@ public class MyReservationsActivity extends AppCompatActivity {
     private void loadReservationsFromDatabase() {
         // ✅ CARGAR RESERVAS DE LA BASE DE DATOS
         allReservations = dbHelper.getAllReservations();
+        // Inicialmente, mostrar todas
+        filteredReservations = new java.util.ArrayList<>(allReservations);
         
         // Si no hay reservas, mostrar mensaje
         if (allReservations.isEmpty()) {
@@ -94,7 +97,7 @@ public class MyReservationsActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         rvReservations.setLayoutManager(new LinearLayoutManager(this));
         // ✅ PASAR LAS RESERVAS DE LA BASE DE DATOS AL ADAPTADOR
-        reservationsAdapter = new ReservationsAdapter(allReservations, this::onReservationClick);
+        reservationsAdapter = new ReservationsAdapter(filteredReservations, this::onReservationClick);
         rvReservations.setAdapter(reservationsAdapter);
     }
 
@@ -114,9 +117,52 @@ public class MyReservationsActivity extends AppCompatActivity {
                     filterType = "canceladas";
                 }
                 
-                Toast.makeText(this, "Filtro: " + filterType, Toast.LENGTH_SHORT).show();
+                applyFilter(filterType);
             }
         });
+        // Seleccionar "Todas" al iniciar
+        if (chipGroupFilter.getCheckedChipId() == View.NO_ID) {
+            chipGroupFilter.check(R.id.chip_all);
+        } else {
+            applyFilter("todas");
+        }
+    }
+
+    private void applyFilter(String filterType) {
+        if (filteredReservations == null) return;
+        filteredReservations.clear();
+
+        if ("todas".equals(filterType)) {
+            filteredReservations.addAll(allReservations);
+        } else if ("activas".equals(filterType)) {
+            for (DatabaseHelper.Reservation res : allReservations) {
+                String status = safeStatus(res.getStatus());
+                if (status.equals("CONFIRMADA") || status.equals("PENDIENTE") || status.equals("EN_PROCESO")) {
+                    filteredReservations.add(res);
+                }
+            }
+        } else if ("completadas".equals(filterType)) {
+            for (DatabaseHelper.Reservation res : allReservations) {
+                if (safeStatus(res.getStatus()).equals("COMPLETADA")) {
+                    filteredReservations.add(res);
+                }
+            }
+        } else if ("canceladas".equals(filterType)) {
+            for (DatabaseHelper.Reservation res : allReservations) {
+                String status = safeStatus(res.getStatus());
+                if (status.equals("CANCELADA") || status.equals("CANCELADO") || status.equals("RECHAZADA") || status.equals("NO_PROCESADA") || status.equals("FALLIDA")) {
+                    filteredReservations.add(res);
+                }
+            }
+        }
+
+        reservationsAdapter.notifyDataSetChanged();
+        // Actualizar resumen con los elementos filtrados si es necesario
+        tvTotalReservations.setText("Total de reservas: " + filteredReservations.size());
+    }
+
+    private String safeStatus(String status) {
+        return status == null ? "" : status.trim().toUpperCase();
     }
 
     private void onReservationClick(int position) {

@@ -41,9 +41,9 @@ public class ClientChatActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         rvCompanyChats.setLayoutManager(new LinearLayoutManager(this));
         rvCompanyChats.setAdapter(new ClientCompanyChatsAdapter(company -> {
-            // Abrir chat con empresa específica
-            Intent intent = new Intent(this, ClientChatDetailActivity.class);
-            intent.putExtra("COMPANY_NAME", company.name);
+            // Abrir chat con empresa específica usando el chat unificado
+            Intent intent = new Intent(this, CompanyChatActivity.class);
+            intent.putExtra("company_name", company.name);
             startActivity(intent);
         }));
     }

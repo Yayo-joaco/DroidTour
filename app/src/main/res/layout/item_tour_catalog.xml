@@ -15,26 +15,16 @@
         android:orientation="vertical">
 
         <!-- Tour Image -->
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="160dp"
-            android:background="@color/accent"
-            android:gravity="center"
-            android:orientation="vertical">
+            android:layout_height="160dp">
 
             <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_mapmode"
-                android:tint="@color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📸 Imagen del Tour"
-                android:textSize="12sp"
-                android:textColor="@color/white"
-                android:layout_marginTop="8dp" />
+                android:id="@+id/iv_tour_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="@color/light_gray" />
 
             <!-- Availability Badge -->
             <TextView
@@ -47,9 +37,10 @@
                 android:textColor="@color/white"
                 android:background="@drawable/bg_status_confirmed"
                 android:padding="4dp"
-                android:layout_marginTop="8dp" />
+                android:layout_margin="8dp"
+                android:layout_gravity="top|end" />
 
-        </LinearLayout>
+        </FrameLayout>
 
         <!-- Tour Content -->
         <LinearLayout

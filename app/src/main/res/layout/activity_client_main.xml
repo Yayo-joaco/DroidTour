@@ -104,8 +104,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginEnd="16dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:layout_marginTop="16dp">
 
                     <com.google.android.material.card.MaterialCardView
@@ -151,7 +151,7 @@
                         android:layout_width="0dp"
                         android:layout_height="100dp"
                         android:layout_weight="1"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="4dp"
                         android:clickable="true"
@@ -174,6 +174,43 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Mis Reservas"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/black"
+                                android:textAlignment="center"
+                                android:layout_marginTop="8dp" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_chats"
+                        android:layout_width="0dp"
+                        android:layout_height="100dp"
+                        android:layout_weight="1"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="4dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:padding="12dp">
+
+                            <ImageView
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@android:drawable/ic_menu_send"
+                                android:tint="@color/primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Mis Chats"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"

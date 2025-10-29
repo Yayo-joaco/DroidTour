@@ -286,12 +286,117 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // ==================== MODEL CLASSES ====================
     
+    // Modelo para reseñas (para clientes)
+    public static class Review {
+        private String userName;
+        private String userInitial;
+        private double rating;
+        private String reviewText;
+        private String reviewDate;
+        private String tourName;
+
+        public Review() {}
+
+        public Review(String userName, String userInitial, double rating, String reviewText, String reviewDate, String tourName) {
+            this.userName = userName;
+            this.userInitial = userInitial;
+            this.rating = rating;
+            this.reviewText = reviewText;
+            this.reviewDate = reviewDate;
+            this.tourName = tourName;
+        }
+
+        public String getUserName() { return userName; }
+        public void setUserName(String userName) { this.userName = userName; }
+        public String getUserInitial() { return userInitial; }
+        public void setUserInitial(String userInitial) { this.userInitial = userInitial; }
+        public double getRating() { return rating; }
+        public void setRating(double rating) { this.rating = rating; }
+        public String getReviewText() { return reviewText; }
+        public void setReviewText(String reviewText) { this.reviewText = reviewText; }
+        public String getReviewDate() { return reviewDate; }
+        public void setReviewDate(String reviewDate) { this.reviewDate = reviewDate; }
+        public String getTourName() { return tourName; }
+        public void setTourName(String tourName) { this.tourName = tourName; }
+    }
+
+    // Modelo para empresas (para catálogo de empresas)
+    public static class Company {
+        private String name;
+        private String location;
+        private double rating;
+        private int reviewsCount;
+        private int toursCount;
+        private int clientsCount;
+        private double priceFrom;
+        private String description;
+        private boolean favorite;
+
+        public Company() {}
+
+        public Company(String name, String location, double rating, int reviewsCount,
+                        int toursCount, int clientsCount, double priceFrom, String description) {
+            this.name = name;
+            this.location = location;
+            this.rating = rating;
+            this.reviewsCount = reviewsCount;
+            this.toursCount = toursCount;
+            this.clientsCount = clientsCount;
+            this.priceFrom = priceFrom;
+            this.description = description;
+            this.favorite = false;
+        }
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getLocation() { return location; }
+        public void setLocation(String location) { this.location = location; }
+        public double getRating() { return rating; }
+        public void setRating(double rating) { this.rating = rating; }
+        public int getReviewsCount() { return reviewsCount; }
+        public void setReviewsCount(int reviewsCount) { this.reviewsCount = reviewsCount; }
+        public int getToursCount() { return toursCount; }
+        public void setToursCount(int toursCount) { this.toursCount = toursCount; }
+        public int getClientsCount() { return clientsCount; }
+        public void setClientsCount(int clientsCount) { this.clientsCount = clientsCount; }
+        public double getPriceFrom() { return priceFrom; }
+        public void setPriceFrom(double priceFrom) { this.priceFrom = priceFrom; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public boolean isFavorite() { return favorite; }
+        public void setFavorite(boolean favorite) { this.favorite = favorite; }
+    }
+
     public static class Tour {
         private int id;
         private String name, company, date, time, status;
         private double payment;
         private int participants;
+        
+        // Campos adicionales para catálogo de tours
+        private String description;
+        private String durationLabel; // e.g., "4 horas", "Full Day", "2D/1N"
+        private double rating;
+        private String languages;
+        private String groupSizeLabel;
+        private String imageUrl; // URL o URI de imagen para catálogo
 
+        // Constructor para tours de guías (existente)
+        public Tour() {}
+
+        // Constructor para catálogo de tours
+        public Tour(String name, String description, double price, String durationLabel, 
+                   double rating, String languages, String groupSizeLabel) {
+            this.name = name;
+            this.description = description;
+            this.payment = price;
+            this.durationLabel = durationLabel;
+            this.rating = rating;
+            this.languages = languages;
+            this.groupSizeLabel = groupSizeLabel;
+        }
+
+        // Getters y setters existentes
         public int getId() { return id; }
         public void setId(int id) { this.id = id; }
         public String getName() { return name; }
@@ -308,6 +413,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         public void setPayment(double payment) { this.payment = payment; }
         public int getParticipants() { return participants; }
         public void setParticipants(int participants) { this.participants = participants; }
+        
+        // Getters y setters para campos de catálogo
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public String getDurationLabel() { return durationLabel; }
+        public void setDurationLabel(String durationLabel) { this.durationLabel = durationLabel; }
+        public double getRating() { return rating; }
+        public void setRating(double rating) { this.rating = rating; }
+        public String getLanguages() { return languages; }
+        public void setLanguages(String languages) { this.languages = languages; }
+        public String getGroupSizeLabel() { return groupSizeLabel; }
+        public void setGroupSizeLabel(String groupSizeLabel) { this.groupSizeLabel = groupSizeLabel; }
+        public String getImageUrl() { return imageUrl; }
+        public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
     }
 
     public static class Offer {

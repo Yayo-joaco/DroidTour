@@ -14,6 +14,11 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
+import com.example.droidtour.database.DatabaseHelper;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class CompaniesListActivity extends AppCompatActivity {
     
@@ -21,6 +26,8 @@ public class CompaniesListActivity extends AppCompatActivity {
     private CompaniesAdapter companiesAdapter;
     private TextInputEditText etSearch;
     private ChipGroup chipGroupFilter;
+    private List<DatabaseHelper.Company> allCompanies;
+    private List<DatabaseHelper.Company> filteredCompanies;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +36,7 @@ public class CompaniesListActivity extends AppCompatActivity {
 
         setupToolbar();
         initializeViews();
+        initializeCompanies();
         setupRecyclerView();
         setupFilters();
     }
@@ -48,9 +56,27 @@ public class CompaniesListActivity extends AppCompatActivity {
         chipGroupFilter = findViewById(R.id.chip_group_filter);
     }
 
+    private void initializeCompanies() {
+        allCompanies = new ArrayList<>();
+        allCompanies.add(new DatabaseHelper.Company("Lima Adventure Tours", "📍 Lima, Perú", 4.8, 245, 12, 1245, 45.0, 
+            "Especialistas en tours culturales y gastronómicos por Lima. Más de 10 años de experiencia mostrando lo mejor de nuestra ciudad."));
+        allCompanies.add(new DatabaseHelper.Company("Cusco Explorer", "📍 Cusco, Perú", 4.9, 189, 8, 987, 65.0, 
+            "Especialistas en tours culturales y gastronómicos por Cusco. Más de 8 años de experiencia mostrando lo mejor de nuestra ciudad."));
+        allCompanies.add(new DatabaseHelper.Company("Arequipa Adventures", "📍 Arequipa, Perú", 4.7, 156, 6, 654, 55.0, 
+            "Especialistas en tours culturales y gastronómicos por Arequipa. Más de 6 años de experiencia mostrando lo mejor de nuestra ciudad."));
+        allCompanies.add(new DatabaseHelper.Company("Trujillo Tours", "📍 Trujillo, Perú", 4.6, 98, 4, 432, 35.0, 
+            "Especialistas en tours arqueológicos por Trujillo. Más de 5 años de experiencia mostrando las ruinas de Chan Chan."));
+        allCompanies.add(new DatabaseHelper.Company("Iquitos Jungle Tours", "📍 Iquitos, Perú", 4.5, 76, 3, 321, 85.0, 
+            "Especialistas en tours de selva por Iquitos. Más de 7 años de experiencia mostrando la biodiversidad amazónica."));
+        allCompanies.add(new DatabaseHelper.Company("Puno Lake Tours", "📍 Puno, Perú", 4.8, 134, 5, 567, 75.0, 
+            "Especialistas en tours del Lago Titicaca. Más de 9 años de experiencia mostrando las islas flotantes."));
+        
+        filteredCompanies = new ArrayList<>(allCompanies);
+    }
+
     private void setupRecyclerView() {
         rvCompanies.setLayoutManager(new LinearLayoutManager(this));
-        companiesAdapter = new CompaniesAdapter(this::onCompanyClick);
+        companiesAdapter = new CompaniesAdapter(filteredCompanies, this::onCompanyClick);
         rvCompanies.setAdapter(companiesAdapter);
     }
 
@@ -58,37 +84,49 @@ public class CompaniesListActivity extends AppCompatActivity {
         chipGroupFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (!checkedIds.isEmpty()) {
                 int checkedId = checkedIds.get(0);
-                String filterType = "";
                 
                 if (checkedId == R.id.chip_all) {
-                    filterType = "all";
+                    applyFilter("all");
                 } else if (checkedId == R.id.chip_best_rated) {
-                    filterType = "best_rated";
+                    applyFilter("best_rated");
                 } else if (checkedId == R.id.chip_most_tours) {
-                    filterType = "most_tours";
+                    applyFilter("most_tours");
                 } else if (checkedId == R.id.chip_best_price) {
-                    filterType = "best_price";
+                    applyFilter("best_price");
                 }
-                
-                // Apply filter (in real app, this would filter the data)
-                Toast.makeText(this, "Filtro aplicado: " + filterType, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void applyFilter(String filterType) {
+        filteredCompanies.clear();
+        
+        switch (filterType) {
+            case "all":
+                filteredCompanies.addAll(allCompanies);
+                break;
+            case "best_rated":
+                filteredCompanies.addAll(allCompanies);
+                Collections.sort(filteredCompanies, (c1, c2) -> Double.compare(c2.getRating(), c1.getRating()));
+                break;
+            case "most_tours":
+                filteredCompanies.addAll(allCompanies);
+                Collections.sort(filteredCompanies, (c1, c2) -> Integer.compare(c2.getToursCount(), c1.getToursCount()));
+                break;
+            case "best_price":
+                filteredCompanies.addAll(allCompanies);
+                Collections.sort(filteredCompanies, (c1, c2) -> Double.compare(c1.getPriceFrom(), c2.getPriceFrom()));
+                break;
+        }
+        
+        companiesAdapter.notifyDataSetChanged();
     }
 
     private void onCompanyClick(int position) {
         Intent intent = new Intent(this, ToursCatalogActivity.class);
         intent.putExtra("company_id", position);
-        intent.putExtra("company_name", getCompanyName(position));
+        intent.putExtra("company_name", filteredCompanies.get(position).getName());
         startActivity(intent);
-    }
-
-    private String getCompanyName(int position) {
-        switch (position % 3) {
-            case 0: return "Lima Adventure Tours";
-            case 1: return "Cusco Explorer";
-            default: return "Arequipa Adventures";
-        }
     }
 
     @Override
@@ -105,8 +143,10 @@ public class CompaniesListActivity extends AppCompatActivity {
 class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder> {
     interface OnCompanyClick { void onClick(int position); }
     private final OnCompanyClick onCompanyClick;
+    private final List<DatabaseHelper.Company> companies;
     
-    CompaniesAdapter(OnCompanyClick listener) { 
+    CompaniesAdapter(List<DatabaseHelper.Company> companies, OnCompanyClick listener) { 
+        this.companies = companies;
         this.onCompanyClick = listener; 
     }
 
@@ -119,6 +159,8 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
+        DatabaseHelper.Company company = companies.get(position);
+        
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
         TextView location = holder.itemView.findViewById(R.id.tv_company_location);
         TextView rating = holder.itemView.findViewById(R.id.tv_rating);
@@ -126,40 +168,23 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
         TextView toursCount = holder.itemView.findViewById(R.id.tv_tours_count);
         TextView clientsCount = holder.itemView.findViewById(R.id.tv_clients_count);
         TextView priceFrom = holder.itemView.findViewById(R.id.tv_price_from);
+        TextView description = holder.itemView.findViewById(R.id.tv_company_description);
         MaterialButton btnContact = holder.itemView.findViewById(R.id.btn_contact);
         MaterialButton btnViewTours = holder.itemView.findViewById(R.id.btn_view_tours);
 
-        switch (position % 3) {
-            case 0:
-                companyName.setText("Lima Adventure Tours");
-                location.setText("📍 Lima, Perú");
-                rating.setText("⭐ 4.8");
-                reviewsCount.setText("(245 reseñas)");
-                toursCount.setText("12");
-                clientsCount.setText("1,245");
-                priceFrom.setText("S/. 45");
-                break;
-            case 1:
-                companyName.setText("Cusco Explorer");
-                location.setText("📍 Cusco, Perú");
-                rating.setText("⭐ 4.9");
-                reviewsCount.setText("(189 reseñas)");
-                toursCount.setText("8");
-                clientsCount.setText("987");
-                priceFrom.setText("S/. 65");
-                break;
-            default:
-                companyName.setText("Arequipa Adventures");
-                location.setText("📍 Arequipa, Perú");
-                rating.setText("⭐ 4.7");
-                reviewsCount.setText("(156 reseñas)");
-                toursCount.setText("6");
-                clientsCount.setText("654");
-                priceFrom.setText("S/. 55");
-        }
+        companyName.setText(company.getName());
+        location.setText(company.getLocation());
+        rating.setText("⭐ " + company.getRating());
+        reviewsCount.setText("(" + company.getReviewsCount() + " reseñas)");
+        toursCount.setText(String.valueOf(company.getToursCount()));
+        clientsCount.setText(String.valueOf(company.getClientsCount()));
+        priceFrom.setText("S/. " + (int)company.getPriceFrom());
+        description.setText(company.getDescription());
 
         btnContact.setOnClickListener(v -> {
-            Toast.makeText(v.getContext(), "Contactando empresa...", Toast.LENGTH_SHORT).show();
+            android.content.Intent intent = new android.content.Intent(v.getContext(), CompanyChatActivity.class);
+            intent.putExtra("company_name", company.getName());
+            v.getContext().startActivity(intent);
         });
 
         btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(position));
@@ -167,7 +192,7 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
     }
 
     @Override
-    public int getItemCount() { return 3; }
+    public int getItemCount() { return companies.size(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder { 
         ViewHolder(android.view.View v) { super(v); } 

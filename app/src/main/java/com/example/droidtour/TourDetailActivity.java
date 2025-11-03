@@ -9,6 +9,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 
@@ -20,7 +21,7 @@ public class TourDetailActivity extends AppCompatActivity {
     private MaterialButton btnReserveNow, btnSeeAllReviews, btnContactCompany;
     private MaterialButton btnViewFullMap, btnGetDirections;
     
-    private String tourName, companyName;
+    private String tourName, companyName, imageUrl;
     private double price;
     private int tourId;
 
@@ -42,6 +43,7 @@ public class TourDetailActivity extends AppCompatActivity {
         tourName = getIntent().getStringExtra("tour_name");
         companyName = getIntent().getStringExtra("company_name");
         price = getIntent().getDoubleExtra("price", 0.0);
+        imageUrl = getIntent().getStringExtra("image_url");
         
         if (tourName == null) tourName = "Tour Increíble";
         if (companyName == null) companyName = "Empresa de Tours";
@@ -52,7 +54,7 @@ public class TourDetailActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Detalle del Tour");
+            getSupportActionBar().setTitle("");
         }
     }
 
@@ -72,6 +74,15 @@ public class TourDetailActivity extends AppCompatActivity {
         btnContactCompany = findViewById(R.id.btn_contact_company);
         btnViewFullMap = findViewById(R.id.btn_view_full_map);
         btnGetDirections = findViewById(R.id.btn_get_directions);
+
+        android.widget.ImageView headerImage = findViewById(R.id.iv_header_image);
+        if (headerImage != null) {
+            Glide.with(this)
+                .load(imageUrl)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .centerCrop()
+                .into(headerImage);
+        }
     }
 
     private void setupTourData() {
@@ -117,7 +128,9 @@ public class TourDetailActivity extends AppCompatActivity {
     private void setupClickListeners() {
 
         btnSeeAllReviews.setOnClickListener(v -> {
-            Toast.makeText(this, "Ver todas las reseñas", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, AllReviewsActivity.class);
+            intent.putExtra("tour_name", tourName);
+            startActivity(intent);
         });
 
         btnContactCompany.setOnClickListener(v -> {

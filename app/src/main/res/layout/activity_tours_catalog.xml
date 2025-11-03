@@ -156,14 +156,7 @@
                         android:checked="true"
                         app:checkedIconVisible="true" />
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_available"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Disponibles"
-                        android:checkable="true"
-                        app:checkedIconVisible="true" />
+                    
 
                     <com.google.android.material.chip.Chip
                         android:id="@+id/chip_best_price"

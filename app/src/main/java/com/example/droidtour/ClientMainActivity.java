@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.NotificationHelper;
 import com.example.droidtour.utils.PreferencesManager;
@@ -30,7 +31,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private NavigationView navigationView;
     private ActionBarDrawerToggle drawerToggle;
     private RecyclerView rvFeaturedTours, rvPopularCompanies;
-    private MaterialCardView cardExploreTours, cardMyReservations;
+    private MaterialCardView cardExploreTours, cardMyReservations, cardChats;
     private TextView tvWelcomeMessage, tvActiveReservations;
     
     // Storage y Notificaciones
@@ -73,6 +74,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         tvActiveReservations = findViewById(R.id.tv_active_reservations);
         cardExploreTours = findViewById(R.id.card_explore_tours);
         cardMyReservations = findViewById(R.id.card_my_reservations);
+        cardChats = findViewById(R.id.card_chats);
         
         // RecyclerViews
         rvFeaturedTours = findViewById(R.id.rv_featured_tours);
@@ -112,6 +114,11 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             Intent intent = new Intent(ClientMainActivity.this, MyReservationsActivity.class);
             startActivity(intent);
         });
+
+        cardChats.setOnClickListener(v -> {
+            Intent intent = new Intent(ClientMainActivity.this, ClientChatActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void setupRecyclerViews() {
@@ -125,12 +132,29 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     }
 
     private void onFeaturedTourClick(int position) {
-        // Navigate to tour detail
+        // Datos consistentes con catálogo
+        String name, company, imageUrl; double price;
+        switch (position % 4) {
+            case 0:
+                name = "City Tour Lima Centro Histórico"; company = "Lima Adventure Tours"; price = 85.0;
+                imageUrl = "https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg"; break;
+            case 1:
+                name = "Machu Picchu Full Day"; company = "Cusco Explorer"; price = 180.0;
+                imageUrl = "https://res.klook.com/image/upload/c_fill,w_627,h_470/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/jdnneadpdsxcsnghocbu.jpg"; break;
+            case 2:
+                name = "Islas Ballestas y Paracas"; company = "Paracas Tours"; price = 65.0;
+                imageUrl = "https://image.jimcdn.com/app/cms/image/transf/none/path/s336fd9bc7dca3ebc/image/ida0ff171f4a6d885/version/1391479285/image.jpg"; break;
+            default:
+                name = "Cañón del Colca 2D/1N"; company = "Arequipa Adventures"; price = 120.0;
+                imageUrl = "https://thriveandwander.com/wp-content/uploads/2023/12/barranco-lima-768x514.jpg"; break;
+        }
+
         Intent intent = new Intent(this, TourDetailActivity.class);
         intent.putExtra("tour_id", position);
-        intent.putExtra("tour_name", "City Tour Lima Centro Histórico");
-        intent.putExtra("company_name", "Lima Adventure Tours");
-        intent.putExtra("price", 85.0);
+        intent.putExtra("tour_name", name);
+        intent.putExtra("company_name", company);
+        intent.putExtra("price", price);
+        intent.putExtra("image_url", imageUrl);
         startActivity(intent);
     }
 
@@ -306,35 +330,49 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
+        android.widget.ImageView tourImage = holder.itemView.findViewById(R.id.iv_featured_image);
         TextView tourName = holder.itemView.findViewById(R.id.tv_tour_name);
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
         TextView rating = holder.itemView.findViewById(R.id.tv_rating);
         TextView price = holder.itemView.findViewById(R.id.tv_price);
 
+        String imageUrl;
         switch (position % 4) {
             case 0:
-                tourName.setText("City Tour Lima Centro");
+                tourName.setText("City Tour Lima Centro Histórico");
                 companyName.setText("Lima Adventure Tours");
                 rating.setText("⭐ 4.8");
                 price.setText("S/. 85");
+                imageUrl = "https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg";
                 break;
             case 1:
                 tourName.setText("Machu Picchu Full Day");
                 companyName.setText("Cusco Explorer");
                 rating.setText("⭐ 4.9");
                 price.setText("S/. 180");
+                imageUrl = "https://res.klook.com/image/upload/c_fill,w_627,h_470/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/jdnneadpdsxcsnghocbu.jpg";
                 break;
             case 2:
-                tourName.setText("Islas Ballestas");
+                tourName.setText("Islas Ballestas y Paracas");
                 companyName.setText("Paracas Tours");
                 rating.setText("⭐ 4.7");
                 price.setText("S/. 65");
+                imageUrl = "https://image.jimcdn.com/app/cms/image/transf/none/path/s336fd9bc7dca3ebc/image/ida0ff171f4a6d885/version/1391479285/image.jpg";
                 break;
             default:
-                tourName.setText("Cañón del Colca");
+                tourName.setText("Cañón del Colca 2D/1N");
                 companyName.setText("Arequipa Adventures");
                 rating.setText("⭐ 4.6");
                 price.setText("S/. 120");
+                imageUrl = "https://thriveandwander.com/wp-content/uploads/2023/12/barranco-lima-768x514.jpg";
+        }
+
+        if (tourImage != null) {
+            Glide.with(tourImage.getContext())
+                .load(imageUrl)
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .centerCrop()
+                .into(tourImage);
         }
 
         holder.itemView.setOnClickListener(v -> onTourClick.onClick(position));

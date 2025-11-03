@@ -15,28 +15,12 @@
         android:orientation="vertical">
 
         <!-- Tour Image -->
-        <LinearLayout
+        <ImageView
+            android:id="@+id/iv_featured_image"
             android:layout_width="match_parent"
             android:layout_height="120dp"
-            android:background="@color/primary"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_mapmode"
-                android:tint="@color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📸 Imagen del Tour"
-                android:textSize="12sp"
-                android:textColor="@color/white"
-                android:layout_marginTop="8dp" />
-
-        </LinearLayout>
+            android:scaleType="centerCrop"
+            android:background="@color/light_gray" />
 
         <!-- Tour Info -->
         <LinearLayout

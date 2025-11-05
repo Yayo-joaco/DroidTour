@@ -79,9 +79,27 @@ public class LoginActivity extends AppCompatActivity {
             intent = new Intent(this, TourAdminMainActivity.class);
             Toast.makeText(this, "Bienvenido Administrador de Empresa", Toast.LENGTH_SHORT).show();
         } else if (email.equals("guia@tours.com") && password.equals("guia123")) {
+            // Guardar datos del guía
+            prefsManager.saveUserData(
+                "GUIDE001", 
+                "Carlos Mendoza", 
+                "guia@tours.com", 
+                "987654321", 
+                "GUIDE"
+            );
+            prefsManager.setGuideApproved(true);
+            prefsManager.setGuideRating(4.8f);
             intent = new Intent(this, TourGuideMainActivity.class);
             Toast.makeText(this, "Bienvenido Guía de Turismo", Toast.LENGTH_SHORT).show();
         } else if (email.equals("cliente@email.com") && password.equals("cliente123")) {
+            // Guardar datos del cliente
+            prefsManager.saveUserData(
+                "CLIENT001", 
+                "Gabrielle Ivonne", 
+                "cliente@email.com", 
+                "912345678", 
+                "CLIENT"
+            );
             intent = new Intent(this, ClientMainActivity.class);
             Toast.makeText(this, "Bienvenido Cliente", Toast.LENGTH_SHORT).show();
         } else {

@@ -92,8 +92,8 @@ public class ClientProfileActivity extends AppCompatActivity {
             // Si no es cliente, inicializar datos del cliente
             prefsManager.saveUserData(
                 "CLIENT001", 
-                "María López", 
-                "maria.lopez@example.com", 
+                "Gabrielle Ivonne", 
+                "cliente@email.com", 
                 "912345678", 
                 "CLIENT"
             );
@@ -105,18 +105,31 @@ public class ClientProfileActivity extends AppCompatActivity {
         String userEmail = prefsManager.getUserEmail();
         String userPhone = prefsManager.getUserPhone();
 
-        // Si los datos son de guía, reemplazarlos con datos del cliente
-        if (userName.equals("Carlos Mendoza")) {
+        // Si los datos no son de Gabrielle Ivonne, reemplazarlos con datos correctos del cliente
+        if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
+            userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
             prefsManager.saveUserData(
                 "CLIENT001", 
-                "María López", 
-                "maria.lopez@example.com", 
+                "Gabrielle Ivonne", 
+                "cliente@email.com", 
                 "912345678", 
                 "CLIENT"
             );
-            userName = "María López";
-            userEmail = "maria.lopez@example.com";
+            userName = "Gabrielle Ivonne";
+            userEmail = "cliente@email.com";
             userPhone = "912345678";
+        }
+        
+        // Asegurar que el email sea el correcto
+        if (!userEmail.equals("cliente@email.com") && userType.equals("CLIENT")) {
+            prefsManager.saveUserData(
+                "CLIENT001", 
+                userName, 
+                "cliente@email.com", 
+                userPhone, 
+                "CLIENT"
+            );
+            userEmail = "cliente@email.com";
         }
 
         // Actualizar header

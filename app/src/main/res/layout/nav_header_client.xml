@@ -31,7 +31,7 @@
         android:id="@+id/tv_user_name_header"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Ana García"
+        android:text="Gabrielle Ivonne"
         android:textColor="@color/white"
         android:textSize="21sp"
         android:textStyle="bold"

@@ -16,8 +16,11 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/primary"
-            app:title="@string/tour_guide"
+            app:title="DroidTour"
+            app:titleTextAppearance="@style/Toolbar.TitleText2"
+            app:titleCentered="true"
             app:titleTextColor="@color/white"
+            app:menu="@menu/top_app_bar_general"
             app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically"
             app:layout_constraintTop_toTopOf="parent" />
 

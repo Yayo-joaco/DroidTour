@@ -98,7 +98,7 @@ public class GuideProfileActivity extends AppCompatActivity {
             prefsManager.saveUserData(
                 "GUIDE001", 
                 "Carlos Mendoza", 
-                "carlos.mendoza@example.com", 
+                "guia@tours.com", 
                 "987654321", 
                 "GUIDE"
             );
@@ -112,21 +112,33 @@ public class GuideProfileActivity extends AppCompatActivity {
         String userEmail = prefsManager.getUserEmail();
         String userPhone = prefsManager.getUserPhone();
 
-        // Si los datos son de cliente, reemplazarlos con datos del guía
-        // Solo hacer esto si estamos en esta actividad específica (de guía)
-        if ((userName.equals("María López") || userName.equals("Ana García Rodríguez")) && userType.equals("GUIDE")) {
+        // Si los datos no son de Carlos Mendoza, reemplazarlos con datos correctos del guía
+        if (!userName.equals("Carlos Mendoza") && (userName.equals("María López") || 
+            userName.equals("Ana García Rodríguez") || userName.equals("Gabrielle Ivonne")) && userType.equals("GUIDE")) {
             prefsManager.saveUserData(
                 "GUIDE001", 
                 "Carlos Mendoza", 
-                "carlos.mendoza@example.com", 
+                "guia@tours.com", 
                 "987654321", 
                 "GUIDE"
             );
             prefsManager.setGuideApproved(true);
             prefsManager.setGuideRating(4.8f);
             userName = "Carlos Mendoza";
-            userEmail = "carlos.mendoza@example.com";
+            userEmail = "guia@tours.com";
             userPhone = "987654321";
+        }
+        
+        // Asegurar que el email sea el correcto del guía
+        if (!userEmail.equals("guia@tours.com") && userType.equals("GUIDE")) {
+            prefsManager.saveUserData(
+                "GUIDE001", 
+                userName, 
+                "guia@tours.com", 
+                userPhone, 
+                "GUIDE"
+            );
+            userEmail = "guia@tours.com";
         }
 
         // Actualizar header

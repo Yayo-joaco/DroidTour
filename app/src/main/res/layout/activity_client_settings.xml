@@ -153,7 +153,7 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_delete"
+                            android:src="@drawable/ic_trash"
                             android:tint="#F44336"
                             android:layout_marginEnd="16dp"/>
 
@@ -213,7 +213,7 @@
                         <ImageView
                             android:layout_width="28dp"
                             android:layout_height="28dp"
-                            android:src="@android:drawable/ic_popup_reminder"
+                            android:src="@drawable/ic_notificaciones_filled_24"
                             android:tint="#4CAF50"
                             android:layout_marginEnd="12dp"/>
 
@@ -246,7 +246,7 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@android:drawable/ic_popup_reminder"
+                            android:src="@drawable/ic_push_notifications"
                             android:tint="#4CAF50"
                             android:layout_marginEnd="16dp"/>
 
@@ -393,7 +393,7 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_info_details"
+                            android:src="@drawable/ic_info"
                             android:tint="#FF9800"
                             android:layout_marginEnd="16dp"/>
 
@@ -432,7 +432,7 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_agenda"
+                            android:src="@drawable/ic_terms"
                             android:tint="#FF9800"
                             android:layout_marginEnd="16dp"/>
 
@@ -478,7 +478,7 @@
                         <ImageView
                             android:layout_width="28dp"
                             android:layout_height="28dp"
-                            android:src="@android:drawable/ic_menu_preferences"
+                            android:src="@drawable/ic_info_app"
                             android:tint="#9C27B0"
                             android:layout_marginEnd="12dp"/>
 

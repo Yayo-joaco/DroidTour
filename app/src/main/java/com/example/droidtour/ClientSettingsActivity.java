@@ -5,6 +5,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
@@ -18,6 +20,7 @@ public class ClientSettingsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_settings);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         setupToolbar();
         initializeViews();

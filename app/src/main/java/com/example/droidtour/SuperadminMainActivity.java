@@ -52,6 +52,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
+import com.example.droidtour.utils.PreferencesManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -85,6 +86,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     private ImageView ivAvatarAction;
     private FrameLayout notificationActionLayout, avatarActionLayout;
     private int notificationCount = 3;
+    private PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,12 +100,16 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
             return insets;
         });
 
+        // Inicializar PreferencesManager
+        prefsManager = new PreferencesManager(this);
+        
         initViews();
         setupDrawer();
         setupTabs();
         setupCharts();
         setupFAB();
         updateKPIs();
+        loadUserDataInDrawer();
     }
 
     @Override
@@ -187,6 +193,22 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
+    }
+    
+    private void loadUserDataInDrawer() {
+        // Actualizar nombre de usuario en el header del drawer
+        View headerView = navigationView.getHeaderView(0);
+        if (headerView != null && prefsManager != null && prefsManager.isLoggedIn()) {
+            TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+            if (tvUserNameHeader != null) {
+                String userName = prefsManager.getUserName();
+                if (userName != null && !userName.isEmpty()) {
+                    tvUserNameHeader.setText(userName);
+                } else {
+                    tvUserNameHeader.setText("Gabrielle Ivonne");
+                }
+            }
+        }
     }
 
     private void setupTabs() {
@@ -541,7 +563,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         } else if (id == R.id.nav_logs) {
             startActivity(new Intent(this, SuperadminLogsActivity.class));
         } else if (id == R.id.nav_profile) {
-            Toast.makeText(this, "Perfil - En desarrollo", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, SuperadminProfileActivity.class));
         } else if (id == R.id.nav_logout) {
             Toast.makeText(this, "Cerrando sesión...", Toast.LENGTH_SHORT).show();
             finish();

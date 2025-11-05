@@ -2,9 +2,12 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.LayoutInflater;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -38,6 +41,12 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private DatabaseHelper dbHelper;
     private PreferencesManager prefsManager;
     private NotificationHelper notificationHelper;
+    
+    // Toolbar menu elements
+    private FrameLayout notificationActionLayout, avatarActionLayout;
+    private TextView tvNotificationBadge;
+    private ImageView ivAvatarAction;
+    private int notificationCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,12 +59,14 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         notificationHelper = new NotificationHelper(this);
 
         initializeViews();
+        // Corregir datos del usuario PRIMERO (sin actualizar vistas aún)
+        correctUserData();
         setupToolbarAndDrawer();
         setupDashboardData();
         setupClickListeners();
         setupRecyclerViews();
         
-        // Cargar datos del usuario
+        // Cargar datos del usuario y actualizar vistas
         loadUserData();
         
         // Cargar reservas de ejemplo
@@ -82,11 +93,78 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     }
 
     private void setupDashboardData() {
-        // Set welcome message (could be dynamic based on user)
-        tvWelcomeMessage.setText("¡Hola, Ana!");
+        // Set welcome message (dynamic based on user)
+        if (prefsManager.isLoggedIn()) {
+            String userName = prefsManager.getUserName();
+            if (userName != null && !userName.isEmpty()) {
+                // Extraer solo el primer nombre para el saludo
+                String firstName = userName.split(" ")[0];
+                tvWelcomeMessage.setText("¡Hola, " + firstName + "!");
+            } else {
+                tvWelcomeMessage.setText("¡Hola, Gabrielle!");
+            }
+        } else {
+            tvWelcomeMessage.setText("¡Hola, Gabrielle!");
+        }
         
         // Set active reservations count
         tvActiveReservations.setText("2");
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.top_app_bar_general, menu);
+        setupVisualMenuElements(menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_notifications) {
+            Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (id == R.id.action_profile) {
+            Toast.makeText(this, "Perfil - Por implementar", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        // Handle drawer toggle
+        if (drawerToggle.onOptionsItemSelected(item)) return true;
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void setupVisualMenuElements(Menu menu) {
+        MenuItem notificationItem = menu.findItem(R.id.action_notifications);
+        if (notificationItem != null) {
+            notificationActionLayout = (FrameLayout) notificationItem.getActionView();
+            if (notificationActionLayout != null) {
+                tvNotificationBadge = notificationActionLayout.findViewById(R.id.tv_notification_badge);
+                updateNotificationBadge();
+                notificationActionLayout.setOnClickListener(v ->
+                        Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show());
+            }
+        }
+
+        MenuItem avatarItem = menu.findItem(R.id.action_profile);
+        if (avatarItem != null) {
+            avatarActionLayout = (FrameLayout) avatarItem.getActionView();
+            if (avatarActionLayout != null) {
+                ivAvatarAction = avatarActionLayout.findViewById(R.id.iv_avatar_action);
+                avatarActionLayout.setOnClickListener(v ->
+                        Toast.makeText(this, "Perfil - Por implementar", Toast.LENGTH_SHORT).show());
+            }
+        }
+    }
+
+    private void updateNotificationBadge() {
+        if (tvNotificationBadge != null) {
+            if (notificationCount > 0) {
+                tvNotificationBadge.setVisibility(View.VISIBLE);
+                tvNotificationBadge.setText(String.valueOf(Math.min(notificationCount, 9)));
+            } else {
+                tvNotificationBadge.setVisibility(View.GONE);
+            }
+        }
     }
 
     private void setupToolbarAndDrawer() {
@@ -101,6 +179,37 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
+        
+        // Actualizar nombre de usuario en el header del drawer
+        View headerView = navigationView.getHeaderView(0);
+        if (headerView != null) {
+            TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+            if (tvUserNameHeader != null) {
+                String userType = prefsManager.getUserType();
+                String userName = prefsManager.getUserName();
+                
+                // Asegurar que el cliente tenga el nombre correcto
+                if (userType != null && userType.equals("CLIENT")) {
+                    if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
+                        userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
+                        prefsManager.saveUserData(
+                            "CLIENT001", 
+                            "Gabrielle Ivonne", 
+                            "cliente@email.com", 
+                            "912345678", 
+                            "CLIENT"
+                        );
+                        userName = "Gabrielle Ivonne";
+                    }
+                }
+                
+                if (userName != null && !userName.isEmpty()) {
+                    tvUserNameHeader.setText(userName);
+                } else {
+                    tvUserNameHeader.setText("Gabrielle Ivonne");
+                }
+            }
+        }
     }
 
     private void setupClickListeners() {
@@ -167,12 +276,6 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (drawerToggle.onOptionsItemSelected(item)) return true;
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         
@@ -206,22 +309,58 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     
     // ==================== STORAGE LOCAL ====================
     
-    private void loadUserData() {
-        // Simular login de cliente (en producción vendría del servidor)
-        if (!prefsManager.isLoggedIn()) {
+    private void correctUserData() {
+        // Verificar y corregir datos del cliente (sin actualizar vistas)
+        String userType = prefsManager.getUserType();
+        String userName = prefsManager.getUserName();
+        
+        // Si no está logueado o el tipo no es CLIENT, inicializar como cliente
+        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("CLIENT"))) {
             prefsManager.saveUserData(
                 "CLIENT001", 
-                "María López", 
-                "maria.lopez@example.com", 
+                "Gabrielle Ivonne", 
+                "cliente@email.com", 
                 "912345678", 
                 "CLIENT"
             );
+        } else {
+            // Si está logueado pero el nombre no es correcto, corregirlo
+            if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
+                userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
+                prefsManager.saveUserData(
+                    "CLIENT001", 
+                    "Gabrielle Ivonne", 
+                    "cliente@email.com", 
+                    "912345678", 
+                    "CLIENT"
+                );
+            }
         }
+    }
+    
+    private void loadUserData() {
+        // Cargar datos del usuario y actualizar vistas
+        String userName = prefsManager.getUserName();
         
         // Actualizar mensaje de bienvenida
-        String userName = prefsManager.getUserName();
-        tvWelcomeMessage.setText("¡Hola, " + userName + "!");
-        Toast.makeText(this, "Bienvenida " + userName, Toast.LENGTH_SHORT).show();
+        if (userName != null && !userName.isEmpty()) {
+            // Extraer solo el primer nombre para el saludo
+            String firstName = userName.split(" ")[0];
+            tvWelcomeMessage.setText("¡Hola, " + firstName + "!");
+        } else {
+            tvWelcomeMessage.setText("¡Hola, Gabrielle!");
+        }
+        
+        // Actualizar nombre en el header del drawer
+        if (navigationView != null) {
+            View headerView = navigationView.getHeaderView(0);
+            if (headerView != null) {
+                TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+                if (tvUserNameHeader != null && userName != null && !userName.isEmpty()) {
+                    tvUserNameHeader.setText(userName);
+                }
+            }
+        }
     }
     
     private void loadSampleReservations() {

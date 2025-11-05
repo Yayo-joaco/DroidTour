@@ -274,9 +274,18 @@
     <!-- Navigation Drawer -->
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
+        android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        app:menu="@menu/client_nav_menu" />
+        android:fitsSystemWindows="true"
+        app:menu="@menu/client_nav_menu"
+        app:headerLayout="@layout/nav_header_client"
+        app:itemIconTint="?attr/colorOnSurfaceVariant"
+        app:itemTextColor="?attr/colorOnSurface"
+        app:itemShapeInsetStart="16dp"
+        app:itemShapeInsetEnd="16dp"
+        app:itemVerticalPadding="12dp"
+        app:dividerInsetStart="16dp"
+        app:dividerInsetEnd="16dp" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

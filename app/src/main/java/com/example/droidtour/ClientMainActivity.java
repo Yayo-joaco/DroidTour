@@ -101,6 +101,16 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
+        
+        // Actualizar nombre de usuario en el header del drawer
+        View headerView = navigationView.getHeaderView(0);
+        if (headerView != null) {
+            TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+            if (tvUserNameHeader != null && prefsManager.isLoggedIn()) {
+                String userName = prefsManager.getUserName();
+                tvUserNameHeader.setText(userName);
+            }
+        }
     }
 
     private void setupClickListeners() {
@@ -221,6 +231,16 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         // Actualizar mensaje de bienvenida
         String userName = prefsManager.getUserName();
         tvWelcomeMessage.setText("¡Hola, " + userName + "!");
+        
+        // Actualizar nombre en el header del drawer
+        View headerView = navigationView.getHeaderView(0);
+        if (headerView != null) {
+            TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+            if (tvUserNameHeader != null) {
+                tvUserNameHeader.setText(userName);
+            }
+        }
+        
         Toast.makeText(this, "Bienvenida " + userName, Toast.LENGTH_SHORT).show();
     }
     

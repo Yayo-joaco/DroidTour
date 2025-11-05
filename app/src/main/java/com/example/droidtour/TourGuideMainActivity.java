@@ -88,6 +88,16 @@ public class TourGuideMainActivity extends AppCompatActivity {
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
+        // Actualizar nombre de usuario en el header del drawer
+        View headerView = navigationView.getHeaderView(0);
+        if (headerView != null) {
+            TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+            if (tvUserNameHeader != null && prefsManager.isLoggedIn()) {
+                String userName = prefsManager.getUserName();
+                tvUserNameHeader.setText(userName);
+            }
+        }
+
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
             
@@ -103,6 +113,9 @@ public class TourGuideMainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, GuideProfileActivity.class));
             } else if (id == R.id.nav_logout) {
                 // Handle logout
+                Intent intent = new Intent(this, MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
                 finish();
             }
             
@@ -364,6 +377,19 @@ public class TourGuideMainActivity extends AppCompatActivity {
         
         // Mostrar mensaje de bienvenida
         String userName = prefsManager.getUserName();
+        
+        // Actualizar nombre en el header del drawer
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        if (navigationView != null) {
+            View headerView = navigationView.getHeaderView(0);
+            if (headerView != null) {
+                TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+                if (tvUserNameHeader != null) {
+                    tvUserNameHeader.setText(userName);
+                }
+            }
+        }
+        
         Toast.makeText(this, "¡Bienvenido " + userName + "!", Toast.LENGTH_SHORT).show();
     }
     

@@ -6,6 +6,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textview.MaterialTextView;
@@ -61,8 +62,17 @@ public class LoginActivity extends AppCompatActivity {
     private void authenticateUser(String email, String password) {
         // Mock authentication - En producción esto se haría contra la base de datos
         Intent intent = null;
+        PreferencesManager prefsManager = new PreferencesManager(this);
         
         if (email.equals("superadmin@droidtour.com") && password.equals("admin123")) {
+            // Guardar datos del superadministrador
+            prefsManager.saveUserData(
+                "SUPERADMIN001", 
+                "Gabrielle Ivonne", 
+                "superadmin@droidtour.com", 
+                "999888777", 
+                "SUPERADMIN"
+            );
             intent = new Intent(this, SuperadminMainActivity.class);
             Toast.makeText(this, "Bienvenido Superadministrador", Toast.LENGTH_SHORT).show();
         } else if (email.equals("admin@tours.com") && password.equals("admin123")) {

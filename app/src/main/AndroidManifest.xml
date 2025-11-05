@@ -65,6 +65,11 @@
             android:exported="false"
             android:parentActivityName=".SuperadminMainActivity" />
 
+        <activity
+            android:name=".SuperadminProfileActivity"
+            android:exported="false"
+            android:parentActivityName=".SuperadminMainActivity" />
+
         <!-- Tour Admin Activities -->
         <activity
             android:name=".CompanyInfoActivity"

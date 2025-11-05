@@ -8,24 +8,19 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import java.util.Calendar;
-import java.util.List;
 
-public class ClientProfileActivity extends AppCompatActivity {
+public class SuperadminProfileActivity extends AppCompatActivity {
 
     private TextView tvUserName, tvUserEmail, tvUserRole;
     private TextView tvDocumentType, tvDocumentNumber, tvPhone;
-    private TextView tvToursCount, tvRating, tvMemberSince;
-    private CardView cardLanguages;
+    private CardView cardLanguages, cardStatistics;
     private FloatingActionButton fabEdit;
     private ImageButton btnEditPhoto;
     
     private PreferencesManager prefsManager;
-    private DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,16 +29,15 @@ public class ClientProfileActivity extends AppCompatActivity {
 
         // Inicializar helpers
         prefsManager = new PreferencesManager(this);
-        dbHelper = new DatabaseHelper(this);
 
         setupToolbar();
         initializeViews();
         loadUserData();
-        loadStatistics();
         setupClickListeners();
         
-        // Ocultar sección de idiomas para cliente
+        // Ocultar secciones no necesarias para superadministrador
         hideLanguagesSection();
+        hideStatisticsSection();
     }
 
     private void setupToolbar() {
@@ -67,13 +61,9 @@ public class ClientProfileActivity extends AppCompatActivity {
         tvDocumentNumber = findViewById(R.id.tv_document_number);
         tvPhone = findViewById(R.id.tv_phone);
         
-        // Estadísticas
-        tvToursCount = findViewById(R.id.tv_tours_count);
-        tvRating = findViewById(R.id.tv_rating);
-        tvMemberSince = findViewById(R.id.tv_member_since);
-        
-        // Sección de idiomas (para ocultar)
+        // Secciones para ocultar
         cardLanguages = findViewById(R.id.card_languages);
+        cardStatistics = findViewById(R.id.card_statistics);
         
         // FAB
         fabEdit = findViewById(R.id.fab_edit);
@@ -86,80 +76,76 @@ public class ClientProfileActivity extends AppCompatActivity {
             return;
         }
 
-        // Verificar que el usuario sea un cliente
+        // Verificar que el usuario sea un superadministrador
         String userType = prefsManager.getUserType();
-        if (userType == null || !userType.equals("CLIENT")) {
-            // Si no es cliente, inicializar datos del cliente
+        if (userType == null || (!userType.equals("SUPERADMIN") && !userType.equals("ADMIN"))) {
+            // Si no es superadministrador, inicializar datos del superadministrador
             prefsManager.saveUserData(
-                "CLIENT001", 
-                "María López", 
-                "maria.lopez@example.com", 
-                "912345678", 
-                "CLIENT"
+                "SUPERADMIN001", 
+                "Gabrielle Ivonne", 
+                "superadmin@droidtour.com", 
+                "999888777", 
+                "SUPERADMIN"
             );
-            userType = "CLIENT";
+            userType = "SUPERADMIN";
         }
 
-        // Cargar datos del usuario (cliente)
+        // Cargar datos del usuario (superadministrador)
         String userName = prefsManager.getUserName();
         String userEmail = prefsManager.getUserEmail();
         String userPhone = prefsManager.getUserPhone();
 
-        // Si los datos son de guía, reemplazarlos con datos del cliente
-        if (userName.equals("Carlos Mendoza")) {
+        // Si los datos son de otro rol, reemplazarlos con datos del superadministrador
+        if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
+            userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
             prefsManager.saveUserData(
-                "CLIENT001", 
-                "María López", 
-                "maria.lopez@example.com", 
-                "912345678", 
-                "CLIENT"
+                "SUPERADMIN001", 
+                "Gabrielle Ivonne", 
+                "superadmin@droidtour.com", 
+                "999888777", 
+                "SUPERADMIN"
             );
-            userName = "María López";
-            userEmail = "maria.lopez@example.com";
-            userPhone = "912345678";
+            userName = "Gabrielle Ivonne";
+            userEmail = "superadmin@droidtour.com";
+            userPhone = "999888777";
+        }
+        
+        // Si el email no es el correcto del superadministrador, corregirlo
+        if (!userEmail.equals("superadmin@droidtour.com") && userType.equals("SUPERADMIN")) {
+            prefsManager.saveUserData(
+                "SUPERADMIN001", 
+                userName, 
+                "superadmin@droidtour.com", 
+                userPhone, 
+                "SUPERADMIN"
+            );
+            userEmail = "superadmin@droidtour.com";
         }
 
         // Actualizar header
         tvUserName.setText(userName);
         tvUserEmail.setText(userEmail);
         
-        // Actualizar rol - siempre mostrar "CLIENTE" para esta actividad
-        tvUserRole.setText("CLIENTE");
+        // Actualizar rol - siempre mostrar "SUPER ADMINISTRADOR"
+        tvUserRole.setText("SUPER ADMINISTRADOR");
 
         // Actualizar información personal
         tvDocumentType.setText("DNI");
-        tvDocumentNumber.setText("12345678"); // TODO: Agregar campo de documento a PreferencesManager
-        tvPhone.setText(userPhone != null && !userPhone.isEmpty() ? userPhone : "+51 987 654 321");
-    }
-
-    private void loadStatistics() {
-        // Cargar reservas de la base de datos
-        List<DatabaseHelper.Reservation> reservations = dbHelper.getAllReservations();
-        
-        // Tours Reservados
-        int toursCount = reservations.size();
-        tvToursCount.setText(String.valueOf(toursCount));
-        
-        // Asegurar que la etiqueta diga "Tours Reservados" para cliente
-        TextView tvStatLabel1 = findViewById(R.id.tv_stat_label_1);
-        if (tvStatLabel1 != null) {
-            tvStatLabel1.setText("Tours\nReservados");
-        }
-        
-        // Valoración promedio (por ahora usar valor por defecto, ya que no hay reseñas en BD)
-        // TODO: Calcular promedio de reseñas cuando esté implementado
-        double avgRating = 4.8; // Valor por defecto
-        tvRating.setText(String.format("%.1f", avgRating));
-        
-        // Miembro desde (año actual por defecto)
-        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        tvMemberSince.setText(String.valueOf(currentYear));
+        tvDocumentNumber.setText("98765432"); // Diferente a otros roles
+        tvPhone.setText(userPhone != null && !userPhone.isEmpty() ? userPhone : "+51 999 888 777");
     }
 
     private void hideLanguagesSection() {
-        // Ocultar sección de idiomas para cliente
+        // Ocultar sección de idiomas para superadministrador
         if (cardLanguages != null) {
             cardLanguages.setVisibility(View.GONE);
+        }
+    }
+
+    private void hideStatisticsSection() {
+        // Ocultar sección de estadísticas para superadministrador
+        if (cardStatistics != null) {
+            cardStatistics.setVisibility(View.GONE);
         }
     }
 

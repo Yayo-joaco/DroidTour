@@ -541,7 +541,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         } else if (id == R.id.nav_logs) {
             startActivity(new Intent(this, SuperadminLogsActivity.class));
         } else if (id == R.id.nav_profile) {
-            Toast.makeText(this, "Perfil - En desarrollo", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, SuperadminProfileActivity.class));
         } else if (id == R.id.nav_logout) {
             Toast.makeText(this, "Cerrando sesión...", Toast.LENGTH_SHORT).show();
             finish();

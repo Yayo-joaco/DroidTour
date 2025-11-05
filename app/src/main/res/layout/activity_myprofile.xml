@@ -30,6 +30,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
+        android:paddingBottom="16dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
 
@@ -134,7 +135,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:paddingBottom="140dp">
 
                 <!-- Sección: Información Personal -->
                 <androidx.cardview.widget.CardView
@@ -336,6 +338,7 @@
 
                 <!-- Sección: Estadísticas -->
                 <androidx.cardview.widget.CardView
+                    android:id="@+id/card_statistics"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
@@ -404,6 +407,7 @@
                                     android:textColor="#2196F3" />
 
                                 <TextView
+                                    android:id="@+id/tv_stat_label_1"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="Tours\nReservados"

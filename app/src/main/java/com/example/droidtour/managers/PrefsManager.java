@@ -167,7 +167,6 @@ public class PrefsManager {
         editor.remove(KEY_USER_NAME);
         editor.remove(KEY_USER_EMAIL);
         editor.remove(KEY_USER_TYPE);
-        editor.remove(KEY_SESSION_ACTIVE);
         editor.remove(KEY_ACCESS_TOKEN);
         editor.remove(KEY_REFRESH_TOKEN);
 

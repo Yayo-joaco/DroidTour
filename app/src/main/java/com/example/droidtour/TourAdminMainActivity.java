@@ -16,7 +16,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.PrefsManager;
 import com.example.droidtour.managers.FileManager;
 
 public class TourAdminMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -26,7 +26,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     private TextView tvPendingAlertsCount, tvActiveChatCount;
 
     // Storage
-    private PreferencesManager prefsManager;
+    private PrefsManager prefsManager;
     private FileManager fileManager;
 
     @Override
@@ -35,7 +35,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         setContentView(R.layout.activity_tour_admin_main);
 
         // Inicializar storage
-        prefsManager = new PreferencesManager(this);
+        prefsManager = new PrefsManager(this);
         fileManager = new FileManager(this);
 
         setupToolbar();
@@ -160,7 +160,17 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         } else if (id == R.id.nav_customer_chat) {
             startActivity(new Intent(this, AdminChatListActivity.class));
         } else if (id == R.id.nav_logout) {
-            performLogout();
+            //Se limpian los datos de seión
+            prefsManager.cerrarSesion();
+
+            //Limpiar el stack de activities de Login
+            Intent intent= new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+
+            finish();
+
+            Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
         }
         
         drawerLayout.closeDrawers();
@@ -198,7 +208,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
      */
     private void performLogout() {
         // 1. Limpiar SharedPreferences
-        prefsManager.logout();
+        prefsManager.cerrarSesion();
 
         // 2. Limpiar archivos de datos de usuario
         if (fileManager != null) {

@@ -92,4 +92,16 @@
     <string name="todos">Todos</string>
     <string name="no_users">No hay usuarios</string>
     <string name="no_users_image">Imagen estado vacío</string>
+
+    <!-- My Account Activity Strings -->
+    <string name="mi_perfil">Mi Perfil</string>
+    <string name="mi_perfil_sub">Ver y editar información personal</string>
+    <string name="metodos_pago">Métodos de Pago</string>
+    <string name="metodos_pago_sub">Gestionar tarjetas y formas de pago</string>
+    <string name="preferencias">Preferencias</string>
+    <string name="preferencias_sub">Configuración y ajustes de la app</string>
+    <string name="cerrar_sesion">Cerrar Sesión</string>
+    <string name="cerrar_sesion_sub">Salir de tu cuenta</string>
+    <!-- Título específico para la pantalla Mi Cuenta -->
+    <string name="mi_cuenta">Mi Cuenta</string>
 </resources>

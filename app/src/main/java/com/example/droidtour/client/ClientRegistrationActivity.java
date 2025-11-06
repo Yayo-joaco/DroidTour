@@ -1,4 +1,4 @@
-package com.example.droidtour;
+package com.example.droidtour.client;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
@@ -6,11 +6,10 @@ import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
-import android.widget.Toast;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.droidtour.R;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.hbb20.CountryCodePicker;

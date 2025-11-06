@@ -1,4 +1,4 @@
-package com.example.droidtour;
+package com.example.droidtour.client;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -13,6 +13,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -20,6 +21,12 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.example.droidtour.CompaniesListActivity;
+import com.example.droidtour.MainActivity;
+import com.example.droidtour.MyReservationsActivity;
+import com.example.droidtour.R;
+import com.example.droidtour.TourDetailActivity;
+import com.example.droidtour.ToursCatalogActivity;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.NotificationHelper;
 import com.example.droidtour.utils.PreferencesManager;
@@ -52,6 +59,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_main);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
@@ -125,7 +133,9 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show();
             return true;
         } else if (id == R.id.action_profile) {
-            Toast.makeText(this, "Perfil - Por implementar", Toast.LENGTH_SHORT).show();
+            // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
+            Intent intentProfileMenu = new Intent(this, ClientMyAccount.class);
+            startActivity(intentProfileMenu);
             return true;
         }
         // Handle drawer toggle
@@ -150,8 +160,11 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             avatarActionLayout = (FrameLayout) avatarItem.getActionView();
             if (avatarActionLayout != null) {
                 ivAvatarAction = avatarActionLayout.findViewById(R.id.iv_avatar_action);
-                avatarActionLayout.setOnClickListener(v ->
-                        Toast.makeText(this, "Perfil - Por implementar", Toast.LENGTH_SHORT).show());
+                // Al hacer click en el avatar del toolbar, abrir ClientMyAccount
+                avatarActionLayout.setOnClickListener(v -> {
+                    Intent intent = new Intent(ClientMainActivity.this, ClientMyAccount.class);
+                    startActivity(intent);
+                });
             }
         }
     }

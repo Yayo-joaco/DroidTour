@@ -1,20 +1,22 @@
-package com.example.droidtour;
+package com.example.droidtour.client;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.LayoutInflater;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.droidtour.R;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
 public class PaymentMethodsActivity extends AppCompatActivity {
-    
+
     private RecyclerView rvPaymentMethods;
     private PaymentMethodsAdapter paymentMethodsAdapter;
     private MaterialCardView cardAddNew;
@@ -24,6 +26,7 @@ public class PaymentMethodsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_payment_methods);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         setupToolbar();
         initializeViews();
@@ -92,9 +95,9 @@ public class PaymentMethodsActivity extends AppCompatActivity {
 class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.ViewHolder> {
     interface OnPaymentMethodAction { void onAction(int position, String action); }
     private final OnPaymentMethodAction onPaymentMethodAction;
-    
-    PaymentMethodsAdapter(OnPaymentMethodAction listener) { 
-        this.onPaymentMethodAction = listener; 
+
+    PaymentMethodsAdapter(OnPaymentMethodAction listener) {
+        this.onPaymentMethodAction = listener;
     }
 
     @Override
@@ -106,7 +109,7 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        TextView cardType = holder.itemView.findViewById(R.id.tv_card_type);
+        android.widget.ImageView ivCardType = holder.itemView.findViewById(R.id.iv_card_type);
         TextView cardNumber = holder.itemView.findViewById(R.id.tv_card_number);
         TextView cardHolder = holder.itemView.findViewById(R.id.tv_card_holder);
         TextView expiryDate = holder.itemView.findViewById(R.id.tv_expiry_date);
@@ -124,13 +127,28 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
         String[] totalAmounts = {"S/. 425", "S/. 255", "S/. 180"};
 
         int index = position % cardTypes.length;
-        
-        cardType.setText(cardTypes[index]);
+
         cardNumber.setText(cardNumbers[index]);
         cardHolder.setText("ANA GARCIA PEREZ");
         expiryDate.setText(expiryDates[index]);
         lastUsed.setText("Última vez: " + lastUsedDates[index]);
         totalSpent.setText(totalAmounts[index]);
+
+        // Asignar icono de marca según el tipo de tarjeta
+        // La variable `cardTypes[index]` contiene el nombre del tipo (p.ej. "Visa", "Mastercard", "American Express").
+        // Aquí mapeamos explícitamente esos nombres a los drawables existentes (más seguro y eficiente que getIdentifier).
+        String type = cardTypes[index].toLowerCase();
+        int brandRes = R.drawable.ic_visa_logo; // fallback
+        if (type.contains("visa")) {
+            brandRes = R.drawable.ic_visa_logo;
+        } else if (type.contains("master")) {
+            // Usar el drawable vectorial que tenemos: ic_mastercard_logo.xml
+            brandRes = R.drawable.ic_mastercard_logo;
+        } else if (type.contains("american") || type.contains("amex")) {
+            // American Express -> ic_amex_logo.xml
+            brandRes = R.drawable.ic_amex_logo;
+        }
+        if (ivCardType != null) ivCardType.setImageResource(brandRes);
 
         // Show default badge only for first card
         if (position == 0) {
@@ -149,8 +167,7 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
     @Override
     public int getItemCount() { return 3; }
 
-    static class ViewHolder extends RecyclerView.ViewHolder { 
-        ViewHolder(android.view.View v) { super(v); } 
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        ViewHolder(android.view.View v) { super(v); }
     }
 }
-

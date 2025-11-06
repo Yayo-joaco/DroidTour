@@ -1,4 +1,4 @@
-package com.example.droidtour;
+package com.example.droidtour.client;
 
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -8,6 +8,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
+
+import com.example.droidtour.R;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -31,6 +34,7 @@ public class ClientProfileActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_myprofile);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar helpers
         prefsManager = new PreferencesManager(this);

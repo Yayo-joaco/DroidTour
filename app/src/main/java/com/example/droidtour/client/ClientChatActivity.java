@@ -1,4 +1,4 @@
-package com.example.droidtour;
+package com.example.droidtour.client;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -7,10 +7,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.droidtour.CompanyChatActivity;
+import com.example.droidtour.R;
 import com.google.android.material.appbar.MaterialToolbar;
 
 public class ClientChatActivity extends AppCompatActivity {

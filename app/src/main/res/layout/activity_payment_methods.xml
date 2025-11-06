@@ -13,8 +13,11 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
         app:title="Métodos de Pago"
+        app:titleTextAppearance="@style/Toolbar.TitleText2"
+        app:titleCentered="true"
         app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/white"/>
 
     <!-- Scrollable Content -->
     <androidx.core.widget.NestedScrollView

@@ -1,9 +1,12 @@
-package com.example.droidtour;
+package com.example.droidtour.client;
 
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.droidtour.R;
+import com.example.droidtour.TourRatingActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 

@@ -58,7 +58,7 @@
                     <ImageView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:src="@android:drawable/ic_menu_agenda"
+                        android:src="@drawable/ic_calendar_check"
                         android:tint="@color/white" />
 
                     <LinearLayout

@@ -100,7 +100,9 @@ public class TourGuideMainActivity extends AppCompatActivity {
             Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show();
             return true;
         } else if (id == R.id.action_profile) {
-            Toast.makeText(this, "Perfil - Por implementar", Toast.LENGTH_SHORT).show();
+            // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
+            Intent intentProfileMenu = new Intent(this, GuideMyAccount.class);
+            startActivity(intentProfileMenu);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -123,8 +125,10 @@ public class TourGuideMainActivity extends AppCompatActivity {
             avatarActionLayout = (FrameLayout) avatarItem.getActionView();
             if (avatarActionLayout != null) {
                 ivAvatarAction = avatarActionLayout.findViewById(R.id.iv_avatar_action);
-                avatarActionLayout.setOnClickListener(v ->
-                        Toast.makeText(this, "Perfil - Por implementar", Toast.LENGTH_SHORT).show());
+                avatarActionLayout.setOnClickListener(v -> {
+                    Intent intentProfileMenu = new Intent(this, GuideMyAccount.class);
+                    startActivity(intentProfileMenu);
+                });
             }
         }
     }

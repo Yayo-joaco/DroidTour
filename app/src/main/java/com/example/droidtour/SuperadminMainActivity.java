@@ -126,7 +126,9 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
             Toast.makeText(this, "POR IMPLEMENTAR", Toast.LENGTH_SHORT).show();
             return true;
         } else if (id == R.id.action_profile) {
-            Toast.makeText(this, "en proceso de implementacion xd", Toast.LENGTH_SHORT).show();
+            // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
+            Intent intentProfileMenu = new Intent(this, SuperadminMyAccount.class);
+            startActivity(intentProfileMenu);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -149,8 +151,10 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
             avatarActionLayout = (FrameLayout) avatarItem.getActionView();
             if (avatarActionLayout != null) {
                 ivAvatarAction = avatarActionLayout.findViewById(R.id.iv_avatar_action);
-                avatarActionLayout.setOnClickListener(v ->
-                        Toast.makeText(this, "por implementr xd", Toast.LENGTH_SHORT).show());
+                avatarActionLayout.setOnClickListener(v -> {
+                    Intent intentProfileMenu = new Intent(this, SuperadminMyAccount.class);
+                    startActivity(intentProfileMenu);
+                });
             }
         }
     }

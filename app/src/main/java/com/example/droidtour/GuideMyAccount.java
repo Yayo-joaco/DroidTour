@@ -1,4 +1,4 @@
-package com.example.droidtour.client;
+package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -11,11 +11,10 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.droidtour.R;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
-public class ClientMyAccount extends AppCompatActivity {
+public class GuideMyAccount extends AppCompatActivity {
     
     private PreferencesManager prefsManager;
     
@@ -50,25 +49,34 @@ public class ClientMyAccount extends AppCompatActivity {
         CardView cardProfile = findViewById(R.id.card_my_profile);
         CardView cardPayment = findViewById(R.id.card_payment_methods);
         CardView cardSettings = findViewById(R.id.card_settings);
+        CardView cardLogout = findViewById(R.id.card_logout);
 
         if (cardProfile != null) {
             cardProfile.setOnClickListener(v -> {
-                Intent i = new Intent(ClientMyAccount.this, ClientProfileActivity.class);
+                Intent i = new Intent(GuideMyAccount.this, GuideProfileActivity.class);
                 startActivity(i);
             });
         }
 
+        // Los guías no tienen métodos de pago, así que lo ocultamos
         if (cardPayment != null) {
-            cardPayment.setOnClickListener(v -> {
-                Intent i = new Intent(ClientMyAccount.this, PaymentMethodsActivity.class);
-                startActivity(i);
-            });
+            cardPayment.setVisibility(android.view.View.GONE);
         }
 
+        // Los guías no tienen configuración separada, así que ocultamos esta opción también
+        // O podemos redirigir a Mi Perfil si se prefiere mantenerla
         if (cardSettings != null) {
-            cardSettings.setOnClickListener(v -> {
-                Intent i = new Intent(ClientMyAccount.this, ClientSettingsActivity.class);
+            cardSettings.setVisibility(android.view.View.GONE);
+        }
+        
+        if (cardLogout != null) {
+            cardLogout.setOnClickListener(v -> {
+                // Cerrar sesión
+                prefsManager.logout();
+                Intent i = new Intent(GuideMyAccount.this, MainActivity.class);
+                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
+                finish();
             });
         }
 
@@ -80,49 +88,55 @@ public class ClientMyAccount extends AppCompatActivity {
     }
     
     private void loadUserData() {
-        // Verificar y corregir datos del cliente
+        // Verificar y corregir datos del guía
         String userType = prefsManager.getUserType();
         String userName = prefsManager.getUserName();
         String userEmail = prefsManager.getUserEmail();
         
-        // Si no está logueado o el tipo no es CLIENT, inicializar como cliente
-        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("CLIENT"))) {
+        // Si no está logueado o el tipo no es GUIDE, inicializar como guía
+        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("GUIDE"))) {
             prefsManager.saveUserData(
-                "CLIENT001", 
-                "Gabrielle Ivonne", 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
+                "GUIDE001", 
+                "Carlos Mendoza", 
+                "guia@tours.com", 
+                "987654321", 
+                "GUIDE"
             );
-            userName = "Gabrielle Ivonne";
-            userEmail = "cliente@email.com";
+            prefsManager.setGuideApproved(true);
+            prefsManager.setGuideRating(4.8f);
+            userName = "Carlos Mendoza";
+            userEmail = "guia@tours.com";
         } else {
             // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
+            if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") || 
                 userName.equals("María López") || userName.equals("Ana García Rodríguez") || 
                 userName.equals("María González"))) {
                 prefsManager.saveUserData(
-                    "CLIENT001", 
-                    "Gabrielle Ivonne", 
-                    "cliente@email.com", 
-                    "912345678", 
-                    "CLIENT"
+                    "GUIDE001", 
+                    "Carlos Mendoza", 
+                    "guia@tours.com", 
+                    "987654321", 
+                    "GUIDE"
                 );
-                userName = "Gabrielle Ivonne";
-                userEmail = "cliente@email.com";
+                prefsManager.setGuideApproved(true);
+                prefsManager.setGuideRating(4.8f);
+                userName = "Carlos Mendoza";
+                userEmail = "guia@tours.com";
             }
         }
         
-        // Asegurar que el email sea el correcto
-        if (!userEmail.equals("cliente@email.com") && userType != null && userType.equals("CLIENT")) {
+        // Asegurar que el email sea el correcto del guía
+        if (!userEmail.equals("guia@tours.com") && userType != null && userType.equals("GUIDE")) {
             prefsManager.saveUserData(
-                "CLIENT001", 
+                "GUIDE001", 
                 userName, 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
+                "guia@tours.com", 
+                "987654321", 
+                "GUIDE"
             );
-            userEmail = "cliente@email.com";
+            prefsManager.setGuideApproved(true);
+            prefsManager.setGuideRating(4.8f);
+            userEmail = "guia@tours.com";
         }
         
         // Actualizar los TextView del header
@@ -130,11 +144,12 @@ public class ClientMyAccount extends AppCompatActivity {
         TextView tvUserEmail = findViewById(R.id.tv_user_email);
         
         if (tvUserName != null) {
-            tvUserName.setText(userName != null && !userName.isEmpty() ? userName : "Gabrielle Ivonne");
+            tvUserName.setText(userName != null && !userName.isEmpty() ? userName : "Carlos Mendoza");
         }
         
         if (tvUserEmail != null) {
-            tvUserEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "cliente@email.com");
+            tvUserEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "guia@tours.com");
         }
     }
 }
+

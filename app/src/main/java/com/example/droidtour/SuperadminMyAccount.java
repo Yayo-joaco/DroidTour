@@ -11,6 +11,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.droidtour.LoginActivity;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
@@ -72,7 +73,7 @@ public class SuperadminMyAccount extends AppCompatActivity {
             cardLogout.setOnClickListener(v -> {
                 // Cerrar sesión
                 prefsManager.logout();
-                Intent i = new Intent(SuperadminMyAccount.this, MainActivity.class);
+                Intent i = new Intent(SuperadminMyAccount.this, LoginActivity.class);
                 i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
                 finish();

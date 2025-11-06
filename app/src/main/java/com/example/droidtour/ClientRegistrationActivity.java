@@ -8,6 +8,8 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.droidtour.client.ClientMainActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -66,14 +68,14 @@ public class ClientRegistrationActivity extends AppCompatActivity {
 
     private void setupDocumentTypeSpinner() {
         String[] documentTypes = {"DNI", "Pasaporte", "Carnet de Extranjería"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, 
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, documentTypes);
         spinnerDocumentType.setAdapter(adapter);
     }
 
     private void setupClickListeners() {
         etBirthDate.setOnClickListener(v -> showDatePicker());
-        
+
         btnSelectPhoto.setOnClickListener(v -> {
             Toast.makeText(this, "Funcionalidad de selección de foto - En desarrollo", Toast.LENGTH_SHORT).show();
         });

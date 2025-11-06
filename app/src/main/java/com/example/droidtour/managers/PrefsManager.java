@@ -1,12 +1,11 @@
 package com.example.droidtour.managers;
 
+
 import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
- * PrefsManager - SharedPreferences para configuraciones, preferencias usuario, tokens, flags booleanos
- * 
- * USAR PARA:
+ * Variables que se guardan aqi:
  * - Guardar tema claro/oscuro
  * - Guardar usuario logueado
  * - Configuraciones de la app
@@ -168,9 +167,18 @@ public class PrefsManager {
         editor.remove(KEY_USER_NAME);
         editor.remove(KEY_USER_EMAIL);
         editor.remove(KEY_USER_TYPE);
+        editor.remove(KEY_SESSION_ACTIVE);
         editor.remove(KEY_ACCESS_TOKEN);
         editor.remove(KEY_REFRESH_TOKEN);
+
+        // Para remover configuraciones del usuario
+        // editor.remove(KEY_NOTIFICATIONS);
+        // editor.remove(KEY_SOUNDS);
+        // editor.remove(KEY_LANGUAGE);
+        // editor.remove(KEY_LAST_LOGIN);
         editor.apply();
+
+
     }
     
     // ==================== MÉTODOS DE CONFIGURACIÓN ====================

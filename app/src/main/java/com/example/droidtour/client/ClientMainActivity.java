@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.droidtour.CompaniesListActivity;
+import com.example.droidtour.LoginActivity;
 import com.example.droidtour.MainActivity;
 import com.example.droidtour.MyReservationsActivity;
 import com.example.droidtour.R;
@@ -29,7 +30,7 @@ import com.example.droidtour.TourDetailActivity;
 import com.example.droidtour.ToursCatalogActivity;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.NotificationHelper;
-import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.PrefsManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
@@ -46,7 +47,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     
     // Storage y Notificaciones
     private DatabaseHelper dbHelper;
-    private PreferencesManager prefsManager;
+    private PrefsManager prefsManager;
     private NotificationHelper notificationHelper;
     
     // Toolbar menu elements
@@ -62,7 +63,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
-        prefsManager = new PreferencesManager(this);
+        prefsManager = new PrefsManager(this);
         notificationHelper = new NotificationHelper(this);
 
         initializeViews();
@@ -101,8 +102,8 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
     private void setupDashboardData() {
         // Set welcome message (dynamic based on user)
-        if (prefsManager.isLoggedIn()) {
-            String userName = prefsManager.getUserName();
+        if (prefsManager.sesionActiva()) {
+            String userName = prefsManager.obtenerUsuario();
             if (userName != null && !userName.isEmpty()) {
                 // Extraer solo el primer nombre para el saludo
                 String firstName = userName.split(" ")[0];
@@ -210,18 +211,17 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         if (headerView != null) {
             TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
             if (tvUserNameHeader != null) {
-                String userType = prefsManager.getUserType();
-                String userName = prefsManager.getUserName();
+                String userType = prefsManager.obtenerTipoUsuario();
+                String userName = prefsManager.obtenerUsuario();
                 
                 // Asegurar que el cliente tenga el nombre correcto
                 if (userType != null && userType.equals("CLIENT")) {
                     if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
                         userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-                        prefsManager.saveUserData(
+                        prefsManager.guardarUsuario(
                             "CLIENT001", 
                             "Gabrielle Ivonne", 
-                            "cliente@email.com", 
-                            "912345678", 
+                            "cliente@email.com",
                             "CLIENT"
                         );
                         userName = "Gabrielle Ivonne";
@@ -322,10 +322,17 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         } else if (id == R.id.nav_settings) {
             startActivity(new Intent(this, ClientSettingsActivity.class));
         } else if (id == R.id.nav_logout) {
-            Intent i = new Intent(this, MainActivity.class);
-            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(i);
+            //Se limpian los datos de seión
+            prefsManager.cerrarSesion();
+
+            //Limpiar el stack de activities de Login
+            Intent intent= new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+
             finish();
+
+            Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
         }
         
         drawerLayout.closeDrawers();
@@ -335,29 +342,25 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     // ==================== STORAGE LOCAL ====================
     
     private void correctUserData() {
+        // Si no hay sesión activa, no corregir nada
+        if (!prefsManager.sesionActiva()) return;
+
         // Verificar y corregir datos del cliente (sin actualizar vistas)
-        String userType = prefsManager.getUserType();
-        String userName = prefsManager.getUserName();
-        
-        // Si no está logueado o el tipo no es CLIENT, inicializar como cliente
-        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("CLIENT"))) {
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                "Gabrielle Ivonne", 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
-            );
-        } else {
-            // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
-                userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-                prefsManager.saveUserData(
-                    "CLIENT001", 
-                    "Gabrielle Ivonne", 
-                    "cliente@email.com", 
-                    "912345678", 
-                    "CLIENT"
+        String userType = prefsManager.obtenerTipoUsuario();
+        String userName = prefsManager.obtenerUsuario();
+
+        // Corregir en caso el usuario sea CLIENT
+        if (userType != null && userType.equals("CLIENT")) {
+            // Si el nombre no es el correcto, corregirlo
+            if (!userName.equals("Gabrielle Ivonne") &&
+                    (userName.equals("Carlos Mendoza") ||
+                            userName.equals("María López") ||
+                            userName.equals("Ana García Rodríguez"))) {
+                prefsManager.guardarUsuario(
+                        "CLIENT001",
+                        "Gabrielle Ivonne",
+                        "cliente@email.com",
+                        "CLIENT"
                 );
             }
         }
@@ -365,7 +368,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     
     private void loadUserData() {
         // Cargar datos del usuario y actualizar vistas
-        String userName = prefsManager.getUserName();
+        String userName = prefsManager.obtenerUsuario();
         
         // Actualizar mensaje de bienvenida
         if (userName != null && !userName.isEmpty()) {
@@ -443,7 +446,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         tvActiveReservations.setText(activeCount + " reservas activas");
     }
     
-    // Método para crear una nueva reserva
+    // Metodo para crear una nueva reserva
     public void createReservation(String tourName, String company, String date, String time,
                                   double price, int people) {
         // Generar código QR único
@@ -467,7 +470,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     // ==================== NOTIFICACIONES ====================
     
     private void testClientNotifications() {
-        // Método de prueba para enviar notificaciones de ejemplo
+        // Metodo de prueba para enviar notificaciones de ejemplo
         notificationHelper.sendTourReminderForClient(
             "City Tour Lima Centro", 
             "28 Oct", 

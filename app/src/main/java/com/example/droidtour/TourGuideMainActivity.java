@@ -17,6 +17,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.LoginActivity;
 import com.example.droidtour.utils.NotificationHelper;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -46,11 +47,28 @@ public class TourGuideMainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tour_guide_main);
         
         // Inicializar helpers
-        dbHelper = new DatabaseHelper(this);
         prefsManager = new PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea un guía
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("GUIDE")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        setContentView(R.layout.activity_tour_guide_main);
+        
+        dbHelper = new DatabaseHelper(this);
         notificationHelper = new NotificationHelper(this);
         
         initializeViews();
@@ -204,11 +222,16 @@ public class TourGuideMainActivity extends AppCompatActivity {
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, GuideProfileActivity.class));
             } else if (id == R.id.nav_logout) {
-                // Handle logout
-                Intent intent = new Intent(this, MainActivity.class);
+                // Se limpian los datos de sesión
+                prefsManager.logout();
+                
+                // Limpiar el stack de activities y redirigir a Login
+                Intent intent = new Intent(this, LoginActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 finish();
+                
+                Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
             }
             
             drawerLayout.closeDrawer(GravityCompat.START);
@@ -565,5 +588,13 @@ public class TourGuideMainActivity extends AppCompatActivity {
             "Coastal Adventures", 
             350.0
         );
+    }
+    
+    // ==================== VALIDACIÓN DE SESIÓN ====================
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }

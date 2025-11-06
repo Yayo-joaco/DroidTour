@@ -11,6 +11,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.droidtour.LoginActivity;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
@@ -21,11 +22,27 @@ public class GuideMyAccount extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_myaccount);
-        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
-
+        
         // Inicializar PreferencesManager
         prefsManager = new PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea un guía
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("GUIDE")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        setContentView(R.layout.activity_myaccount);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Toolbar: permitir botón de retroceso y mostrar título de la app
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -71,12 +88,17 @@ public class GuideMyAccount extends AppCompatActivity {
         
         if (cardLogout != null) {
             cardLogout.setOnClickListener(v -> {
-                // Cerrar sesión
+                // Se limpian los datos de sesión
                 prefsManager.logout();
-                Intent i = new Intent(GuideMyAccount.this, MainActivity.class);
-                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(i);
+                
+                // Limpiar el stack de activities y redirigir a Login
+                Intent intent = new Intent(GuideMyAccount.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
                 finish();
+                
+                android.widget.Toast.makeText(this, "Sesión cerrada correctamente", 
+                    android.widget.Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -150,6 +172,12 @@ public class GuideMyAccount extends AppCompatActivity {
         if (tvUserEmail != null) {
             tvUserEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "guia@tours.com");
         }
+    }
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
 

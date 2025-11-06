@@ -5,22 +5,22 @@
         
         <item
             android:id="@+id/nav_dashboard"
-            android:icon="@android:drawable/ic_menu_myplaces"
+            android:icon="@drawable/ic_home"
             android:title="Inicio" />
 
         <item
             android:id="@+id/nav_explore_tours"
-            android:icon="@android:drawable/ic_menu_search"
+            android:icon="@drawable/ic_tour_24"
             android:title="Explorar Tours" />
 
         <item
             android:id="@+id/nav_companies"
-            android:icon="@android:drawable/ic_menu_info_details"
+            android:icon="@drawable/ic_people_24"
             android:title="Empresas" />
 
         <item
             android:id="@+id/nav_my_reservations"
-            android:icon="@android:drawable/ic_menu_agenda"
+            android:icon="@drawable/ic_book_24"
             android:title="Mis Reservas" />
 
         <item
@@ -34,22 +34,22 @@
         <menu>
             <item
                 android:id="@+id/nav_payment_methods"
-                android:icon="@android:drawable/ic_menu_help"
+                android:icon="@drawable/ic_payment"
                 android:title="Métodos de Pago" />
 
             <item
                 android:id="@+id/nav_profile"
-                android:icon="@android:drawable/ic_menu_edit"
+                android:icon="@drawable/ic_profile_test"
                 android:title="Mi Perfil" />
 
             <item
                 android:id="@+id/nav_settings"
-                android:icon="@android:drawable/ic_menu_preferences"
+                android:icon="@drawable/ic_settings"
                 android:title="Configuración" />
 
             <item
                 android:id="@+id/nav_logout"
-                android:icon="@android:drawable/ic_menu_close_clear_cancel"
+                android:icon="@android:drawable/ic_lock_power_off"
                 android:title="Cerrar Sesión" />
 
         </menu>

@@ -2,25 +2,25 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <group android:checkableBehavior="single">
-        
+
         <item
             android:id="@+id/nav_home"
-            android:icon="@android:drawable/ic_menu_preferences"
+            android:icon="@drawable/ic_home"
             android:title="@string/home" />
 
         <item
             android:id="@+id/nav_user_management"
-            android:icon="@android:drawable/ic_menu_manage"
+            android:icon="@drawable/ic_people_24"
             android:title="@string/user_management" />
 
         <item
             android:id="@+id/nav_reports"
-            android:icon="@android:drawable/ic_menu_report_image"
+            android:icon="@drawable/ic_assessment_24"
             android:title="@string/tour_reports" />
 
         <item
             android:id="@+id/nav_logs"
-            android:icon="@android:drawable/ic_menu_info_details"
+            android:icon="@drawable/ic_list_alt_24"
             android:title="@string/system_logs" />
 
     </group>
@@ -29,8 +29,8 @@
         <menu>
             <item
                 android:id="@+id/nav_profile"
-                android:icon="@android:drawable/ic_menu_myplaces"
-                android:title="@string/profile" />
+                android:icon="@drawable/ic_profile_test"
+                android:title="Mi Perfil" />
             
             <item
                 android:id="@+id/nav_logout"

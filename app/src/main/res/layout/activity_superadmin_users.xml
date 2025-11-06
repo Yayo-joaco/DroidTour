@@ -11,9 +11,12 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
-        app:title="@string/user_management"
+        app:title="DroidTour"
+        app:titleTextAppearance="@style/Toolbar.TitleText2"
+        app:titleCentered="true"
         app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert"
+        app:menu="@menu/top_app_bar_general"
+        app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically"
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Search Bar -->
@@ -45,7 +48,7 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Todos" />
+            android:text="@string/todos" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
@@ -91,13 +94,14 @@
             android:layout_width="120dp"
             android:layout_height="120dp"
             android:src="@android:drawable/ic_menu_search"
-            android:tint="@color/gray"
+            app:tint="@color/gray"
+            android:contentDescription="@string/no_users_image"
             android:alpha="0.5" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No hay usuarios"
+            android:text="@string/no_users"
             android:textSize="18sp"
             android:textColor="@color/gray"
             android:layout_marginTop="16dp" />

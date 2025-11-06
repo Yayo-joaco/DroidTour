@@ -20,29 +20,13 @@
             app:expandedTitleMarginBottom="16dp">
 
             <!-- Tour Image -->
-            <LinearLayout
+            <ImageView
+                android:id="@+id/iv_header_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/primary"
-                android:gravity="center"
-                android:orientation="vertical"
-                app:layout_collapseMode="parallax">
-
-                <ImageView
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:src="@android:drawable/ic_menu_mapmode"
-                    android:tint="@color/white" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📸 Imagen del Tour"
-                    android:textSize="16sp"
-                    android:textColor="@color/white"
-                    android:layout_marginTop="16dp" />
-
-            </LinearLayout>
+                android:scaleType="centerCrop"
+                android:background="@color/light_gray"
+                app:layout_collapseMode="parallax" />
 
             <!-- Toolbar -->
             <com.google.android.material.appbar.MaterialToolbar
@@ -50,8 +34,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 app:layout_collapseMode="pin"
-                app:navigationIcon="@android:drawable/ic_menu_revert"
-                app:title="Detalle del Tour" />
+                app:navigationIcon="@android:drawable/ic_menu_revert" />
 
         </com.google.android.material.appbar.CollapsingToolbarLayout>
 
@@ -69,7 +52,17 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Tour Header -->
+            <!-- Page Title below header image -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Detalle del Tour"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/black"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Tour Header + Details Combined -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -129,38 +122,12 @@
                         android:textColor="@color/black"
                         android:lineSpacingExtra="2dp" />
 
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Tour Details -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Detalles del Tour"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
-
+                    <!-- Details moved here -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="12dp">
+                        android:layout_marginTop="16dp">
 
                         <LinearLayout
                             android:layout_width="0dp"

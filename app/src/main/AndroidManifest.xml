@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Indicar que la cámara no es requerida para que el permiso no marque error en Lint -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <!-- Permisos para notificaciones -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
@@ -44,7 +49,7 @@
             android:exported="false" />
 
         <activity
-            android:name=".ClientMainActivity"
+            android:name=".client.ClientMainActivity"
             android:exported="false" />
 
         <activity
@@ -59,6 +64,11 @@
 
         <activity
             android:name=".SuperadminLogsActivity"
+            android:exported="false"
+            android:parentActivityName=".SuperadminMainActivity" />
+
+        <activity
+            android:name=".SuperadminProfileActivity"
             android:exported="false"
             android:parentActivityName=".SuperadminMainActivity" />
 
@@ -112,7 +122,7 @@
         <activity
             android:name=".CompaniesListActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
         
         <activity
             android:name=".ToursCatalogActivity"
@@ -127,17 +137,17 @@
         <activity
             android:name=".MyReservationsActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
         
         <activity
-            android:name=".ClientQRCodesActivity"
+            android:name=".client.ClientQRCodesActivity"
             android:exported="false"
             android:parentActivityName=".MyReservationsActivity" />
         
         <activity
-            android:name=".PaymentMethodsActivity"
+            android:name=".client.PaymentMethodsActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
         
         <activity
             android:name=".CompanyChatActivity"
@@ -145,15 +155,35 @@
             android:parentActivityName=".TourDetailActivity" />
         
         <activity
-            android:name=".ClientProfileActivity"
+            android:name=".client.ClientProfileActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
         
         <activity
-            android:name=".ClientSettingsActivity"
+            android:name=".client.ClientSettingsActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
         
+        <activity
+            android:name=".client.ClientMyAccount"
+            android:exported="false"
+            android:parentActivityName=".client.ClientMainActivity" />
+
+        <activity
+            android:name=".GuideMyAccount"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+
+        <activity
+            android:name=".SuperadminMyAccount"
+            android:exported="false"
+            android:parentActivityName=".SuperadminMainActivity" />
+
+        <activity
+            android:name=".client.ClientNotificationsActivity"
+            android:exported="false"
+            android:parentActivityName=".client.ClientMainActivity" />
+
         <activity
             android:name=".TourRatingActivity"
             android:exported="false"
@@ -164,19 +194,20 @@
             android:exported="false"
             android:parentActivityName=".TourDetailActivity" />
         
+        <activity
+            android:name=".AllReviewsActivity"
+            android:exported="false"
+            android:parentActivityName=".TourDetailActivity" />
+        
         <!-- Legacy Client Activities -->
         <activity
-            android:name=".ClientReservationsActivity"
+            android:name=".client.ClientHistoryActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
         <activity
-            android:name=".ClientHistoryActivity"
+            android:name=".client.ClientQRActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
-        <activity
-            android:name=".ClientQRActivity"
-            android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
 
         <!-- Tour Guide Activities -->
         <activity
@@ -225,7 +256,7 @@
             android:parentActivityName=".LoginActivity" />
 
         <activity
-            android:name=".ClientRegistrationActivity"
+            android:name=".client.ClientRegistrationActivity"
             android:exported="false"
             android:parentActivityName=".RoleSelectionActivity" />
 
@@ -235,14 +266,14 @@
             android:parentActivityName=".RoleSelectionActivity" />
 
         <activity
-            android:name=".ClientChatActivity"
+            android:name=".client.ClientChatActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
 
         <activity
-            android:name=".ClientChatDetailActivity"
+            android:name=".client.ClientChatDetailActivity"
             android:exported="false"
-            android:parentActivityName=".ClientChatActivity" />
+            android:parentActivityName=".client.ClientChatActivity" />
 
         <activity
             android:name=".AdminChatDetailActivity"
@@ -272,7 +303,7 @@
         <activity
             android:name=".RealTimeTrackingActivity"
             android:exported="false"
-            android:parentActivityName=".ClientMainActivity" />
+            android:parentActivityName=".client.ClientMainActivity" />
 
         <activity
             android:name=".ForgotPasswordActivity"
@@ -283,6 +314,13 @@
             android:name=".ResetPasswordActivity"
             android:exported="false"
             android:parentActivityName=".ForgotPasswordActivity" />
+
+        <activity android:name=".client.ClientRegistrationPhotoActivity" android:exported="false" />
+        <activity android:name=".client.ClientCreatePasswordActivity" android:exported="false" />
+        <activity android:name=".GuideRegistrationLanguagesActivity" android:exported="false" />
+        <activity android:name=".GuideRegistrationPhotoActivity" android:exported="false" />
+        <activity android:name=".GuideCreatePasswordActivity" android:exported="false" />
+
 
         <meta-data
             android:name="preloaded_fonts"

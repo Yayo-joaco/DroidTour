@@ -86,4 +86,33 @@
     <string name="mensaje2">Reserva y gestiona tus tours de manera rápida y segura</string>
     <string name="mensaje3">¡Encuentra el tour perfecto para ti!</string>
     <string name="mensaje4">Animate a conocer el mundo, así como  puedes guiar a otros a conocerlo!</string>
+    <string name="DroidTour" />
+
+    <!-- Added for superadmin users layout -->
+    <string name="todos">Todos</string>
+    <string name="no_users">No hay usuarios</string>
+    <string name="no_users_image">Imagen estado vacío</string>
+
+    <!-- My Account Activity Strings -->
+    <string name="mi_perfil">Mi Perfil</string>
+    <string name="mi_perfil_sub">Ver y editar información personal</string>
+    <string name="metodos_pago">Métodos de Pago</string>
+    <string name="metodos_pago_sub">Gestionar tarjetas y formas de pago</string>
+    <string name="preferencias">Preferencias</string>
+    <string name="preferencias_sub">Configuración y ajustes de la app</string>
+    <string name="cerrar_sesion">Cerrar Sesión</string>
+    <string name="cerrar_sesion_sub">Salir de tu cuenta</string>
+    <!-- Título específico para la pantalla Mi Cuenta -->
+    <string name="mi_cuenta">Mi Cuenta</string>
+    <string name="hello_user">¡Hola, Ana!</string>
+    <string name="welcome_sub">Descubre increíbles tours locales</string>
+    <string name="active_reservations_count">2</string>
+
+    <!-- Quick Actions -->
+    <string name="explore_tours">Explorar Tours</string>
+    <string name="explore_tours_desc">Explorar tours</string>
+    <string name="my_reservations_label">Mis Reservas</string>
+    <string name="my_reservations_desc">Mis reservas</string>
+    <string name="my_chats_label">Mis Chats</string>
+    <string name="my_chats_desc">Mis chats</string>
 </resources>

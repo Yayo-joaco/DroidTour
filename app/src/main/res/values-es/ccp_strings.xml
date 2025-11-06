@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ccp_dialog_title">Selecciona tu país</string>
+    <string name="ccp_search_hint">Buscar país</string>
+    <string name="ccp_no_result_found">No se encontraron resultados</string>
+    <string name="ccp_default_country_name_and_code">País</string>
+    <string name="ccp_default_country_code">Código</string>
+    <string name="ccp_default_country_name">País</string>
+    <string name="ccp_default_country_code_and_name">Código y país</string>
+    <string name="ccp_dialog_cancel">Cancelar</string>
+    <string name="ccp_dialog_ok">Aceptar</string>
+</resources>
+

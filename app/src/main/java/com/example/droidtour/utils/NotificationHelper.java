@@ -8,6 +8,10 @@ import android.content.Intent;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import com.example.droidtour.R;
+import com.example.droidtour.database.DatabaseHelper;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 
 public class NotificationHelper {
     
@@ -18,11 +22,13 @@ public class NotificationHelper {
 
     private Context context;
     private NotificationManager notificationManager;
+    private DatabaseHelper dbHelper;
 
     public NotificationHelper(Context context) {
         this.context = context;
         this.notificationManager = (NotificationManager) 
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
+        this.dbHelper = new DatabaseHelper(context);
         createNotificationChannels();
     }
 
@@ -117,8 +123,12 @@ public class NotificationHelper {
     // ==================== CLIENT NOTIFICATIONS ====================
     
     public void sendReservationConfirmedNotification(String tourName, String date, String qrCode) {
-        String title = "✅ Reserva Confirmada";
+        String title = "Reserva Confirmada";
         String message = "Tu reserva para " + tourName + " el " + date + " ha sido confirmada. Código: " + qrCode;
+        
+        // Guardar en base de datos
+        String timestamp = getCurrentTimestamp();
+        dbHelper.addNotification("RESERVATION_CONFIRMED", title, message, timestamp);
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -132,8 +142,12 @@ public class NotificationHelper {
     }
 
     public void sendTourReminderForClient(String tourName, String date, String time) {
-        String title = "🎫 Recordatorio de Tour";
+        String title = "Recordatorio de Tour";
         String message = "No olvides tu tour " + tourName + " el " + date + " a las " + time;
+        
+        // Guardar en base de datos
+        String timestamp = getCurrentTimestamp();
+        dbHelper.addNotification("TOUR_REMINDER", title, message, timestamp);
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_REMINDERS)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -147,8 +161,12 @@ public class NotificationHelper {
     }
 
     public void sendTourCompletedNotification(String tourName) {
-        String title = "🎉 Tour Completado";
+        String title = "Tour Completado";
         String message = "¡Esperamos que hayas disfrutado " + tourName + "! ¿Quieres calificarlo?";
+        
+        // Guardar en base de datos
+        String timestamp = getCurrentTimestamp();
+        dbHelper.addNotification("TOUR_COMPLETED", title, message, timestamp);
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -161,8 +179,12 @@ public class NotificationHelper {
     }
 
     public void sendPaymentConfirmedNotification(String tourName, double amount) {
-        String title = "💳 Pago Confirmado";
+        String title = "Pago Confirmado";
         String message = "Tu pago de S/. " + amount + " para " + tourName + " ha sido procesado exitosamente";
+        
+        // Guardar en base de datos
+        String timestamp = getCurrentTimestamp();
+        dbHelper.addNotification("PAYMENT_CONFIRMED", title, message, timestamp);
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -182,6 +204,11 @@ public class NotificationHelper {
 
     public void cancelAllNotifications() {
         notificationManager.cancelAll();
+    }
+
+    private String getCurrentTimestamp() {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault());
+        return sdf.format(Calendar.getInstance().getTime());
     }
 }
 

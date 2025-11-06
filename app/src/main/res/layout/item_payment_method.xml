@@ -3,87 +3,104 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="12dp"
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="20dp"
     app:cardElevation="4dp"
+    app:strokeWidth="0dp"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="wrap_content">
 
-        <!-- Card Header -->
+        <!-- Card Main Content -->
         <LinearLayout
+            android:id="@+id/card_content"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@color/accent"
-            android:padding="16dp"
-            android:gravity="center_vertical">
+            android:layout_height="220dp"
+            android:orientation="vertical"
+            android:background="@drawable/gradient_card_bg"
+            android:padding="24dp">
 
-            <ImageView
-                android:id="@+id/iv_card_type"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_help"
-                android:tint="@color/white" />
-
-            <LinearLayout
-                android:layout_width="0dp"
+            <!-- Top Section: Logo & Badge -->
+            <RelativeLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="16dp"
-                android:orientation="vertical">
+                android:layout_marginBottom="16dp">
 
+                <!-- Card Type Icon -->
+                <ImageView
+                    android:id="@+id/iv_card_type"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_alignParentStart="true"
+                    android:src="@drawable/ic_payment"
+                    android:alpha="0.9" />
+
+                <!-- Default Badge -->
                 <TextView
-                    android:id="@+id/tv_card_type"
+                    android:id="@+id/tv_default_badge"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Visa"
-                    android:textSize="16sp"
+                    android:layout_alignParentEnd="true"
+                    android:text="★ PRINCIPAL"
+                    android:textSize="11sp"
                     android:textStyle="bold"
-                    android:textColor="@color/white" />
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/badge_principal"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:visibility="visible"
+                    android:elevation="2dp" />
+            </RelativeLayout>
+
+            <!-- Spacer -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Card Number with Chip -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="20dp">
+
+                <!-- Chip Icon -->
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_chip"
+                    android:layout_marginEnd="12dp"
+                    android:scaleType="fitCenter" />
 
                 <TextView
                     android:id="@+id/tv_card_number"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="**** **** **** 1234"
-                    android:textSize="14sp"
-                    android:textColor="@color/white"
-                    android:layout_marginTop="2dp" />
-
+                    android:text="•••• •••• •••• 1234"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:letterSpacing="0.05"
+                    android:fontFamily="monospace" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tv_default_badge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="PRINCIPAL"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:textColor="@color/white"
-                android:background="@drawable/bg_status_confirmed"
-                android:padding="4dp"
-                android:visibility="visible" />
-
-        </LinearLayout>
-
-        <!-- Card Details -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
+            <!-- Bottom Section: Holder & Expiry -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:gravity="center_vertical">
 
+                <!-- Card Holder -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -93,100 +110,147 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Titular"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray" />
+                        android:text="TITULAR"
+                        android:textSize="10sp"
+                        android:textColor="#CCFFFFFF"
+                        android:letterSpacing="0.1" />
 
                     <TextView
                         android:id="@+id/tv_card_holder"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="ANA GARCIA PEREZ"
-                        android:textSize="14sp"
+                        android:text="ANA GARCÍA PÉREZ"
+                        android:textSize="13sp"
                         android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:layout_marginTop="2dp" />
-
+                        android:textColor="#FFFFFF"
+                        android:letterSpacing="0.02"
+                        android:layout_marginTop="4dp"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
                 </LinearLayout>
 
+                <!-- Expiry Date -->
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:layout_marginStart="24dp"
+                    android:gravity="end">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Vencimiento"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray" />
+                        android:text="VENCE"
+                        android:textSize="10sp"
+                        android:textColor="#CCFFFFFF"
+                        android:letterSpacing="0.1" />
 
                     <TextView
                         android:id="@+id/tv_expiry_date"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="12/26"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:layout_marginTop="2dp" />
-
+                        android:textColor="#FFFFFF"
+                        android:letterSpacing="0.05"
+                        android:fontFamily="monospace"
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
 
+                <!-- Card Brand Logo -->
+                <ImageView
+                    android:id="@+id/iv_card_brand"
+                    android:layout_width="56dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="20dp"
+                    android:src="@drawable/ic_payment"
+                    android:tint="@color/white"
+                    android:scaleType="fitEnd" />
             </LinearLayout>
+        </LinearLayout>
 
-            <!-- Usage Stats -->
+        <!-- Card Details Section (Below the card) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/card_content"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:background="#FFFFFF">
+
+            <!-- Stats Section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:background="@drawable/bg_payment_stats"
-                android:padding="12dp"
+                android:background="@drawable/stats_container_bg"
+                android:padding="16dp"
                 android:layout_marginBottom="16dp"
                 android:gravity="center_vertical">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@android:drawable/ic_menu_agenda"
-                    android:tint="@color/primary" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_marginStart="12dp"
                     android:orientation="vertical">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Usada en 5 reservas"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_history"
+                            android:tint="#6C63FF"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/tv_usage_info"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Usada en 5 reservas"
+                            android:textSize="13sp"
+                            android:textColor="#666666" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/tv_last_used"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Última vez: 10 Dic, 2024"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:layout_marginTop="2dp" />
-
+                        android:textSize="12sp"
+                        android:textColor="#999999" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tv_total_spent"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="S/. 425"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/green" />
+                    android:orientation="vertical"
+                    android:gravity="end">
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="TOTAL GASTADO"
+                        android:textSize="10sp"
+                        android:textColor="#999999"
+                        android:letterSpacing="0.1" />
+
+                    <TextView
+                        android:id="@+id/tv_total_spent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="S/ 425.00"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#4CAF50"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- Action Buttons -->
@@ -194,42 +258,64 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="end">
+                android:gravity="center">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_set_default"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Principal"
-                    android:textSize="12sp"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:icon="@drawable/ic_star"
+                    app:iconSize="18dp"
+                    app:iconGravity="textStart"
+                    app:strokeColor="@color/primary"
+                    android:textColor="@color/primary"
                     android:layout_marginEnd="8dp"
+                    app:cornerRadius="12dp"
                     android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_edit_card"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
                     android:text="Editar"
-                    android:drawableStart="@android:drawable/ic_menu_edit"
-                    android:textSize="12sp"
-                    android:layout_marginEnd="8dp" />
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:icon="@drawable/ic_edit"
+                    app:iconSize="18dp"
+                    app:iconGravity="textStart"
+                    app:strokeColor="#DDDDDD"
+                    android:textColor="#333333"
+                    android:layout_marginEnd="8dp"
+                    app:cornerRadius="12dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_delete_card"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Eliminar"
-                    android:textColor="@color/red"
-                    android:textSize="12sp" />
-
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:padding="0dp"
+                    android:insetLeft="0dp"
+                    android:insetTop="0dp"
+                    android:insetRight="0dp"
+                    android:insetBottom="0dp"
+                    app:icon="@drawable/ic_trash"
+                    app:iconSize="20dp"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    app:strokeColor="#FFEBEE"
+                    app:iconTint="#F44336"
+                    app:cornerRadius="12dp"
+                    android:contentDescription="Eliminar tarjeta" />
             </LinearLayout>
 
         </LinearLayout>
 
-    </LinearLayout>
+    </RelativeLayout>
 
 </com.google.android.material.card.MaterialCardView>
-

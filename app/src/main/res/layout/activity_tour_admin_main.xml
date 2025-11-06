@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -14,12 +15,16 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/primary"
-            app:title="@string/tour_admin"
-            app:titleTextColor="@color/white"
+            android:layout_height="150dp"
+            android:background="@drawable/rounded_toolbar_background"
+            app:layout_constraintTop_toTopOf="parent"
             app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:title="Hola, Admin"
+            app:titleTextAppearance="@style/ToolbarTitleBold"
+            app:subtitle="¿Que deseas hacer hoy?"
+            app:subtitleTextColor="#7F9CC8"
+            app:titleTextColor="@color/white"
+            tools:layout_editor_absoluteX="0dp" />
 
         <!-- Dashboard Content -->
         <ScrollView
@@ -56,7 +61,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@android:drawable/ic_menu_info_details"
-                            android:tint="@color/primary" />
+                            app:tint="@color/primary" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -87,7 +92,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                            app:tint="@color/gray" />
 
                     </LinearLayout>
 
@@ -104,6 +109,7 @@
                     android:clickable="true"
                     android:focusable="true">
 
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
@@ -115,7 +121,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@android:drawable/ic_menu_help"
-                            android:tint="@color/accent" />
+                            app:tint="@color/accent" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -146,7 +152,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                            app:tint="@color/gray" />
 
                     </LinearLayout>
 
@@ -174,7 +180,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@android:drawable/ic_menu_mapmode"
-                            android:tint="@color/green" />
+                            app:tint="@color/green" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -205,7 +211,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                            app:tint="@color/gray" />
 
                     </LinearLayout>
 
@@ -233,7 +239,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@android:drawable/ic_menu_myplaces"
-                            android:tint="@color/orange" />
+                            app:tint="@color/orange" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -264,7 +270,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                            app:tint="@color/gray" />
 
                     </LinearLayout>
 
@@ -292,7 +298,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@android:drawable/ic_menu_mylocation"
-                            android:tint="@color/primary" />
+                            app:tint="@color/primary" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -323,7 +329,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                            app:tint="@color/gray" />
 
                     </LinearLayout>
 
@@ -351,7 +357,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@android:drawable/ic_menu_agenda"
-                            android:tint="@color/orange" />
+                            app:tint="@color/orange" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -395,7 +401,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                            app:tint="@color/gray" />
 
                     </LinearLayout>
 
@@ -423,7 +429,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@android:drawable/ic_menu_report_image"
-                            android:tint="@color/accent" />
+                            app:tint="@color/accent" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -454,7 +460,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                            app:tint="@color/gray" />
 
                     </LinearLayout>
 
@@ -482,7 +488,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@android:drawable/ic_menu_help"
-                            android:tint="@color/green" />
+                            app:tint="@color/green" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -526,7 +532,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@android:drawable/ic_menu_more"
-                            android:tint="@color/gray" />
+                            app:tint="@color/gray" />
 
                     </LinearLayout>
 

@@ -17,8 +17,8 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.managers.PrefsManager;
 import com.example.droidtour.utils.NotificationHelper;
-import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -34,7 +34,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
     
     // Storage y Notificaciones
     private DatabaseHelper dbHelper;
-    private PreferencesManager prefsManager;
+    private PrefsManager prefsManager;
     private NotificationHelper notificationHelper;
     
     // Toolbar menu elements
@@ -50,7 +50,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
         
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
-        prefsManager = new PreferencesManager(this);
+        prefsManager = new PrefsManager(this);
         notificationHelper = new NotificationHelper(this);
         
         initializeViews();
@@ -162,22 +162,19 @@ public class TourGuideMainActivity extends AppCompatActivity {
         if (headerView != null) {
             TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
             if (tvUserNameHeader != null) {
-                String userType = prefsManager.getUserType();
-                String userName = prefsManager.getUserName();
-                
+                String userType = prefsManager.obtenerTipoUsuario();
+                String userName = prefsManager.obtenerUsuario();
+
                 // Asegurar que el guía tenga el nombre correcto
                 if (userType != null && userType.equals("GUIDE")) {
-                    if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") || 
+                    if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") ||
                         userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-                        prefsManager.saveUserData(
-                            "GUIDE001", 
-                            "Carlos Mendoza", 
-                            "guia@tours.com", 
-                            "987654321", 
+                        prefsManager.guardarUsuario(
+                            "GUIDE001",
+                            "Carlos Mendoza",
+                            "guia@tours.com",
                             "GUIDE"
                         );
-                        prefsManager.setGuideApproved(true);
-                        prefsManager.setGuideRating(4.8f);
                         userName = "Carlos Mendoza";
                     }
                 }
@@ -204,11 +201,16 @@ public class TourGuideMainActivity extends AppCompatActivity {
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, GuideProfileActivity.class));
             } else if (id == R.id.nav_logout) {
-                // Handle logout
-                Intent intent = new Intent(this, MainActivity.class);
+                // Handle logout - limpiar sesión correctamente
+                prefsManager.cerrarSesion();
+
+                // Redirigir a LoginActivity con flags para limpiar stack
+                Intent intent = new Intent(this, LoginActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 finish();
+
+                Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
             }
             
             drawerLayout.closeDrawer(GravityCompat.START);
@@ -455,33 +457,27 @@ public class TourGuideMainActivity extends AppCompatActivity {
     
     private void correctUserData() {
         // Verificar y corregir datos del guía (sin actualizar vistas)
-        String userType = prefsManager.getUserType();
-        String userName = prefsManager.getUserName();
-        
+        String userType = prefsManager.obtenerTipoUsuario();
+        String userName = prefsManager.obtenerUsuario();
+
         // Si no está logueado o el tipo no es GUIDE, inicializar como guía
-        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("GUIDE"))) {
-            prefsManager.saveUserData(
-                "GUIDE001", 
-                "Carlos Mendoza", 
-                "guia@tours.com", 
-                "987654321", 
+        if (!prefsManager.sesionActiva() || (userType != null && !userType.equals("GUIDE"))) {
+            prefsManager.guardarUsuario(
+                "GUIDE001",
+                "Carlos Mendoza",
+                "guia@tours.com",
                 "GUIDE"
             );
-            prefsManager.setGuideApproved(true);
-            prefsManager.setGuideRating(4.8f);
         } else {
             // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") || 
+            if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") ||
                 userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-                prefsManager.saveUserData(
-                    "GUIDE001", 
-                    "Carlos Mendoza", 
-                    "guia@tours.com", 
-                    "987654321", 
+                prefsManager.guardarUsuario(
+                    "GUIDE001",
+                    "Carlos Mendoza",
+                    "guia@tours.com",
                     "GUIDE"
                 );
-                prefsManager.setGuideApproved(true);
-                prefsManager.setGuideRating(4.8f);
             }
         }
     }
@@ -494,7 +490,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
             if (headerView != null) {
                 TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
                 if (tvUserNameHeader != null) {
-                    String userName = prefsManager.getUserName();
+                    String userName = prefsManager.obtenerUsuario();
                     if (userName != null && !userName.isEmpty()) {
                         tvUserNameHeader.setText(userName);
                     } else {

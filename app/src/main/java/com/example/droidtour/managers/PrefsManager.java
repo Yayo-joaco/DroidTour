@@ -16,6 +16,7 @@ public class PrefsManager {
     private static final String PREF_NAME = "DroidTourApp";
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
+    private Context context;
     
     // ==================== KEYS CONSTANTS ====================
     private static final String KEY_USER_ID = "user_id";
@@ -33,6 +34,7 @@ public class PrefsManager {
     private static final String KEY_REFRESH_TOKEN = "refresh_token";
     
     public PrefsManager(Context context) {
+        this.context = context;
         sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();
     }
@@ -162,6 +164,7 @@ public class PrefsManager {
      * Cerrar sesión
      */
     public void cerrarSesion() {
+        // Limpiar datos de PrefsManager (DroidTourApp)
         editor.putBoolean(KEY_SESSION_ACTIVE, false);
         editor.remove(KEY_USER_ID);
         editor.remove(KEY_USER_NAME);
@@ -177,7 +180,11 @@ public class PrefsManager {
         // editor.remove(KEY_LAST_LOGIN);
         editor.apply();
 
-
+        // También limpiar datos de PreferencesManager (DroidTourPreferences) para evitar conflictos
+        SharedPreferences preferencesManagerPrefs = context.getSharedPreferences("DroidTourPreferences", Context.MODE_PRIVATE);
+        SharedPreferences.Editor preferencesManagerEditor = preferencesManagerPrefs.edit();
+        preferencesManagerEditor.clear();
+        preferencesManagerEditor.apply();
     }
     
     // ==================== MÉTODOS DE CONFIGURACIÓN ====================

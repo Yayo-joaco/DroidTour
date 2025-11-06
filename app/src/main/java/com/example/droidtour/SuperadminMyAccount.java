@@ -3,6 +3,7 @@ package com.example.droidtour;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -11,13 +12,12 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.droidtour.LoginActivity;
-import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.PrefsManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
 public class SuperadminMyAccount extends AppCompatActivity {
     
-    private PreferencesManager prefsManager;
+    private PrefsManager prefsManager;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,8 +25,8 @@ public class SuperadminMyAccount extends AppCompatActivity {
         setContentView(R.layout.activity_myaccount);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        // Inicializar PreferencesManager
-        prefsManager = new PreferencesManager(this);
+        // Inicializar PrefsManager
+        prefsManager = new PrefsManager(this);
 
         // Toolbar: permitir botón de retroceso y mostrar título de la app
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -72,11 +72,12 @@ public class SuperadminMyAccount extends AppCompatActivity {
         if (cardLogout != null) {
             cardLogout.setOnClickListener(v -> {
                 // Cerrar sesión
-                prefsManager.logout();
+                prefsManager.cerrarSesion();
                 Intent i = new Intent(SuperadminMyAccount.this, LoginActivity.class);
                 i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(i);
                 finish();
+                Toast.makeText(SuperadminMyAccount.this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -89,46 +90,43 @@ public class SuperadminMyAccount extends AppCompatActivity {
     
     private void loadUserData() {
         // Verificar y corregir datos del superadministrador
-        String userType = prefsManager.getUserType();
-        String userName = prefsManager.getUserName();
-        String userEmail = prefsManager.getUserEmail();
-        
+        String userType = prefsManager.obtenerTipoUsuario();
+        String userName = prefsManager.obtenerUsuario();
+        String userEmail = prefsManager.obtenerEmail();
+
         // Si no está logueado o el tipo no es SUPERADMIN, inicializar como superadministrador
-        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("SUPERADMIN") && !userType.equals("ADMIN"))) {
-            prefsManager.saveUserData(
-                "SUPERADMIN001", 
-                "Gabrielle Ivonne", 
-                "superadmin@droidtour.com", 
-                "999888777", 
+        if (!prefsManager.sesionActiva() || (userType != null && !userType.equals("SUPERADMIN") && !userType.equals("ADMIN"))) {
+            prefsManager.guardarUsuario(
+                "SUPERADMIN001",
+                "Gabrielle Ivonne",
+                "superadmin@droidtour.com",
                 "SUPERADMIN"
             );
             userName = "Gabrielle Ivonne";
             userEmail = "superadmin@droidtour.com";
         } else {
             // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
-                userName.equals("María López") || userName.equals("Ana García Rodríguez") || 
+            if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") ||
+                userName.equals("María López") || userName.equals("Ana García Rodríguez") ||
                 userName.equals("María González"))) {
-                prefsManager.saveUserData(
-                    "SUPERADMIN001", 
-                    "Gabrielle Ivonne", 
-                    "superadmin@droidtour.com", 
-                    "999888777", 
+                prefsManager.guardarUsuario(
+                    "SUPERADMIN001",
+                    "Gabrielle Ivonne",
+                    "superadmin@droidtour.com",
                     "SUPERADMIN"
                 );
                 userName = "Gabrielle Ivonne";
                 userEmail = "superadmin@droidtour.com";
             }
         }
-        
+
         // Asegurar que el email sea el correcto del superadministrador
-        if (!userEmail.equals("superadmin@droidtour.com") && userType != null && 
+        if (!userEmail.equals("superadmin@droidtour.com") && userType != null &&
             (userType.equals("SUPERADMIN") || userType.equals("ADMIN"))) {
-            prefsManager.saveUserData(
-                "SUPERADMIN001", 
-                userName, 
-                "superadmin@droidtour.com", 
-                "999888777", 
+            prefsManager.guardarUsuario(
+                "SUPERADMIN001",
+                userName,
+                "superadmin@droidtour.com",
                 "SUPERADMIN"
             );
             userEmail = "superadmin@droidtour.com";

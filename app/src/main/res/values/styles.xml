@@ -33,14 +33,17 @@
     </style>
 
     <style name="Toolbar.TitleText2" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
-        fontFamily="@font/bricolage_grotesque_medium"
         <item name="fontFamily">@font/bricolage_grotesque_medium</item>
         <item name="android:textSize">26sp</item>
 
 
     </style>
 
-
+    <!-- Estilo para las pestañas de TabLayout -->
+    <style name="TabTextStyle" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">normal</item>
+        <!-- No fijamos color aquí: el TabLayout usa app:tabTextColor y app:tabSelectedTextColor -->
+    </style>
 
 </resources>
-

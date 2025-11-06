@@ -130,7 +130,9 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_notifications) {
-            Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show();
+            // Abrir la pantalla de notificaciones desde el toolbar
+            Intent intent = new Intent(this, ClientNotificationsActivity.class);
+            startActivity(intent);
             return true;
         } else if (id == R.id.action_profile) {
             // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
@@ -150,8 +152,10 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             if (notificationActionLayout != null) {
                 tvNotificationBadge = notificationActionLayout.findViewById(R.id.tv_notification_badge);
                 updateNotificationBadge();
-                notificationActionLayout.setOnClickListener(v ->
-                        Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show());
+                notificationActionLayout.setOnClickListener(v -> {
+                    Intent intent = new Intent(ClientMainActivity.this, ClientNotificationsActivity.class);
+                    startActivity(intent);
+                });
             }
         }
 

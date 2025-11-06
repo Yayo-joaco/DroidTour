@@ -2,12 +2,13 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientMainActivity;
-import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.PrefsManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textview.MaterialTextView;
@@ -16,7 +17,8 @@ public class LoginActivity extends AppCompatActivity {
     
     private TextInputEditText etEmail, etPassword;
     private MaterialButton btnLogin, btnRegister;
-    private MaterialTextView tvForgotPassword;
+    private TextView tvForgotPassword;
+    private PrefsManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +26,15 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
         // Cambia el color de la barra de notificaciones al azul definido
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
+
+        prefsManager = new PrefsManager(this);
+
+        //Redirección en caso se encuentre sesión activa
+        if (prefsManager.sesionActiva() && !prefsManager.obtenerTipoUsuario().isEmpty()) {
+            redirigirSegunRol();
+            finish();
+            return;
+        }
 
         initializeViews();
         setupClickListeners();
@@ -63,54 +74,69 @@ public class LoginActivity extends AppCompatActivity {
     private void authenticateUser(String email, String password) {
         // Mock authentication - En producción esto se haría contra la base de datos
         Intent intent = null;
-        PreferencesManager prefsManager = new PreferencesManager(this);
-        
+
         if (email.equals("superadmin@droidtour.com") && password.equals("admin123")) {
-            // Guardar datos del superadministrador
-            prefsManager.saveUserData(
-                "SUPERADMIN001", 
-                "Gabrielle Ivonne", 
-                "superadmin@droidtour.com", 
-                "999888777", 
-                "SUPERADMIN"
-            );
-            intent = new Intent(this, SuperadminMainActivity.class);
+            prefsManager.guardarUsuario("SUPERADMIN001", "Gabrielle Ivonne", email, "SUPERADMIN");
             Toast.makeText(this, "Bienvenido Superadministrador", Toast.LENGTH_SHORT).show();
+            intent = new Intent(this, SuperadminMainActivity.class);
+
         } else if (email.equals("admin@tours.com") && password.equals("admin123")) {
-            intent = new Intent(this, TourAdminMainActivity.class);
+
+            prefsManager.guardarUsuario("ADMIN001", "Laura Campos", email, "ADMIN");
             Toast.makeText(this, "Bienvenido Administrador de Empresa", Toast.LENGTH_SHORT).show();
+            intent = new Intent(this, TourAdminMainActivity.class);
+
         } else if (email.equals("guia@tours.com") && password.equals("guia123")) {
-            // Guardar datos del guía
-            prefsManager.saveUserData(
-                "GUIDE001", 
-                "Carlos Mendoza", 
-                "guia@tours.com", 
-                "987654321", 
-                "GUIDE"
-            );
-            prefsManager.setGuideApproved(true);
-            prefsManager.setGuideRating(4.8f);
-            intent = new Intent(this, TourGuideMainActivity.class);
+
+            prefsManager.guardarUsuario("GUIDE001", "Carlos Mendoza", email, "GUIDE");
             Toast.makeText(this, "Bienvenido Guía de Turismo", Toast.LENGTH_SHORT).show();
+            intent = new Intent(this, TourGuideMainActivity.class);
+
         } else if (email.equals("cliente@email.com") && password.equals("cliente123")) {
-            // Guardar datos del cliente
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                "Gabrielle Ivonne", 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
-            );
-            intent = new Intent(this, ClientMainActivity.class);
+
+            prefsManager.guardarUsuario("CLIENT001", "Gabrielle Ivonne", email, "CLIENT");
             Toast.makeText(this, "Bienvenido Cliente", Toast.LENGTH_SHORT).show();
+            intent = new Intent(this, ClientMainActivity.class);
+
         } else {
             Toast.makeText(this, "Credenciales inválidas", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        //Guardar hora del login
+        prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+
+        //Actualizar que no es la primera vez
+        prefsManager.marcarPrimeraVezCompletada();
+
         if (intent != null) {
             startActivity(intent);
             finish(); // Cerrar login para que no se pueda volver con back
         }
+    }
+
+    private void redirigirSegunRol(){
+        String tipoUsuario = prefsManager.obtenerTipoUsuario();
+        Intent intent = null;
+
+        switch (tipoUsuario){
+            case "SUPERADMIN":
+                intent = new Intent(this, SuperadminMainActivity.class);
+                break;
+            case "ADMIN":
+                intent = new Intent(this, TourAdminMainActivity.class);
+                break;
+            case "GUIDE":
+                intent = new Intent(this, TourGuideMainActivity.class);
+                break;
+            case "CLIENT":
+                intent = new Intent(this, ClientMainActivity.class);
+                break;
+            default:
+                intent = new Intent(this, LoginActivity.class);
+                break;
+        }
+
+        startActivity(intent);
     }
 }

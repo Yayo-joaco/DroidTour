@@ -1,176 +1,236 @@
 package com.example.droidtour;
 
-import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
+import android.widget.Button;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.material.button.MaterialButton;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
-import com.hbb20.CountryCodePicker;
-import java.util.Calendar;
+import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.FileManager;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 public class GuideRegistrationActivity extends AppCompatActivity {
 
-    private TextInputEditText etNombres, etApellidos, etNumeroDocumento,
-            etFechaNacimiento, etCorreo;
-    private AutoCompleteTextView etDocumento;  // Cambiado a AutoCompleteTextView
-    private TextInputEditText etTelefono;
-    private MaterialButton btnSiguiente;
-    private CountryCodePicker ccp;
+    private TextInputEditText etFirstName;
+    private TextInputEditText etLastName;
+    private TextInputEditText etEmail;
+    private TextInputEditText etPhone;
+    private TextInputEditText etDocumentNumber;
+    // private TextInputEditText etExperience;
+    // private TextInputEditText etLanguages;
+    // private TextInputEditText etSpecialties;
+    private Button btnRegister;
+    private Button btnCancel;
+
+    private boolean isEditMode = false;
+
+    // ==================== LOCAL STORAGE ====================
+    private PreferencesManager prefsManager;
+    private FileManager fileManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide_registration);
 
+        // Verificar si es modo edición
+        String mode = getIntent().getStringExtra("mode");
+        isEditMode = "edit_profile".equals(mode);
+
+        initializeLocalStorage();
         initializeViews();
-        setupDocumentTypeSpinner();
-        setupCountryCodePicker();
+        setupToolbar();
         setupClickListeners();
-    }
 
+        if (isEditMode) {
+            loadExistingData();
+        }
+    }
+    
+    private void setupToolbar() {
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        if (isEditMode) {
+            getSupportActionBar().setTitle("Editar Perfil");
+            btnRegister.setText("Guardar Cambios");
+        } else {
+            getSupportActionBar().setTitle("Registro de Guía");
+            btnRegister.setText("Registrarse");
+        }
+    }
+    
     private void initializeViews() {
-        etNombres = findViewById(R.id.etNombres);
-        etApellidos = findViewById(R.id.etApellidos);
-        etDocumento = findViewById(R.id.etDocumento);
-        etNumeroDocumento = findViewById(R.id.etNumeroDocumento);
-        etFechaNacimiento = findViewById(R.id.etFechaNacimiento);
-        etCorreo = findViewById(R.id.etCorreo);
-        etTelefono = findViewById(R.id.etTelefono);
-        btnSiguiente = findViewById(R.id.btnSiguiente);
-        ccp = findViewById(R.id.ccp);
-        findViewById(R.id.tvRegresar).setOnClickListener(v -> finish());
+        etFirstName = findViewById(R.id.et_first_name);
+        etLastName = findViewById(R.id.et_last_name);
+        etEmail = findViewById(R.id.et_email);
+        etPhone = findViewById(R.id.et_phone);
+        etDocumentNumber = findViewById(R.id.et_document_number);
+        // Los campos de experiencia, idiomas y especialidades no existen en el layout actual
+        // etExperience = findViewById(R.id.et_experience);
+        // etLanguages = findViewById(R.id.et_languages);
+        // etSpecialties = findViewById(R.id.et_specialties);
+        btnRegister = findViewById(R.id.btn_register);
+        btnCancel = findViewById(R.id.btn_cancel);
     }
-
-
-    private void setupDocumentTypeSpinner() {
-        String[] documentTypes = {"DNI", "Carnet de Extranjería"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this,
-                android.R.layout.simple_dropdown_item_1line,
-                documentTypes
-        );
-        etDocumento.setAdapter(adapter);
-
-        // Opcional: establecer valor por defecto
-        // etDocumento.setText("DNI", false);
-    }
-
-    private void setupCountryCodePicker() {
-        ccp.registerCarrierNumberEditText(etTelefono);
-        ccp.setDefaultCountryUsingNameCode("PE");
-        ccp.resetToDefaultCountry();
-    }
-
+    
     private void setupClickListeners() {
-        etFechaNacimiento.setOnClickListener(v -> showDatePicker());
-
-        btnSiguiente.setOnClickListener(v -> {
+        btnRegister.setOnClickListener(v -> {
             if (validateForm()) {
-                proceedToNext();
+                saveGuideData();
             }
         });
+        
+        btnCancel.setOnClickListener(v -> {
+            finish();
+        });
     }
-
-    private void showDatePicker() {
-        Calendar calendar = Calendar.getInstance();
-        DatePickerDialog datePickerDialog = new DatePickerDialog(
-                this,
-                (view, year, month, dayOfMonth) -> {
-                    String date = String.format("%02d/%02d/%d", dayOfMonth, month + 1, year);
-                    etFechaNacimiento.setText(date);
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-        );
-        datePickerDialog.show();
+    
+    private void loadExistingData() {
+        // TODO: Cargar datos existentes del guía desde base de datos
+        // Por ahora cargar datos de ejemplo
+        etFirstName.setText("Carlos");
+        etLastName.setText("Mendoza");
+        etEmail.setText("carlos.mendoza@email.com");
+        etPhone.setText("987654321");
+        etDocumentNumber.setText("12345678");
+        // Los campos de experiencia, idiomas y especialidades no están disponibles en el layout actual
+        // etExperience.setText("5 años de experiencia en turismo cultural");
+        // etLanguages.setText("Español, Inglés, Quechua");
+        // etSpecialties.setText("Historia, Arqueología, Gastronomía");
     }
-
+    
     private boolean validateForm() {
-        if (etNombres.getText().toString().trim().isEmpty()) {
-            etNombres.setError("Campo obligatorio");
-            etNombres.requestFocus();
+        if (etFirstName.getText().toString().trim().isEmpty()) {
+            etFirstName.setError("Campo requerido");
             return false;
         }
-
-        if (etApellidos.getText().toString().trim().isEmpty()) {
-            etApellidos.setError("Campo obligatorio");
-            etApellidos.requestFocus();
+        
+        if (etLastName.getText().toString().trim().isEmpty()) {
+            etLastName.setError("Campo requerido");
             return false;
         }
-
-        if (etDocumento.getText().toString().trim().isEmpty()) {
-            etDocumento.setError("Seleccione tipo de documento");
-            etDocumento.requestFocus();
+        
+        if (etEmail.getText().toString().trim().isEmpty()) {
+            etEmail.setError("Campo requerido");
             return false;
         }
-
-        if (etNumeroDocumento.getText().toString().trim().isEmpty()) {
-            etNumeroDocumento.setError("Campo obligatorio");
-            etNumeroDocumento.requestFocus();
+        
+        if (etPhone.getText().toString().trim().isEmpty()) {
+            etPhone.setError("Campo requerido");
             return false;
         }
-
-        if (etFechaNacimiento.getText().toString().trim().isEmpty()) {
-            etFechaNacimiento.setError("Campo obligatorio");
-            etFechaNacimiento.requestFocus();
+        
+        if (etDocumentNumber.getText().toString().trim().isEmpty()) {
+            etDocumentNumber.setError("Campo requerido");
             return false;
         }
-
-        if (etCorreo.getText().toString().trim().isEmpty()) {
-            etCorreo.setError("Campo obligatorio");
-            etCorreo.requestFocus();
-            return false;
-        }
-
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(etCorreo.getText().toString()).matches()) {
-            etCorreo.setError("Correo electrónico inválido");
-            etCorreo.requestFocus();
-            return false;
-        }
-
-        if (etTelefono.getText().toString().trim().isEmpty()) {
-            etTelefono.setError("Campo obligatorio");
-            etTelefono.requestFocus();
-            return false;
-        }
-
-        if (!ccp.isValidFullNumber()) {
-            etTelefono.setError("Número de teléfono inválido");
-            etTelefono.requestFocus();
-            return false;
-        }
-
+        
         return true;
     }
+    
+    private void saveGuideData() {
+        try {
+            // Obtener datos del formulario
+            String firstName = etFirstName.getText().toString().trim();
+            String lastName = etLastName.getText().toString().trim();
+            String email = etEmail.getText().toString().trim();
+            String phone = etPhone.getText().toString().trim();
+            String documentNumber = etDocumentNumber.getText().toString().trim();
 
-    private void proceedToNext() {
-        String nombres = etNombres.getText().toString().trim();
-        String apellidos = etApellidos.getText().toString().trim();
-        String tipoDocumento = etDocumento.getText().toString().trim();
-        String numeroDocumento = etNumeroDocumento.getText().toString().trim();
-        String fechaNacimiento = etFechaNacimiento.getText().toString().trim();
-        String correo = etCorreo.getText().toString().trim();
-        String fullPhoneNumber = ccp.getFullNumberWithPlus();
+            // Generar ID único para el guía
+            String guideId = isEditMode ? prefsManager.getUserId() : "GUIDE_" + System.currentTimeMillis();
+            String fullName = firstName + " " + lastName;
 
-        // Navegar a la actividad de foto y pasar los datos necesarios
-        Intent intent = new Intent(this, GuideRegistrationPhotoActivity.class);
-        intent.putExtra("nombres", nombres);
-        intent.putExtra("apellidos", apellidos);
-        intent.putExtra("correo", correo);
-        intent.putExtra("tipoDocumento", tipoDocumento);
-        intent.putExtra("numeroDocumento", numeroDocumento);
-        intent.putExtra("fechaNacimiento", fechaNacimiento);
-        intent.putExtra("telefono", fullPhoneNumber);
-        startActivity(intent);
+            if (!isEditMode) {
+                // 1. Guardar datos básicos en SharedPreferences (solo para registro nuevo)
+                prefsManager.saveUserData(guideId, fullName, email, phone, "GUIDE");
+                prefsManager.setGuideApproved(true); // Para demo, aprobamos automáticamente
+            }
+
+            // 2. Guardar datos completos en archivo JSON
+            JSONObject guideData = new JSONObject();
+            guideData.put("id", guideId);
+            guideData.put("firstName", firstName);
+            guideData.put("lastName", lastName);
+            guideData.put("fullName", fullName);
+            guideData.put("email", email);
+            guideData.put("phone", phone);
+            guideData.put("documentNumber", documentNumber);
+            guideData.put("userType", "GUIDE");
+            guideData.put("registrationDate", System.currentTimeMillis());
+            guideData.put("lastUpdateDate", System.currentTimeMillis());
+            guideData.put("status", "ACTIVE"); // Para demo, aprobamos automáticamente
+            guideData.put("approved", true);
+            guideData.put("rating", isEditMode ? 4.5 : 0.0);
+            guideData.put("toursCompleted", isEditMode ? 15 : 0);
+
+            // Datos específicos del guía
+            JSONObject guideSpecifics = new JSONObject();
+            guideSpecifics.put("experience", isEditMode ? "5 años de experiencia en turismo cultural" : "Nuevo guía");
+            guideSpecifics.put("languages", "Español, Inglés");
+            guideSpecifics.put("specialties", "Historia, Arqueología, Gastronomía");
+            guideSpecifics.put("certifications", new JSONObject()
+                .put("tourism_license", true)
+                .put("first_aid", false)
+                .put("language_certificates", true)
+            );
+            guideData.put("guide_info", guideSpecifics);
+
+            // Guardar perfil completo
+            boolean saved = fileManager.guardarDatosUsuario(guideData);
+
+            if (saved) {
+                // 3. Crear backup del registro
+                fileManager.crearBackup("guide_" + (isEditMode ? "update_" : "registration_") + guideId, guideData);
+
+                if (!isEditMode) {
+                    // 4. Guardar configuraciones por defecto (solo para registro nuevo)
+                    prefsManager.setNotificationsEnabled(true);
+                }
+
+                String message = isEditMode ?
+                    "Perfil actualizado correctamente" :
+                    "¡Registro exitoso!\nBienvenido como Guía de Turismo";
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+
+                if (!isEditMode) {
+                    // 5. Redirigir según el estado del guía
+                    // Para este demo, vamos a aprobar automáticamente al guía
+                    // En producción, esto sería manejado por un admin
+                    prefsManager.setGuideApproved(true);
+
+                    // Redirigir directamente a TourGuideMainActivity
+                    Intent intent = new Intent(this, TourGuideMainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                }
+
+                finish();
+            } else {
+                Toast.makeText(this, "Error al guardar los datos. Intente nuevamente.", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (JSONException e) {
+            Toast.makeText(this, "Error al procesar los datos: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
+    // ==================== MÉTODOS DE LOCAL STORAGE ====================
+
+    /**
+     * Inicializar managers de local storage
+     */
+    private void initializeLocalStorage() {
+        prefsManager = new PreferencesManager(this);
+        fileManager = new FileManager(this);
+    }
+    
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {

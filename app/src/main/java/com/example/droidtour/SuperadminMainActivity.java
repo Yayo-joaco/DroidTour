@@ -52,7 +52,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
-import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.PrefsManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -86,7 +86,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     private ImageView ivAvatarAction;
     private FrameLayout notificationActionLayout, avatarActionLayout;
     private int notificationCount = 3;
-    private PreferencesManager prefsManager;
+    private PrefsManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,7 +101,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         });
 
         // Inicializar PreferencesManager
-        prefsManager = new PreferencesManager(this);
+        prefsManager = new PrefsManager(this);
         
         initViews();
         setupDrawer();
@@ -126,7 +126,9 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
             Toast.makeText(this, "POR IMPLEMENTAR", Toast.LENGTH_SHORT).show();
             return true;
         } else if (id == R.id.action_profile) {
-            Toast.makeText(this, "en proceso de implementacion xd", Toast.LENGTH_SHORT).show();
+            // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
+            Intent intentProfileMenu = new Intent(this, SuperadminMyAccount.class);
+            startActivity(intentProfileMenu);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -149,8 +151,10 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
             avatarActionLayout = (FrameLayout) avatarItem.getActionView();
             if (avatarActionLayout != null) {
                 ivAvatarAction = avatarActionLayout.findViewById(R.id.iv_avatar_action);
-                avatarActionLayout.setOnClickListener(v ->
-                        Toast.makeText(this, "por implementr xd", Toast.LENGTH_SHORT).show());
+                avatarActionLayout.setOnClickListener(v -> {
+                    Intent intentProfileMenu = new Intent(this, SuperadminMyAccount.class);
+                    startActivity(intentProfileMenu);
+                });
             }
         }
     }
@@ -198,10 +202,10 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     private void loadUserDataInDrawer() {
         // Actualizar nombre de usuario en el header del drawer
         View headerView = navigationView.getHeaderView(0);
-        if (headerView != null && prefsManager != null && prefsManager.isLoggedIn()) {
+        if (headerView != null && prefsManager != null && prefsManager.sesionActiva()) {
             TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
             if (tvUserNameHeader != null) {
-                String userName = prefsManager.getUserName();
+                String userName = prefsManager.obtenerUsuario();
                 if (userName != null && !userName.isEmpty()) {
                     tvUserNameHeader.setText(userName);
                 } else {
@@ -565,8 +569,17 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         } else if (id == R.id.nav_profile) {
             startActivity(new Intent(this, SuperadminProfileActivity.class));
         } else if (id == R.id.nav_logout) {
-            Toast.makeText(this, "Cerrando sesión...", Toast.LENGTH_SHORT).show();
+            //Se limpian los datos de seión
+            prefsManager.cerrarSesion();
+
+            //Limpiar el stack de activities de Login
+            Intent intent= new Intent(this,LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+
             finish();
+
+            Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
         }
 
         drawerLayout.closeDrawers();

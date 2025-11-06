@@ -8,6 +8,8 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.droidtour.client.ClientMainActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -15,15 +17,15 @@ import com.example.droidtour.utils.PreferencesManager;
 import com.example.droidtour.managers.FileManager;
 import org.json.JSONObject;
 import org.json.JSONException;
+import android.util.Log;
 import java.util.Calendar;
 
-public class AdminRegistrationActivity extends AppCompatActivity {
+public class ClientRegistrationActivity extends AppCompatActivity {
 
     private TextInputEditText etFirstName, etLastName, etDocumentNumber, etBirthDate,
-            etEmail, etPhone, etAddress, etPassword, etConfirmPassword,
-            etCompanyName, etCompanyEmail, etCompanyPhone, etCompanyAddress;
+            etEmail, etPhone, etAddress, etPassword, etConfirmPassword;
     private AutoCompleteTextView spinnerDocumentType;
-    private MaterialButton btnRegister, btnSelectPhoto, btnSelectCompanyPhotos;
+    private MaterialButton btnRegister, btnSelectPhoto;
     private MaterialToolbar toolbar;
 
     // ==================== LOCAL STORAGE ====================
@@ -33,7 +35,7 @@ public class AdminRegistrationActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_admin_registration);
+        setContentView(R.layout.activity_client_registration);
 
         initializeLocalStorage();
         initializeViews();
@@ -54,42 +56,33 @@ public class AdminRegistrationActivity extends AppCompatActivity {
         etAddress = findViewById(R.id.et_address);
         etPassword = findViewById(R.id.et_password);
         etConfirmPassword = findViewById(R.id.et_confirm_password);
-        etCompanyName = findViewById(R.id.et_company_name);
-        etCompanyEmail = findViewById(R.id.et_company_email);
-        etCompanyPhone = findViewById(R.id.et_company_phone);
-        etCompanyAddress = findViewById(R.id.et_company_address);
         btnRegister = findViewById(R.id.btn_register);
         btnSelectPhoto = findViewById(R.id.btn_select_photo);
-        btnSelectCompanyPhotos = findViewById(R.id.btn_select_company_photos);
     }
 
     private void setupToolbar() {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("Registro de Administrador");
+        getSupportActionBar().setTitle("Registro de Cliente");
     }
 
     private void setupDocumentTypeSpinner() {
         String[] documentTypes = {"DNI", "Pasaporte", "Carnet de Extranjería"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, 
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, documentTypes);
         spinnerDocumentType.setAdapter(adapter);
     }
 
     private void setupClickListeners() {
         etBirthDate.setOnClickListener(v -> showDatePicker());
-        
-        btnSelectPhoto.setOnClickListener(v -> {
-            Toast.makeText(this, "Funcionalidad de selección de foto personal - En desarrollo", Toast.LENGTH_SHORT).show();
-        });
 
-        btnSelectCompanyPhotos.setOnClickListener(v -> {
-            Toast.makeText(this, "Funcionalidad de selección de fotos promocionales (mín. 2) - En desarrollo", Toast.LENGTH_SHORT).show();
+        btnSelectPhoto.setOnClickListener(v -> {
+            Toast.makeText(this, "Funcionalidad de selección de foto - En desarrollo", Toast.LENGTH_SHORT).show();
         });
 
         btnRegister.setOnClickListener(v -> {
             if (validateForm()) {
-                registerAdmin();
+                registerClient();
             }
         });
     }
@@ -110,7 +103,6 @@ public class AdminRegistrationActivity extends AppCompatActivity {
     }
 
     private boolean validateForm() {
-        // Validación datos personales
         if (etFirstName.getText().toString().trim().isEmpty()) {
             etFirstName.setError("Campo obligatorio");
             return false;
@@ -151,31 +143,14 @@ public class AdminRegistrationActivity extends AppCompatActivity {
             etConfirmPassword.setError("Las contraseñas no coinciden");
             return false;
         }
-
-        // Validación datos empresa
-        if (etCompanyName.getText().toString().trim().isEmpty()) {
-            etCompanyName.setError("Campo obligatorio");
-            return false;
-        }
-        if (etCompanyEmail.getText().toString().trim().isEmpty()) {
-            etCompanyEmail.setError("Campo obligatorio");
-            return false;
-        }
-        if (etCompanyPhone.getText().toString().trim().isEmpty()) {
-            etCompanyPhone.setError("Campo obligatorio");
-            return false;
-        }
-        if (etCompanyAddress.getText().toString().trim().isEmpty()) {
-            etCompanyAddress.setError("Campo obligatorio");
-            return false;
-        }
-
         return true;
     }
 
-    private void registerAdmin() {
+    private void registerClient() {
+        Log.d("ClientRegistration", "Iniciando registro de cliente...");
+
         try {
-            // Obtener datos personales del formulario
+            // Obtener datos del formulario
             String firstName = etFirstName.getText().toString().trim();
             String lastName = etLastName.getText().toString().trim();
             String documentType = spinnerDocumentType.getText().toString().trim();
@@ -186,95 +161,80 @@ public class AdminRegistrationActivity extends AppCompatActivity {
             String address = etAddress.getText().toString().trim();
             String password = etPassword.getText().toString().trim();
 
-            // Obtener datos de la empresa
-            String companyName = etCompanyName.getText().toString().trim();
-            String companyEmail = etCompanyEmail.getText().toString().trim();
-            String companyPhone = etCompanyPhone.getText().toString().trim();
-            String companyAddress = etCompanyAddress.getText().toString().trim();
+            Log.d("ClientRegistration", "Datos obtenidos: " + firstName + " " + lastName + ", " + email);
 
-            // Generar IDs únicos
-            String adminId = "ADMIN_" + System.currentTimeMillis();
-            String companyId = "COMPANY_" + System.currentTimeMillis();
+            // Generar ID único para el cliente
+            String clientId = "CLIENT_" + System.currentTimeMillis();
             String fullName = firstName + " " + lastName;
 
-            // 1. Guardar datos básicos del admin en SharedPreferences
-            prefsManager.saveUserData(adminId, fullName, email, phone, "ADMIN");
+            Log.d("ClientRegistration", "ID generado: " + clientId);
 
-            // 2. Guardar datos completos del administrador en archivo JSON
-            JSONObject adminData = new JSONObject();
-            adminData.put("id", adminId);
-            adminData.put("firstName", firstName);
-            adminData.put("lastName", lastName);
-            adminData.put("fullName", fullName);
-            adminData.put("documentType", documentType);
-            adminData.put("documentNumber", documentNumber);
-            adminData.put("birthDate", birthDate);
-            adminData.put("email", email);
-            adminData.put("phone", phone);
-            adminData.put("address", address);
-            adminData.put("userType", "ADMIN");
-            adminData.put("companyId", companyId);
-            adminData.put("registrationDate", System.currentTimeMillis());
-            adminData.put("status", "PENDING_APPROVAL");
-            adminData.put("approved", false);
+            // 1. Guardar datos básicos en SharedPreferences
+            prefsManager.saveUserData(clientId, fullName, email, phone, "CLIENT");
 
-            // 3. Guardar datos de la empresa
-            JSONObject companyData = new JSONObject();
-            companyData.put("id", companyId);
-            companyData.put("name", companyName);
-            companyData.put("email", companyEmail);
-            companyData.put("phone", companyPhone);
-            companyData.put("address", companyAddress);
-            companyData.put("adminId", adminId);
-            companyData.put("registrationDate", System.currentTimeMillis());
-            companyData.put("status", "PENDING_APPROVAL");
-            companyData.put("approved", false);
-            companyData.put("rating", 0.0);
-            companyData.put("toursOffered", 0);
-            companyData.put("activeGuides", 0);
+            Log.d("ClientRegistration", "Datos guardados en SharedPreferences");
 
-            // Información adicional de la empresa
-            JSONObject companyDetails = new JSONObject();
-            companyDetails.put("description", "Empresa de turismo registrada en DroidTour");
-            companyDetails.put("services", "Tours, Guías, Experiencias");
-            companyDetails.put("founded", "2024");
-            companyDetails.put("website", "");
-            companyDetails.put("social_media", new JSONObject()
-                .put("facebook", "")
-                .put("instagram", "")
-                .put("twitter", "")
-            );
-            companyData.put("details", companyDetails);
+            // 2. Guardar datos completos en archivo JSON
+            JSONObject clientData = new JSONObject();
+            clientData.put("id", clientId);
+            clientData.put("firstName", firstName);
+            clientData.put("lastName", lastName);
+            clientData.put("fullName", fullName);
+            clientData.put("documentType", documentType);
+            clientData.put("documentNumber", documentNumber);
+            clientData.put("birthDate", birthDate);
+            clientData.put("email", email);
+            clientData.put("phone", phone);
+            clientData.put("address", address);
+            clientData.put("userType", "CLIENT");
+            clientData.put("registrationDate", System.currentTimeMillis());
+            clientData.put("status", "ACTIVE");
+            clientData.put("profileComplete", true);
 
-            // Guardar ambos perfiles
-            boolean adminSaved = fileManager.guardarDatosUsuario(adminData);
-            boolean companySaved = fileManager.guardarJSON("company_" + companyId + ".json", companyData);
+            Log.d("ClientRegistration", "JSON creado: " + clientData.toString());
 
-            if (adminSaved && companySaved) {
-                // 4. Crear backups
-                fileManager.crearBackup("admin_registration_" + adminId, adminData);
-                fileManager.crearBackup("company_registration_" + companyId, companyData);
+            // Guardar perfil completo
+            boolean saved = fileManager.guardarDatosUsuario(clientData);
 
-                // 5. Guardar configuraciones por defecto
+            Log.d("ClientRegistration", "Archivo guardado: " + saved);
+
+            if (saved) {
+                // 3. Crear backup del registro
+                boolean backupCreated = fileManager.crearBackup("client_registration_" + clientId, clientData);
+                Log.d("ClientRegistration", "Backup creado: " + backupCreated);
+
+                // 4. Guardar configuraciones por defecto
                 prefsManager.setNotificationsEnabled(true);
 
-                Toast.makeText(this,
-                    "Administrador y empresa registrados exitosamente.\n" +
-                    "Empresa: " + companyName + "\n" +
-                    "Pendiente de aprobación por Superadmin.",
-                    Toast.LENGTH_LONG).show();
+                Log.d("ClientRegistration", "Configuraciones guardadas");
 
-                // 7. Redirigir al login
-                Intent intent = new Intent(this, LoginActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                // Verificar que la sesión esté activa
+                boolean sessionActive = prefsManager.isLoggedIn();
+                Log.d("ClientRegistration", "Sesión activa: " + sessionActive);
+
+                Toast.makeText(this, "Cliente registrado exitosamente\nBienvenido " + fullName, Toast.LENGTH_LONG).show();
+
+                // 5. Redirigir directamente a la actividad principal del cliente
+                Log.d("ClientRegistration", "Iniciando redirección a ClientMainActivity");
+
+                Intent intent = new Intent(this, ClientMainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 finish();
+
+                Log.d("ClientRegistration", "Redirección completada");
+
             } else {
+                Log.e("ClientRegistration", "Error al guardar archivo");
                 Toast.makeText(this, "Error al guardar los datos. Intente nuevamente.", Toast.LENGTH_SHORT).show();
             }
 
         } catch (JSONException e) {
+            Log.e("ClientRegistration", "Error JSON: " + e.getMessage());
             Toast.makeText(this, "Error al procesar los datos: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Log.e("ClientRegistration", "Error general: " + e.getMessage());
+            Toast.makeText(this, "Error inesperado: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 

@@ -177,6 +177,21 @@
 +
 
         <activity
+            android:name=".GuideMyAccount"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+
+        <activity
+            android:name=".SuperadminMyAccount"
+            android:exported="false"
+            android:parentActivityName=".SuperadminMainActivity" />
+
+        <activity
+            android:name=".client.ClientNotificationsActivity"
+            android:exported="false"
+            android:parentActivityName=".client.ClientMainActivity" />
+
+        <activity
             android:name=".TourRatingActivity"
             android:exported="false"
             android:parentActivityName=".MyReservationsActivity" />
@@ -240,7 +255,7 @@
         <!-- Actividades de Autenticación -->
         <activity
             android:name=".LoginActivity"
-            android:exported="false" />
+            android:exported="true" />
 
         <activity
             android:name=".RoleSelectionActivity"

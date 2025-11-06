@@ -35,9 +35,9 @@ public class GuideTrackingActivity extends AppCompatActivity {
             return;
         }
         
-        // Validar que el usuario sea un guía
+        // Validar que el usuario sea ADMIN o GUIDE
         String userType = prefsManager.getUserType();
-        if (userType == null || !userType.equals("GUIDE")) {
+        if (userType == null || (!userType.equals("ADMIN") && !userType.equals("GUIDE"))) {
             redirectToLogin();
             finish();
             return;

@@ -21,10 +21,30 @@ public class PaymentMethodsActivity extends AppCompatActivity {
     private PaymentMethodsAdapter paymentMethodsAdapter;
     private MaterialCardView cardAddNew;
     private TextView tvCardsCount;
+    private com.example.droidtour.utils.PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea CLIENT
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("CLIENT")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_payment_methods);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
@@ -88,6 +108,12 @@ public class PaymentMethodsActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+    
+    private void redirectToLogin() {
+        android.content.Intent intent = new android.content.Intent(this, com.example.droidtour.LoginActivity.class);
+        intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
 

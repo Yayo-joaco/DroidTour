@@ -59,12 +59,30 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea CLIENT
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("CLIENT")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_client_main);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
-        prefsManager = new PreferencesManager(this);
         notificationHelper = new NotificationHelper(this);
 
         initializeViews();
@@ -478,6 +496,14 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             "28 Oct", 
             "09:00 AM"
         );
+    }
+    
+    // ==================== VALIDACIÓN DE SESIÓN ====================
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
 

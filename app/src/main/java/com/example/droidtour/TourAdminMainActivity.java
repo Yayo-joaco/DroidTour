@@ -16,6 +16,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.example.droidtour.LoginActivity;
 import com.example.droidtour.utils.PreferencesManager;
 import com.example.droidtour.managers.FileManager;
 
@@ -32,10 +33,28 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea ADMIN
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("ADMIN")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_tour_admin_main);
 
         // Inicializar storage
-        prefsManager = new PreferencesManager(this);
         fileManager = new FileManager(this);
 
         setupToolbar();
@@ -220,5 +239,11 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         super.onResume();
         // Actualizar contadores cuando se regrese a la pantalla principal
         loadDashboardData();
+    }
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }

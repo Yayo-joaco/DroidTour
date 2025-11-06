@@ -57,8 +57,9 @@
                         <ImageView
                             android:layout_width="48dp"
                             android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_myplaces"
-                            android:tint="@color/white" />
+                            android:src="@drawable/ic_greeting"
+                            app:tint="@color/white"
+                            android:contentDescription="@string/explore_tours_desc" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -71,7 +72,7 @@
                                 android:id="@+id/tv_welcome_message"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="¡Hola, Ana!"
+                                android:text="@string/hello_user"
                                 android:textSize="20sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/white" />
@@ -79,7 +80,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Descubre increíbles tours locales"
+                                android:text="@string/welcome_sub"
                                 android:textSize="14sp"
                                 android:textColor="@color/white"
                                 android:layout_marginTop="4dp" />
@@ -90,7 +91,7 @@
                             android:id="@+id/tv_active_reservations"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="2"
+                            android:text="@string/active_reservations_count"
                             android:textSize="14sp"
                             android:textColor="@color/white"
                             android:background="@drawable/circle_orange"
@@ -119,6 +120,8 @@
                         android:layout_marginEnd="8dp"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="4dp"
+                        app:cardBackgroundColor="#FDFDFD"
+
                         android:clickable="true"
                         android:focusable="true">
 
@@ -129,16 +132,25 @@
                             android:gravity="center"
                             android:padding="12dp">
 
-                            <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:src="@android:drawable/ic_menu_search"
-                                android:tint="@color/primary" />
+                            <FrameLayout
+                                android:layout_width="48dp"
+                                android:layout_height="48dp">
+
+
+
+                                <ImageView
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_explore"
+                                    app:tint="@color/primary"
+                                    android:contentDescription="@string/explore_tours_desc" />
+                            </FrameLayout>
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Explorar Tours"
+                                android:text="@string/explore_tours"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"
@@ -157,6 +169,7 @@
                         android:layout_marginEnd="8dp"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="4dp"
+                        app:cardBackgroundColor="@color/white"
                         android:clickable="true"
                         android:focusable="true">
 
@@ -167,16 +180,25 @@
                             android:gravity="center"
                             android:padding="12dp">
 
-                            <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:src="@android:drawable/ic_menu_agenda"
-                                android:tint="@color/accent" />
+                            <FrameLayout
+                                android:layout_width="48dp"
+                                android:layout_height="48dp">
+
+
+
+                                <ImageView
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_calendar_check"
+                                    app:tint="@color/accent"
+                                    android:contentDescription="@string/my_reservations_desc" />
+                            </FrameLayout>
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Mis Reservas"
+                                android:text="@string/my_reservations_label"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"
@@ -194,6 +216,7 @@
                         android:layout_weight="1"
                         app:cardCornerRadius="12dp"
                         app:cardElevation="4dp"
+                        app:cardBackgroundColor="@color/white"
                         android:clickable="true"
                         android:focusable="true">
 
@@ -204,16 +227,25 @@
                             android:gravity="center"
                             android:padding="12dp">
 
-                            <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:src="@android:drawable/ic_menu_send"
-                                android:tint="@color/primary" />
+                            <FrameLayout
+                                android:layout_width="48dp"
+                                android:layout_height="48dp">
+
+                                
+
+                                <ImageView
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_chat"
+                                    app:tint="@color/primary"
+                                    android:contentDescription="@string/my_chats_desc" />
+                            </FrameLayout>
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Mis Chats"
+                                android:text="@string/my_chats_label"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"

@@ -104,4 +104,15 @@
     <string name="cerrar_sesion_sub">Salir de tu cuenta</string>
     <!-- Título específico para la pantalla Mi Cuenta -->
     <string name="mi_cuenta">Mi Cuenta</string>
+    <string name="hello_user">¡Hola, Ana!</string>
+    <string name="welcome_sub">Descubre increíbles tours locales</string>
+    <string name="active_reservations_count">2</string>
+
+    <!-- Quick Actions -->
+    <string name="explore_tours">Explorar Tours</string>
+    <string name="explore_tours_desc">Explorar tours</string>
+    <string name="my_reservations_label">Mis Reservas</string>
+    <string name="my_reservations_desc">Mis reservas</string>
+    <string name="my_chats_label">Mis Chats</string>
+    <string name="my_chats_desc">Mis chats</string>
 </resources>

@@ -52,7 +52,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
-import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.utils.PreferencesManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -86,7 +86,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     private ImageView ivAvatarAction;
     private FrameLayout notificationActionLayout, avatarActionLayout;
     private int notificationCount = 3;
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,7 +101,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         });
 
         // Inicializar PreferencesManager
-        prefsManager = new PrefsManager(this);
+        prefsManager = new PreferencesManager(this);
         
         initViews();
         setupDrawer();

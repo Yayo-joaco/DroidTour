@@ -8,11 +8,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientMainActivity;
-import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.utils.PreferencesManager;
 
 public class WelcomeActivity extends AppCompatActivity {
 
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState){
@@ -20,7 +20,7 @@ public class WelcomeActivity extends AppCompatActivity {
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.white));
         setContentView(R.layout.welcome_init_1); // Tu layout actual del splash
 
-        prefsManager = new PrefsManager(this);
+        prefsManager = new PreferencesManager(this);
 
         // Espera 3 segundos y luego decide adónde ir
         new Handler().postDelayed(this::verificarFlujo, 3000);

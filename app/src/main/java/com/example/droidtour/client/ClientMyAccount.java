@@ -14,12 +14,12 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.droidtour.LoginActivity;
 import com.example.droidtour.MainActivity;
 import com.example.droidtour.R;
-import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
 public class ClientMyAccount extends AppCompatActivity {
 
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,8 +27,8 @@ public class ClientMyAccount extends AppCompatActivity {
         setContentView(R.layout.activity_myaccount);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        // Inicializar PrefsManager
-        prefsManager = new PrefsManager(this);
+        // Inicializar PreferencesManager
+        prefsManager = new PreferencesManager(this);
 
         // Toolbar: permitir botón de retroceso y mostrar título de la app
         MaterialToolbar toolbar = findViewById(R.id.toolbar);

@@ -30,7 +30,7 @@ import com.example.droidtour.TourDetailActivity;
 import com.example.droidtour.ToursCatalogActivity;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.NotificationHelper;
-import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
@@ -47,7 +47,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     
     // Storage y Notificaciones
     private DatabaseHelper dbHelper;
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
     private NotificationHelper notificationHelper;
     
     // Toolbar menu elements
@@ -64,7 +64,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
-        prefsManager = new PrefsManager(this);
+        prefsManager = new PreferencesManager(this);
         notificationHelper = new NotificationHelper(this);
 
         initializeViews();

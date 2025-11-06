@@ -9,17 +9,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientMainActivity;
-import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.utils.PreferencesManager;
 
 public class Onboarding2 extends AppCompatActivity {
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.welcome_init_3);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        prefsManager= new PrefsManager(this);
+        prefsManager = new PreferencesManager(this);
 
         //Verificación de sesión activa
         if(prefsManager.sesionActiva()){

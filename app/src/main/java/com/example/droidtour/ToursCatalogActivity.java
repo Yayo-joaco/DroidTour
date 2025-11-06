@@ -26,30 +26,68 @@ public class ToursCatalogActivity extends AppCompatActivity {
     private ChipGroup chipGroupFilter;
     private TextView tvCompanyName, tvCompanyRating, tvToursCount;
     
-    private String companyName;
-    private int companyId;
-    private java.util.List<DatabaseHelper.Tour> allTours;
-    private java.util.List<DatabaseHelper.Tour> filteredTours;
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
+    private String companyId, companyName;
+    private java.util.List<com.example.droidtour.models.Tour> allTours = new java.util.ArrayList<>();
+    private java.util.List<com.example.droidtour.models.Tour> filteredTours = new java.util.ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tours_catalog);
 
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        
         getIntentData();
         setupToolbar();
         initializeViews();
-        setupCompanyHeader();
+        loadCompanyFromFirebase();
         setupRecyclerView();
-        seedTours();
+        loadToursFromFirebase();
         bindSearch();
         setupFilters();
     }
 
     private void getIntentData() {
-        companyId = getIntent().getIntExtra("company_id", 0);
+        companyId = getIntent().getStringExtra("company_id");
         companyName = getIntent().getStringExtra("company_name");
         if (companyName == null) companyName = "Empresa de Tours";
+        if (companyId == null) companyId = "COMP001";
+    }
+    
+    private void loadCompanyFromFirebase() {
+        firestoreManager.getCompany(companyId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.Company company = (com.example.droidtour.models.Company) result;
+                tvCompanyName.setText(company.getName());
+                tvCompanyRating.setText("⭐ " + company.getAverageRating() + " • " + company.getTotalReviews() + " reseñas");
+                tvToursCount.setText(company.getTotalTours() + " tours");
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                setupCompanyHeader();
+            }
+        });
+    }
+    
+    private void loadToursFromFirebase() {
+        firestoreManager.getToursByCompany(companyId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                allTours.clear();
+                allTours.addAll((java.util.List<com.example.droidtour.models.Tour>) result);
+                filteredTours.clear();
+                filteredTours.addAll(allTours);
+                toursAdapter.notifyDataSetChanged();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(ToursCatalogActivity.this, "Error cargando tours", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setupToolbar() {
@@ -71,78 +109,19 @@ public class ToursCatalogActivity extends AppCompatActivity {
     }
 
     private void setupCompanyHeader() {
+        // Fallback con datos de ejemplo si falla Firebase
         tvCompanyName.setText(companyName);
-        
-        switch (companyId % 3) {
-            case 0:
-                tvCompanyRating.setText("⭐ 4.8 • 245 reseñas");
-                tvToursCount.setText("12 tours");
-                break;
-            case 1:
-                tvCompanyRating.setText("⭐ 4.9 • 189 reseñas");
-                tvToursCount.setText("8 tours");
-                break;
-            default:
-                tvCompanyRating.setText("⭐ 4.7 • 156 reseñas");
-                tvToursCount.setText("6 tours");
-        }
+        tvCompanyRating.setText("⭐ 4.8 • 245 reseñas");
+        tvToursCount.setText("12 tours");
     }
 
     private void setupRecyclerView() {
         rvTours.setLayoutManager(new LinearLayoutManager(this));
-        filteredTours = new java.util.ArrayList<>();
         toursAdapter = new ToursCatalogAdapter(filteredTours, this::onTourClick);
         rvTours.setAdapter(toursAdapter);
     }
-
-    private void seedTours() {
-        allTours = new java.util.ArrayList<>();
-        allTours.add(new DatabaseHelper.Tour(
-            "City Tour Lima Centro Histórico",
-            "Descubre la historia y cultura de Lima visitando sus principales atractivos del centro histórico.",
-            85.0,
-            "4 horas",
-            4.9,
-            "ES, EN",
-            "Max 12"
-        ));
-        allTours.get(allTours.size()-1).setImageUrl("https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg");
-        allTours.add(new DatabaseHelper.Tour(
-            "Machu Picchu Full Day",
-            "Visita la maravilla del mundo con transporte y guía incluido desde Cusco.",
-            180.0,
-            "Full Day",
-            4.8,
-            "ES, EN",
-            "Max 12"
-        ));
-        allTours.get(allTours.size()-1).setImageUrl("https://res.klook.com/image/upload/c_fill,w_627,h_470/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/jdnneadpdsxcsnghocbu.jpg");
-        allTours.add(new DatabaseHelper.Tour(
-            "Islas Ballestas y Paracas",
-            "Observa lobos marinos, pingüinos y aves en su hábitat natural.",
-            65.0,
-            "6 horas",
-            4.7,
-            "ES, EN",
-            "Max 12"
-        ));
-        allTours.get(allTours.size()-1).setImageUrl("https://image.jimcdn.com/app/cms/image/transf/none/path/s336fd9bc7dca3ebc/image/ida0ff171f4a6d885/version/1391479285/image.jpg");
-        allTours.add(new DatabaseHelper.Tour(
-            "Cañón del Colca 2D/1N",
-            "Aventura de dos días por uno de los cañones más profundos del mundo.",
-            120.0,
-            "2D/1N",
-            4.6,
-            "ES, EN",
-            "Max 12"
-        ));
-        allTours.get(allTours.size()-1).setImageUrl("https://thriveandwander.com/wp-content/uploads/2023/12/barranco-lima-768x514.jpg");
-
-        filteredTours.clear();
-        filteredTours.addAll(allTours);
-        toursAdapter.notifyDataSetChanged();
-        updateToursCountLabel();
-    }
+    
+    // Método obsoleto - ahora se usa loadToursFromFirebase()
 
     private void bindSearch() {
         etSearch.addTextChangedListener(new TextWatcher() {
@@ -179,16 +158,17 @@ public class ToursCatalogActivity extends AppCompatActivity {
     private void applyFilter(String filterType) {
         String query = etSearch.getText() != null ? etSearch.getText().toString().trim().toLowerCase() : "";
         filteredTours.clear();
-        for (DatabaseHelper.Tour tour : allTours) {
-            if (query.isEmpty() || tour.getName().toLowerCase().contains(query) || tour.getDescription().toLowerCase().contains(query)) {
+        for (com.example.droidtour.models.Tour tour : allTours) {
+            if (query.isEmpty() || tour.getName().toLowerCase().contains(query) || 
+                (tour.getDescription() != null && tour.getDescription().toLowerCase().contains(query))) {
                 filteredTours.add(tour);
             }
         }
 
         if ("best_price".equals(filterType)) {
-            java.util.Collections.sort(filteredTours, (t1, t2) -> Double.compare(t1.getPayment(), t2.getPayment()));
+            java.util.Collections.sort(filteredTours, (t1, t2) -> Double.compare(t1.getPricePerPerson(), t2.getPricePerPerson()));
         } else if ("duration".equals(filterType)) {
-            java.util.Collections.sort(filteredTours, (t1, t2) -> Long.compare(parseDurationToMinutes(t1.getDurationLabel()), parseDurationToMinutes(t2.getDurationLabel())));
+            java.util.Collections.sort(filteredTours, (t1, t2) -> Long.compare(parseDurationToMinutes(t1.getDuration()), parseDurationToMinutes(t2.getDuration())));
         }
 
         toursAdapter.notifyDataSetChanged();
@@ -227,13 +207,13 @@ public class ToursCatalogActivity extends AppCompatActivity {
         return Long.MAX_VALUE;
     }
 
-    private void onTourClick(int position) {
+    private void onTourClick(com.example.droidtour.models.Tour tour) {
         Intent intent = new Intent(this, TourDetailActivity.class);
-        intent.putExtra("tour_id", position);
-        intent.putExtra("company_name", companyName);
-        DatabaseHelper.Tour tour = filteredTours.get(position);
+        intent.putExtra("tour_id", tour.getTourId());
         intent.putExtra("tour_name", tour.getName());
-        intent.putExtra("price", tour.getPayment());
+        intent.putExtra("company_id", tour.getCompanyId());
+        intent.putExtra("company_name", tour.getCompanyName());
+        intent.putExtra("price", tour.getPricePerPerson());
         intent.putExtra("image_url", tour.getImageUrl());
         startActivity(intent);
     }
@@ -250,11 +230,11 @@ public class ToursCatalogActivity extends AppCompatActivity {
 
 // Adaptador para el catálogo de tours
 class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewHolder> {
-    interface OnTourClick { void onClick(int position); }
+    interface OnTourClick { void onClick(com.example.droidtour.models.Tour tour); }
     private final OnTourClick onTourClick;
-    private final java.util.List<DatabaseHelper.Tour> tours;
+    private final java.util.List<com.example.droidtour.models.Tour> tours;
     
-    ToursCatalogAdapter(java.util.List<DatabaseHelper.Tour> tours, OnTourClick listener) { 
+    ToursCatalogAdapter(java.util.List<com.example.droidtour.models.Tour> tours, OnTourClick listener) { 
         this.tours = tours;
         this.onTourClick = listener; 
     }
@@ -268,7 +248,7 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        DatabaseHelper.Tour tour = tours.get(position);
+        com.example.droidtour.models.Tour tour = tours.get(position);
         
         android.widget.ImageView tourImage = holder.itemView.findViewById(R.id.iv_tour_image);
         TextView tourName = holder.itemView.findViewById(R.id.tv_tour_name);
@@ -282,15 +262,14 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
 
         tourName.setText(tour.getName());
         tourDescription.setText(tour.getDescription());
-        rating.setText("⭐ " + tour.getRating());
-        duration.setText(tour.getDurationLabel());
-        groupSize.setText(tour.getGroupSizeLabel());
-        languages.setText(tour.getLanguages());
-        price.setText("S/. " + String.format(java.util.Locale.US, "%.2f", tour.getPayment()));
+        rating.setText("⭐ " + tour.getAverageRating());
+        duration.setText(tour.getDuration());
+        groupSize.setText("Máx " + tour.getMaxGroupSize() + " personas");
+        languages.setText(tour.getLanguages() != null ? String.join(", ", tour.getLanguages()) : "ES, EN");
+        price.setText("S/. " + String.format(java.util.Locale.US, "%.2f", tour.getPricePerPerson()));
 
-        // Cargar imagen con Glide si hay URL
         if (tourImage != null) {
-            String url = tour.getImageUrl();
+            String url = tour.getImageUrl() != null ? tour.getImageUrl() : "https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg";
             Glide.with(tourImage.getContext())
                 .load(url)
                 .placeholder(android.R.drawable.ic_menu_gallery)
@@ -298,8 +277,8 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
                 .into(tourImage);
         }
 
-        btnReserve.setOnClickListener(v -> onTourClick.onClick(position));
-        holder.itemView.setOnClickListener(v -> onTourClick.onClick(position));
+        btnReserve.setOnClickListener(v -> onTourClick.onClick(tour));
+        holder.itemView.setOnClickListener(v -> onTourClick.onClick(tour));
     }
 
     @Override

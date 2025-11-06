@@ -105,8 +105,23 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
         fabEditPhoto.setOnClickListener(v -> showPhotoOptions());
 
         btnSiguiente.setOnClickListener(v -> {
-            // Redirigir a la pantalla de creación de contraseña
+            Intent prevIntent = getIntent();
             Intent intent = new Intent(this, ClientCreatePasswordActivity.class);
+            
+            // Pasar todos los datos del usuario
+            intent.putExtra("nombres", prevIntent.getStringExtra("nombres"));
+            intent.putExtra("apellidos", prevIntent.getStringExtra("apellidos"));
+            intent.putExtra("tipoDocumento", prevIntent.getStringExtra("tipoDocumento"));
+            intent.putExtra("numeroDocumento", prevIntent.getStringExtra("numeroDocumento"));
+            intent.putExtra("fechaNacimiento", prevIntent.getStringExtra("fechaNacimiento"));
+            intent.putExtra("correo", prevIntent.getStringExtra("correo"));
+            intent.putExtra("telefono", prevIntent.getStringExtra("telefono"));
+            
+            // Pasar URI de la foto si existe
+            if (photoUri != null) {
+                intent.putExtra("photoUri", photoUri.toString());
+            }
+            
             startActivity(intent);
         });
     }

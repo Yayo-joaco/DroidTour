@@ -1,3 +1,4 @@
+
 package com.example.droidtour;
 
 import android.content.Intent;
@@ -13,10 +14,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.droidtour.client.ClientQRCodesActivity;
-import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Reservation;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MyReservationsActivity extends AppCompatActivity {
@@ -26,10 +30,11 @@ public class MyReservationsActivity extends AppCompatActivity {
     private ChipGroup chipGroupFilter;
     private TextView tvTotalReservations, tvActiveReservations, tvTotalSpent;
     
-    // Storage Local
-    private DatabaseHelper dbHelper;
-    private List<DatabaseHelper.Reservation> allReservations;
-    private List<DatabaseHelper.Reservation> filteredReservations;
+    private FirebaseAuthManager authManager;
+    private FirestoreManager firestoreManager;
+    private String currentUserId;
+    private List<Reservation> allReservations = new ArrayList<>();
+    private List<Reservation> filteredReservations = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,27 +42,44 @@ public class MyReservationsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_my_reservations);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        // Inicializar Storage Local
-        dbHelper = new DatabaseHelper(this);
+        authManager = FirebaseAuthManager.getInstance(this);
+        firestoreManager = FirestoreManager.getInstance();
+        currentUserId = authManager.getCurrentUserId();
+        
+        // 🔥 TEMPORAL: Para testing sin login
+        if (currentUserId == null) {
+            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
+            android.widget.Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", android.widget.Toast.LENGTH_SHORT).show();
+        }
         
         setupToolbar();
         initializeViews();
-        loadReservationsFromDatabase();
-        setupSummaryData();
         setupRecyclerView();
+        loadReservationsFromFirebase();
         setupFilters();
     }
     
-    private void loadReservationsFromDatabase() {
-        // ✅ CARGAR RESERVAS DE LA BASE DE DATOS
-        allReservations = dbHelper.getAllReservations();
-        // Inicialmente, mostrar todas
-        filteredReservations = new java.util.ArrayList<>(allReservations);
-        
-        // Si no hay reservas, mostrar mensaje
-        if (allReservations.isEmpty()) {
-            Toast.makeText(this, "No tienes reservas aún", Toast.LENGTH_SHORT).show();
-        }
+    private void loadReservationsFromFirebase() {
+        firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                allReservations.clear();
+                allReservations.addAll((List<Reservation>) result);
+                filteredReservations.clear();
+                filteredReservations.addAll(allReservations);
+                reservationsAdapter.notifyDataSetChanged();
+                setupSummaryData();
+                
+                if (allReservations.isEmpty()) {
+                    Toast.makeText(MyReservationsActivity.this, "No tienes reservas aún", Toast.LENGTH_SHORT).show();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(MyReservationsActivity.this, "Error cargando reservas", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setupToolbar() {
@@ -78,19 +100,18 @@ public class MyReservationsActivity extends AppCompatActivity {
     }
 
     private void setupSummaryData() {
-        // ✅ CALCULAR ESTADÍSTICAS DESDE LA BASE DE DATOS
         int totalReservations = allReservations.size();
         int activeCount = 0;
         int completedCount = 0;
         double totalSpent = 0.0;
         
-        for (DatabaseHelper.Reservation res : allReservations) {
-            if (res.getStatus().equals("CONFIRMADA")) {
+        for (Reservation res : allReservations) {
+            if (res.getStatus().equals("CONFIRMADA") || res.getStatus().equals("PENDIENTE")) {
                 activeCount++;
             } else if (res.getStatus().equals("COMPLETADA")) {
                 completedCount++;
             }
-            totalSpent += res.getPrice();
+            totalSpent += res.getTotalPrice();
         }
         
         tvTotalReservations.setText("Total de reservas: " + totalReservations);
@@ -100,7 +121,6 @@ public class MyReservationsActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         rvReservations.setLayoutManager(new LinearLayoutManager(this));
-        // ✅ PASAR LAS RESERVAS DE LA BASE DE DATOS AL ADAPTADOR
         reservationsAdapter = new ReservationsAdapter(filteredReservations, this::onReservationClick);
         rvReservations.setAdapter(reservationsAdapter);
     }
@@ -139,22 +159,22 @@ public class MyReservationsActivity extends AppCompatActivity {
         if ("todas".equals(filterType)) {
             filteredReservations.addAll(allReservations);
         } else if ("activas".equals(filterType)) {
-            for (DatabaseHelper.Reservation res : allReservations) {
+            for (Reservation res : allReservations) {
                 String status = safeStatus(res.getStatus());
-                if (status.equals("CONFIRMADA") || status.equals("PENDIENTE") || status.equals("EN_PROCESO")) {
+                if (status.equals("CONFIRMADA") || status.equals("PENDIENTE") || status.equals("EN_CURSO")) {
                     filteredReservations.add(res);
                 }
             }
         } else if ("completadas".equals(filterType)) {
-            for (DatabaseHelper.Reservation res : allReservations) {
+            for (Reservation res : allReservations) {
                 if (safeStatus(res.getStatus()).equals("COMPLETADA")) {
                     filteredReservations.add(res);
                 }
             }
         } else if ("canceladas".equals(filterType)) {
-            for (DatabaseHelper.Reservation res : allReservations) {
+            for (Reservation res : allReservations) {
                 String status = safeStatus(res.getStatus());
-                if (status.equals("CANCELADA") || status.equals("CANCELADO") || status.equals("RECHAZADA") || status.equals("NO_PROCESADA") || status.equals("FALLIDA")) {
+                if (status.equals("CANCELADA")) {
                     filteredReservations.add(res);
                 }
             }
@@ -208,9 +228,9 @@ public class MyReservationsActivity extends AppCompatActivity {
 class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewHolder> {
     interface OnReservationClick { void onClick(int position); }
     private final OnReservationClick onReservationClick;
-    private final List<DatabaseHelper.Reservation> reservations;
+    private final List<Reservation> reservations;
     
-    ReservationsAdapter(List<DatabaseHelper.Reservation> reservations, OnReservationClick listener) { 
+    ReservationsAdapter(List<Reservation> reservations, OnReservationClick listener) { 
         this.reservations = reservations;
         this.onReservationClick = listener; 
     }
@@ -224,8 +244,7 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        // ✅ OBTENER RESERVA DE LA BASE DE DATOS
-        DatabaseHelper.Reservation reservation = reservations.get(position);
+        Reservation reservation = reservations.get(position);
         
         TextView tourName = holder.itemView.findViewById(R.id.tv_tour_name);
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
@@ -243,16 +262,15 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
         MaterialButton btnRateTour = holder.itemView.findViewById(R.id.btn_rate_tour);
         android.view.View layoutQRSection = holder.itemView.findViewById(R.id.layout_qr_section);
 
-        // ✅ USAR DATOS DE LA RESERVA
         tourName.setText(reservation.getTourName());
-        companyName.setText(reservation.getCompany());
-        tourDate.setText(reservation.getDate());
-        tourTime.setText(reservation.getTime());
-        participants.setText(reservation.getPeople() + " personas");
-        paymentMethod.setText("Visa ****1234");
-        totalAmount.setText("S/. " + String.format("%.2f", reservation.getPrice()));
-        reservationCode.setText("Código: " + reservation.getQrCode());
-        reservationDate.setText(reservation.getDate());
+        companyName.setText(reservation.getCompanyName());
+        tourDate.setText(reservation.getTourDate());
+        tourTime.setText(reservation.getTourTime());
+        participants.setText(reservation.getNumberOfPeople() + " personas");
+        paymentMethod.setText(reservation.getPaymentMethod() != null ? reservation.getPaymentMethod() : "Visa ****1234");
+        totalAmount.setText("S/. " + String.format("%.2f", reservation.getTotalPrice()));
+        reservationCode.setText("Código: " + (reservation.getQrCodeCheckIn() != null ? reservation.getQrCodeCheckIn() : "N/A"));
+        reservationDate.setText(reservation.getTourDate());
         
         // Set status and button visibility based on status from database
         boolean isCompleted = reservation.getStatus().equals("COMPLETADA");
@@ -278,39 +296,38 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
             btnRateTour.setVisibility(android.view.View.GONE);
         }
 
-        // Button click listeners - ✅ USAR DATOS DE LA RESERVA
+        // Button click listeners
         btnViewQR.setOnClickListener(v -> {
-            // Only for confirmed tours - go to QR codes
             Intent intent = new Intent(v.getContext(), ClientQRCodesActivity.class);
-            intent.putExtra("reservation_id", reservation.getId());
+            intent.putExtra("reservation_id", reservation.getReservationId());
             intent.putExtra("tour_name", reservation.getTourName());
-            intent.putExtra("company_name", reservation.getCompany());
-            intent.putExtra("qr_code", reservation.getQrCode());
+            intent.putExtra("company_name", reservation.getCompanyName());
+            intent.putExtra("qr_code_checkin", reservation.getQrCodeCheckIn());
+            intent.putExtra("qr_code_checkout", reservation.getQrCodeCheckOut());
             v.getContext().startActivity(intent);
         });
         
         btnContactCompany.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), CompanyChatActivity.class);
-            intent.putExtra("company_name", reservation.getCompany());
+            intent.putExtra("company_name", reservation.getCompanyName());
             intent.putExtra("tour_name", reservation.getTourName());
             v.getContext().startActivity(intent);
         });
         
         btnViewDetails.setOnClickListener(v -> {
-            // Always go to tour details
             Intent intent = new Intent(v.getContext(), TourDetailActivity.class);
-            intent.putExtra("tour_id", reservation.getId());
+            intent.putExtra("tour_id", reservation.getTourId());
             intent.putExtra("tour_name", reservation.getTourName());
-            intent.putExtra("company_name", reservation.getCompany());
-            intent.putExtra("price", reservation.getPrice() / reservation.getPeople()); // Price per person
+            intent.putExtra("company_name", reservation.getCompanyName());
+            intent.putExtra("price", reservation.getPricePerPerson());
             v.getContext().startActivity(intent);
         });
         
         btnRateTour.setOnClickListener(v -> {
-            // Only for completed tours - go to rating
             Intent intent = new Intent(v.getContext(), TourRatingActivity.class);
+            intent.putExtra("reservation_id", reservation.getReservationId());
             intent.putExtra("tour_name", reservation.getTourName());
-            intent.putExtra("company_name", reservation.getCompany());
+            intent.putExtra("company_name", reservation.getCompanyName());
             v.getContext().startActivity(intent);
         });
         
@@ -320,7 +337,6 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
 
     @Override
     public int getItemCount() { 
-        // ✅ RETORNAR EL NÚMERO REAL DE RESERVAS
         return reservations.size(); 
     }
 

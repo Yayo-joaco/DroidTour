@@ -12,6 +12,10 @@ import com.google.android.material.textfield.TextInputEditText;
 
 public class CompanyInfoActivity extends AppCompatActivity {
     
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
+    private com.example.droidtour.firebase.FirebaseAuthManager authManager;
+    private String currentUserId;
+    
     private TextInputEditText etCompanyName, etCompanyEmail, etCompanyPhone, etCompanyAddress;
     private MaterialCardView cardImage1, cardImage2, cardMapPreview;
     private MaterialButton btnSelectLocation, btnCancel, btnSave;
@@ -20,6 +24,10 @@ public class CompanyInfoActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_company_info);
+        
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
+        currentUserId = authManager.getCurrentUserId();
         
         setupToolbar();
         initializeViews();
@@ -102,9 +110,30 @@ public class CompanyInfoActivity extends AppCompatActivity {
     }
     
     private void saveCompanyInfo() {
-        // TODO: Implementar guardado en base de datos
-        Toast.makeText(this, "Información de empresa guardada exitosamente", Toast.LENGTH_SHORT).show();
-        finish();
+        String name = etCompanyName.getText().toString().trim();
+        String email = etCompanyEmail.getText().toString().trim();
+        String phone = etCompanyPhone.getText().toString().trim();
+        String address = etCompanyAddress.getText().toString().trim();
+        
+        // Generar ID único para la empresa
+        String companyId = "COMP_" + System.currentTimeMillis();
+        
+        com.example.droidtour.models.Company company = new com.example.droidtour.models.Company(name, currentUserId, email, phone, "Lima", "Perú");
+        company.setAddress(address);
+        company.setActive(true);
+        
+        firestoreManager.createCompany(company, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Toast.makeText(CompanyInfoActivity.this, "Empresa guardada exitosamente", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(CompanyInfoActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
     
     @Override

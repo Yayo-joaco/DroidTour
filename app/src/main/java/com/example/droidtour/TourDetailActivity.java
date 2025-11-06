@@ -21,32 +21,68 @@ public class TourDetailActivity extends AppCompatActivity {
     private MaterialButton btnReserveNow, btnSeeAllReviews, btnContactCompany;
     private MaterialButton btnViewFullMap, btnGetDirections;
     
-    private String tourName, companyName, imageUrl;
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
+    private com.example.droidtour.models.Tour currentTour;
+    private String tourId, tourName, companyName, companyId, imageUrl;
     private double price;
-    private int tourId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_detail);
 
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        
         getIntentData();
         setupToolbar();
         initializeViews();
-        setupTourData();
+        loadTourFromFirebase();
         setupRecyclerViews();
         setupClickListeners();
     }
 
     private void getIntentData() {
-        tourId = getIntent().getIntExtra("tour_id", 0);
+        tourId = getIntent().getStringExtra("tour_id");
         tourName = getIntent().getStringExtra("tour_name");
         companyName = getIntent().getStringExtra("company_name");
+        companyId = getIntent().getStringExtra("company_id");
         price = getIntent().getDoubleExtra("price", 0.0);
         imageUrl = getIntent().getStringExtra("image_url");
         
         if (tourName == null) tourName = "Tour Increíble";
         if (companyName == null) companyName = "Empresa de Tours";
+    }
+    
+    private void loadTourFromFirebase() {
+        if (tourId != null) {
+            firestoreManager.getTour(tourId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    currentTour = (com.example.droidtour.models.Tour) result;
+                    displayTourData();
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    setupTourData(); // Fallback a datos locales
+                }
+            });
+        } else {
+            setupTourData();
+        }
+    }
+    
+    private void displayTourData() {
+        if (currentTour == null) return;
+        
+        tvTourName.setText(currentTour.getTourName());
+        tvCompanyName.setText("por " + currentTour.getCompanyName());
+        tvPrice.setText("S/. " + String.format("%.2f", currentTour.getPricePerPerson()));
+        tvTourDescription.setText(currentTour.getDescription());
+        tvRating.setText("⭐ " + currentTour.getAverageRating() + " (" + currentTour.getTotalReviews() + ")");
+        tvDuration.setText(currentTour.getDuration());
+        tvGroupSize.setText(currentTour.getMaxGroupSize() + " personas");
+        tvLanguages.setText(currentTour.getLanguages() != null ? String.join(", ", currentTour.getLanguages()) : "ES, EN");
     }
 
     private void setupToolbar() {
@@ -91,7 +127,7 @@ public class TourDetailActivity extends AppCompatActivity {
         tvPrice.setText("S/. " + String.format("%.2f", price));
         
         // Set data based on tour type
-        switch (tourId % 6) {
+        switch (tourId.hashCode() % 6) {
             case 0:
                 tvTourDescription.setText("Descubre la historia y cultura de Lima visitando sus principales atractivos del centro histórico. Un recorrido completo por la Plaza de Armas, Catedral, Palacio de Gobierno y los balcones coloniales más emblemáticos.");
                 tvRating.setText("⭐ 4.9 (127)");
@@ -142,7 +178,9 @@ public class TourDetailActivity extends AppCompatActivity {
 
         btnReserveNow.setOnClickListener(v -> {
             Intent intent = new Intent(this, TourBookingActivity.class);
+            intent.putExtra("tour_id", tourId);
             intent.putExtra("tour_name", tourName);
+            intent.putExtra("company_id", companyId);
             intent.putExtra("company_name", companyName);
             intent.putExtra("price", price);
             startActivity(intent);

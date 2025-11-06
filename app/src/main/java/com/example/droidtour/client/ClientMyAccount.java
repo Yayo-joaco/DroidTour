@@ -12,12 +12,17 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.droidtour.R;
-import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.User;
 import com.google.android.material.appbar.MaterialToolbar;
 
 public class ClientMyAccount extends AppCompatActivity {
     
-    private PreferencesManager prefsManager;
+    // ✅ Firebase Managers
+    private FirebaseAuthManager authManager;
+    private FirestoreManager firestoreManager;
+    private String currentUserId;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,8 +30,17 @@ public class ClientMyAccount extends AppCompatActivity {
         setContentView(R.layout.activity_myaccount);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        // Inicializar PreferencesManager
-        prefsManager = new PreferencesManager(this);
+        // ✅ Inicializar Firebase
+        authManager = FirebaseAuthManager.getInstance(this);
+        firestoreManager = FirestoreManager.getInstance();
+        
+        currentUserId = authManager.getCurrentUserId();
+        
+        // 🔥 TEMPORAL: Para testing sin login
+        if (currentUserId == null) {
+            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
+            android.widget.Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", android.widget.Toast.LENGTH_SHORT).show();
+        }
 
         // Toolbar: permitir botón de retroceso y mostrar título de la app
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -79,62 +93,42 @@ public class ClientMyAccount extends AppCompatActivity {
         });
     }
     
+    /**
+     * ✅ CARGAR DATOS DEL USUARIO DESDE FIREBASE
+     */
     private void loadUserData() {
-        // Verificar y corregir datos del cliente
-        String userType = prefsManager.getUserType();
-        String userName = prefsManager.getUserName();
-        String userEmail = prefsManager.getUserEmail();
-        
-        // Si no está logueado o el tipo no es CLIENT, inicializar como cliente
-        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("CLIENT"))) {
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                "Gabrielle Ivonne", 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
-            );
-            userName = "Gabrielle Ivonne";
-            userEmail = "cliente@email.com";
-        } else {
-            // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
-                userName.equals("María López") || userName.equals("Ana García Rodríguez") || 
-                userName.equals("María González"))) {
-                prefsManager.saveUserData(
-                    "CLIENT001", 
-                    "Gabrielle Ivonne", 
-                    "cliente@email.com", 
-                    "912345678", 
-                    "CLIENT"
-                );
-                userName = "Gabrielle Ivonne";
-                userEmail = "cliente@email.com";
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                User user = (User) result;
+                
+                // Actualizar los TextView del header
+                TextView tvUserName = findViewById(R.id.tv_user_name);
+                TextView tvUserEmail = findViewById(R.id.tv_user_email);
+                
+                if (tvUserName != null) {
+                    tvUserName.setText(user.getFullName());
+                }
+                
+                if (tvUserEmail != null) {
+                    tvUserEmail.setText(user.getEmail());
+                }
             }
-        }
-        
-        // Asegurar que el email sea el correcto
-        if (!userEmail.equals("cliente@email.com") && userType != null && userType.equals("CLIENT")) {
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                userName, 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
-            );
-            userEmail = "cliente@email.com";
-        }
-        
-        // Actualizar los TextView del header
-        TextView tvUserName = findViewById(R.id.tv_user_name);
-        TextView tvUserEmail = findViewById(R.id.tv_user_email);
-        
-        if (tvUserName != null) {
-            tvUserName.setText(userName != null && !userName.isEmpty() ? userName : "Gabrielle Ivonne");
-        }
-        
-        if (tvUserEmail != null) {
-            tvUserEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "cliente@email.com");
-        }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // Usar valores por defecto en caso de error
+                TextView tvUserName = findViewById(R.id.tv_user_name);
+                TextView tvUserEmail = findViewById(R.id.tv_user_email);
+                
+                if (tvUserName != null) {
+                    tvUserName.setText("Usuario");
+                }
+                
+                if (tvUserEmail != null) {
+                    tvUserEmail.setText("");
+                }
+            }
+        });
     }
 }

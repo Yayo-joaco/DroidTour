@@ -5,6 +5,8 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -17,12 +19,25 @@ public class TourRatingActivity extends AppCompatActivity {
     private MaterialButton btnSubmitRating;
     
     private int currentRating = 0;
-    private String tourName, companyName;
+    private String tourName, companyName, reservationId, tourId;
+    private FirebaseAuthManager authManager;
+    private FirestoreManager firestoreManager;
+    private String currentUserId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_rating);
+
+        authManager = FirebaseAuthManager.getInstance(this);
+        firestoreManager = FirestoreManager.getInstance();
+        currentUserId = authManager.getCurrentUserId();
+        
+        // 🔥 TEMPORAL: Para testing sin login
+        if (currentUserId == null) {
+            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
+            Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", Toast.LENGTH_SHORT).show();
+        }
 
         getIntentData();
         setupToolbar();
@@ -35,6 +50,8 @@ public class TourRatingActivity extends AppCompatActivity {
     private void getIntentData() {
         tourName = getIntent().getStringExtra("tour_name");
         companyName = getIntent().getStringExtra("company_name");
+        reservationId = getIntent().getStringExtra("reservation_id");
+        tourId = getIntent().getStringExtra("tour_id");
         
         if (tourName == null) tourName = "Tour Increíble";
         if (companyName == null) companyName = "Empresa de Tours";
@@ -120,11 +137,24 @@ public class TourRatingActivity extends AppCompatActivity {
 
         String comment = etComment.getText().toString().trim();
         
-        // TODO: Enviar calificación al servidor
-        Toast.makeText(this, "Valoración enviada: " + currentRating + " estrellas", Toast.LENGTH_SHORT).show();
-        
-        // Return to previous activity
-        finish();
+        if (tourId != null) {
+            firestoreManager.createReview(tourId, currentUserId, currentRating, comment, 
+                new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Toast.makeText(TourRatingActivity.this, "Valoración enviada: " + currentRating + " estrellas", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Toast.makeText(TourRatingActivity.this, "Error enviando valoración", Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            Toast.makeText(this, "Valoración enviada: " + currentRating + " estrellas", Toast.LENGTH_SHORT).show();
+            finish();
+        }
     }
 
     @Override

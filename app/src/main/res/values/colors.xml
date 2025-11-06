@@ -12,6 +12,8 @@
     <color name="red">#F44336</color>
     <color name="orange">#FF9800</color>
     <color name="blue">#2196F3</color>
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FF9800</color>
     <color name="turista_color">#FF7648</color>
     <color name="turista_color_luces">#FFEBE6</color>
     <color name="guia_turista_color">#825252</color>

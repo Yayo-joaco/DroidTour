@@ -13,27 +13,75 @@ import com.google.android.material.button.MaterialButton;
 
 public class ClientQRCodesActivity extends AppCompatActivity {
     
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private TextView tvTourName, tvTourDate, tvReservationCode;
     private TextView tvCheckinStatus, tvCheckoutStatus;
     private MaterialButton btnShareCheckin, btnSaveCheckin;
     private MaterialButton btnShareCheckout, btnSaveCheckout;
     
-    private int reservationId;
+    private String reservationId;
+    private com.example.droidtour.models.Reservation currentReservation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_qr_codes);
 
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        
         getIntentData();
         setupToolbar();
         initializeViews();
-        setupTourData();
+        loadReservationFromFirebase();
         setupClickListeners();
     }
 
     private void getIntentData() {
-        reservationId = getIntent().getIntExtra("reservation_id", 0);
+        reservationId = getIntent().getStringExtra("reservation_id");
+        if (reservationId == null) {
+            reservationId = "RES001"; // Fallback
+        }
+    }
+    
+    private void loadReservationFromFirebase() {
+        firestoreManager.getReservationById(reservationId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                currentReservation = (com.example.droidtour.models.Reservation) result;
+                displayReservationData();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(ClientQRCodesActivity.this, "Error cargando reserva", Toast.LENGTH_SHORT).show();
+                setupTourData(); // Fallback a hardcode
+            }
+        });
+    }
+    
+    private void displayReservationData() {
+        if (currentReservation == null) return;
+        
+        tvTourName.setText(currentReservation.getTourName());
+        tvTourDate.setText(currentReservation.getTourDate() + " • " + currentReservation.getTourTime());
+        tvReservationCode.setText(currentReservation.getReservationId());
+        
+        // Actualizar estados de check-in/check-out
+        if (currentReservation.getHasCheckedIn()) {
+            tvCheckinStatus.setText("✅ Check-in realizado");
+            tvCheckinStatus.setTextColor(getColor(R.color.success));
+        } else {
+            tvCheckinStatus.setText("⏳ Pendiente");
+            tvCheckinStatus.setTextColor(getColor(R.color.warning));
+        }
+        
+        if (currentReservation.getHasCheckedOut()) {
+            tvCheckoutStatus.setText("✅ Check-out realizado");
+            tvCheckoutStatus.setTextColor(getColor(R.color.success));
+        } else {
+            tvCheckoutStatus.setText("⏳ Pendiente");
+            tvCheckoutStatus.setTextColor(getColor(R.color.warning));
+        }
     }
 
     private void setupToolbar() {
@@ -58,36 +106,12 @@ public class ClientQRCodesActivity extends AppCompatActivity {
     }
 
     private void setupTourData() {
-        String[] tourNames = {
-            "City Tour Lima Centro",
-            "Machu Picchu Full Day",
-            "Islas Ballestas",
-            "Cañón del Colca"
-        };
-        
-        String[] dates = {
-            "15 Dic, 2024 • 09:00 AM",
-            "18 Dic, 2024 • 06:00 AM",
-            "20 Dic, 2024 • 08:00 AM",
-            "22 Dic, 2024 • 07:30 AM"
-        };
-        
-        String[] codes = {"#DT2024001", "#DT2024002", "#DT2024003", "#DT2024004"};
-
-        int index = reservationId % tourNames.length;
-        
-        tvTourName.setText(tourNames[index]);
-        tvTourDate.setText(dates[index]);
-        tvReservationCode.setText(codes[index]);
-        
-        // Set QR status based on reservation
-        if (reservationId < 2) {
-            tvCheckinStatus.setText("LISTO");
-            tvCheckoutStatus.setText("PENDIENTE");
-        } else {
-            tvCheckinStatus.setText("USADO");
-            tvCheckoutStatus.setText("USADO");
-        }
+        // Fallback con datos de ejemplo
+        tvTourName.setText("City Tour Lima Centro");
+        tvTourDate.setText("15 Dic, 2024 • 09:00 AM");
+        tvReservationCode.setText(reservationId != null ? reservationId : "#DT2024001");
+        tvCheckinStatus.setText("⏳ Pendiente");
+        tvCheckoutStatus.setText("⏳ Pendiente");
     }
 
     private void setupClickListeners() {

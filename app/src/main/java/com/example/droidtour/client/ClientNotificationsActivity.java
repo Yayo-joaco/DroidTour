@@ -11,7 +11,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.R;
-import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Notification;
 import com.google.android.material.appbar.MaterialToolbar;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -23,21 +25,30 @@ import java.util.Locale;
 public class ClientNotificationsActivity extends AppCompatActivity {
 
     private RecyclerView rvNotifications;
-    private DatabaseHelper dbHelper;
+    private FirebaseAuthManager authManager;
+    private FirestoreManager firestoreManager;
+    private String currentUserId;
     private NotificationsAdapter adapter;
-    private List<DatabaseHelper.Notification> notificationsList;
+    private List<Notification> notificationsList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_notifications);
 
-        dbHelper = new DatabaseHelper(this);
+        authManager = FirebaseAuthManager.getInstance(this);
+        firestoreManager = FirestoreManager.getInstance();
+        currentUserId = authManager.getCurrentUserId();
+        
+        // 🔥 TEMPORAL: Para testing sin login
+        if (currentUserId == null) {
+            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
+            android.widget.Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", android.widget.Toast.LENGTH_SHORT).show();
+        }
 
         setupToolbar();
         initializeViews();
-        loadNotifications();
-        // NO marcar todas como vistas automáticamente
+        loadNotificationsFromFirebase();
     }
 
     @Override
@@ -61,92 +72,21 @@ public class ClientNotificationsActivity extends AppCompatActivity {
         rvNotifications.setLayoutManager(new LinearLayoutManager(this));
     }
 
-    private void loadNotifications() {
-        // Limpiar notificaciones existentes y crear nuevas sin emojis
-        clearAllNotifications();
-        seedNotifications();
-        
-        notificationsList = dbHelper.getAllNotifications();
-
-        adapter = new NotificationsAdapter(notificationsList);
-        rvNotifications.setAdapter(adapter);
-    }
-    
-    private void clearAllNotifications() {
-        // Eliminar todas las notificaciones existentes para recrearlas sin emojis
-        dbHelper.deleteAllNotifications();
-    }
-
-    private void seedNotifications() {
-        Calendar cal = Calendar.getInstance();
-
-        // Crear las notificaciones en orden inverso (más antiguas primero)
-        // para que al ordenar por ID DESC, las más recientes aparezcan primero
-        
-        // Notificación 6: Pago Confirmado (más antigua) - VISTA
-        cal.setTimeInMillis(System.currentTimeMillis());
-        cal.add(Calendar.DAY_OF_MONTH, -3);
-        cal.add(Calendar.HOUR, -2);
-        long notifId = dbHelper.addNotification(
-            "PAYMENT_CONFIRMED",
-            "Pago Confirmado",
-            "Tu pago de S/. 65.0 para Islas Ballestas y Paracas ha sido procesado exitosamente",
-            getRelativeTime(cal.getTimeInMillis())
-        );
-        dbHelper.markNotificationAsRead((int) notifId);
-
-        // Notificación 5: Reserva Confirmada (otra) - VISTA
-        cal.setTimeInMillis(System.currentTimeMillis());
-        cal.add(Calendar.DAY_OF_MONTH, -3);
-        notifId = dbHelper.addNotification(
-            "RESERVATION_CONFIRMED",
-            "Reserva Confirmada",
-            "Tu reserva para Islas Ballestas y Paracas el 1 Nov ha sido confirmada. Código: QR-2024-002",
-            getRelativeTime(cal.getTimeInMillis())
-        );
-        dbHelper.markNotificationAsRead((int) notifId);
-
-        // Notificación 4: Tour Completado - VISTA
-        cal.setTimeInMillis(System.currentTimeMillis());
-        cal.add(Calendar.DAY_OF_MONTH, -2);
-        notifId = dbHelper.addNotification(
-            "TOUR_COMPLETED",
-            "Tour Completado",
-            "¡Esperamos que hayas disfrutado City Tour Lima Centro Histórico! ¿Quieres calificarlo?",
-            getRelativeTime(cal.getTimeInMillis())
-        );
-        dbHelper.markNotificationAsRead((int) notifId);
-
-        // Notificación 3: Recordatorio de Tour - VISTA
-        cal.setTimeInMillis(System.currentTimeMillis());
-        cal.add(Calendar.DAY_OF_MONTH, -1);
-        notifId = dbHelper.addNotification(
-            "TOUR_REMINDER",
-            "Recordatorio de Tour",
-            "No olvides tu tour Machu Picchu Full Day el 30 Oct a las 09:00 AM",
-            getRelativeTime(cal.getTimeInMillis())
-        );
-        dbHelper.markNotificationAsRead((int) notifId);
-
-        // Notificación 2: Pago Confirmado (más reciente) - NO VISTA
-        cal.setTimeInMillis(System.currentTimeMillis());
-        cal.add(Calendar.HOUR, -1);
-        dbHelper.addNotification(
-            "PAYMENT_CONFIRMED",
-            "Pago Confirmado",
-            "Tu pago de S/. 85.0 para City Tour Lima Centro Histórico ha sido procesado exitosamente",
-            getRelativeTime(cal.getTimeInMillis())
-        );
-
-        // Notificación 1: Reserva Confirmada (más reciente) - NO VISTA
-        cal.setTimeInMillis(System.currentTimeMillis());
-        cal.add(Calendar.HOUR, -2);
-        dbHelper.addNotification(
-            "RESERVATION_CONFIRMED",
-            "Reserva Confirmada",
-            "Tu reserva para City Tour Lima Centro Histórico el 28 Oct ha sido confirmada. Código: QR-2024-001",
-            getRelativeTime(cal.getTimeInMillis())
-        );
+    private void loadNotificationsFromFirebase() {
+        firestoreManager.getNotificationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                notificationsList.clear();
+                notificationsList.addAll((List<Notification>) result);
+                adapter = new NotificationsAdapter(notificationsList);
+                rvNotifications.setAdapter(adapter);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.widget.Toast.makeText(ClientNotificationsActivity.this, "Error cargando notificaciones", android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private String getRelativeTime(long timestamp) {
@@ -192,9 +132,9 @@ public class ClientNotificationsActivity extends AppCompatActivity {
     // Adapter para notificaciones
     private class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdapter.ViewHolder> {
         
-        private List<DatabaseHelper.Notification> notifications;
+        private List<Notification> notifications;
 
-        NotificationsAdapter(List<DatabaseHelper.Notification> notifications) {
+        NotificationsAdapter(List<Notification> notifications) {
             this.notifications = notifications;
         }
 
@@ -207,11 +147,11 @@ public class ClientNotificationsActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            DatabaseHelper.Notification notification = notifications.get(position);
+            Notification notification = notifications.get(position);
             
             holder.tvTitle.setText(notification.getTitle());
             holder.tvMessage.setText(notification.getMessage());
-            holder.tvTime.setText(notification.getTimestamp());
+            holder.tvTime.setText(notification.getCreatedAt() != null ? getRelativeTime(notification.getCreatedAt().getTime()) : "Hace un momento");
             
             // Configurar icono según tipo
             String icon = getIconForType(notification.getType());
@@ -222,7 +162,7 @@ public class ClientNotificationsActivity extends AppCompatActivity {
             holder.viewIconBackground.setBackgroundResource(iconBgDrawable);
             
             // Configurar estilo según si está visto o no
-            if (!notification.isRead()) {
+            if (!notification.getRead()) {
                 // No vista: colores más fuertes
                 holder.tvTitle.setTextColor(getColor(R.color.primary));
                 holder.tvTitle.setAlpha(1.0f);
@@ -241,6 +181,21 @@ public class ClientNotificationsActivity extends AppCompatActivity {
                 holder.viewUnreadIndicator.setVisibility(View.GONE);
                 holder.itemView.setAlpha(0.85f);
             }
+            
+            // Marcar como leída al hacer click
+            holder.itemView.setOnClickListener(v -> {
+                if (!notification.getRead()) {
+                    firestoreManager.markNotificationAsRead(notification.getNotificationId(), new FirestoreManager.FirestoreCallback() {
+                        @Override
+                        public void onSuccess(Object result) {
+                            notification.setRead(true);
+                            notifyItemChanged(position);
+                        }
+                        @Override
+                        public void onFailure(Exception e) {}
+                    });
+                }
+            });
         }
 
         @Override
@@ -249,12 +204,15 @@ public class ClientNotificationsActivity extends AppCompatActivity {
         }
 
         private String getIconForType(String type) {
+            if (type == null) return "🔔";
             switch (type) {
                 case "RESERVATION_CONFIRMED":
                     return "✅";
+                case "PAYMENT_CHARGED":
                 case "PAYMENT_CONFIRMED":
                     return "💳";
                 case "TOUR_REMINDER":
+                case "QR_SENT":
                     return "🎫";
                 case "TOUR_COMPLETED":
                     return "🎉";
@@ -264,12 +222,15 @@ public class ClientNotificationsActivity extends AppCompatActivity {
         }
 
         private int getIconBackgroundDrawable(String type) {
+            if (type == null) return R.drawable.icon_background_blue;
             switch (type) {
                 case "RESERVATION_CONFIRMED":
                     return R.drawable.icon_background_green;
+                case "PAYMENT_CHARGED":
                 case "PAYMENT_CONFIRMED":
                     return R.drawable.icon_background_blue;
                 case "TOUR_REMINDER":
+                case "QR_SENT":
                     return R.drawable.icon_background_purple;
                 case "TOUR_COMPLETED":
                     return R.drawable.icon_background_red;

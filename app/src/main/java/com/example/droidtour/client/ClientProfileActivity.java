@@ -11,8 +11,11 @@ import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.R;
-import com.example.droidtour.database.DatabaseHelper;
-import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.Review;
+import com.example.droidtour.models.User;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.Calendar;
@@ -27,8 +30,11 @@ public class ClientProfileActivity extends AppCompatActivity {
     private FloatingActionButton fabEdit;
     private ImageButton btnEditPhoto;
     
-    private PreferencesManager prefsManager;
-    private DatabaseHelper dbHelper;
+    // ✅ Firebase Managers
+    private FirebaseAuthManager authManager;
+    private FirestoreManager firestoreManager;
+    private String currentUserId;
+    private User currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,14 +42,21 @@ public class ClientProfileActivity extends AppCompatActivity {
         setContentView(R.layout.activity_myprofile);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        // Inicializar helpers
-        prefsManager = new PreferencesManager(this);
-        dbHelper = new DatabaseHelper(this);
+        // ✅ Inicializar Firebase
+        authManager = FirebaseAuthManager.getInstance(this);
+        firestoreManager = FirestoreManager.getInstance();
+        
+        // ✅ Verificar sesión
+        currentUserId = authManager.getCurrentUserId();
+        if (currentUserId == null) {
+            // 🔥 TEMPORAL: Para testing sin login
+            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
+            Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", Toast.LENGTH_SHORT).show();
+        }
 
         setupToolbar();
         initializeViews();
-        loadUserData();
-        loadStatistics();
+        loadUserDataFromFirebase();
         setupClickListeners();
         
         // Ocultar sección de idiomas para cliente
@@ -83,94 +96,109 @@ public class ClientProfileActivity extends AppCompatActivity {
         fabEdit = findViewById(R.id.fab_edit);
     }
 
-    private void loadUserData() {
-        if (!prefsManager.isLoggedIn()) {
-            Toast.makeText(this, "No hay sesión activa", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
-        // Verificar que el usuario sea un cliente
-        String userType = prefsManager.getUserType();
-        if (userType == null || !userType.equals("CLIENT")) {
-            // Si no es cliente, inicializar datos del cliente
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                "Gabrielle Ivonne", 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
-            );
-            userType = "CLIENT";
-        }
-
-        // Cargar datos del usuario (cliente)
-        String userName = prefsManager.getUserName();
-        String userEmail = prefsManager.getUserEmail();
-        String userPhone = prefsManager.getUserPhone();
-
-        // Si los datos no son de Gabrielle Ivonne, reemplazarlos con datos correctos del cliente
-        if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
-            userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                "Gabrielle Ivonne", 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
-            );
-            userName = "Gabrielle Ivonne";
-            userEmail = "cliente@email.com";
-            userPhone = "912345678";
-        }
-        
-        // Asegurar que el email sea el correcto
-        if (!userEmail.equals("cliente@email.com") && userType.equals("CLIENT")) {
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                userName, 
-                "cliente@email.com", 
-                userPhone, 
-                "CLIENT"
-            );
-            userEmail = "cliente@email.com";
-        }
-
-        // Actualizar header
-        tvUserName.setText(userName);
-        tvUserEmail.setText(userEmail);
-        
-        // Actualizar rol - siempre mostrar "CLIENTE" para esta actividad
-        tvUserRole.setText("CLIENTE");
-
-        // Actualizar información personal
-        tvDocumentType.setText("DNI");
-        tvDocumentNumber.setText("12345678"); // TODO: Agregar campo de documento a PreferencesManager
-        tvPhone.setText(userPhone != null && !userPhone.isEmpty() ? userPhone : "+51 987 654 321");
+    /**
+     * ✅ CARGAR DATOS DEL USUARIO DESDE FIREBASE
+     */
+    private void loadUserDataFromFirebase() {
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                currentUser = (User) result;
+                displayUserData();
+                loadStatisticsFromFirebase();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(ClientProfileActivity.this, 
+                    "Error cargando perfil", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    private void loadStatistics() {
-        // Cargar reservas de la base de datos
-        List<DatabaseHelper.Reservation> reservations = dbHelper.getAllReservations();
+    /**
+     * ✅ MOSTRAR DATOS DEL USUARIO
+     */
+    private void displayUserData() {
+        tvUserName.setText(currentUser.getFullName());
+        tvUserEmail.setText(currentUser.getEmail());
+        tvUserRole.setText("CLIENTE");
         
-        // Tours Reservados
-        int toursCount = reservations.size();
-        tvToursCount.setText(String.valueOf(toursCount));
-        
-        // Asegurar que la etiqueta diga "Tours Reservados" para cliente
-        TextView tvStatLabel1 = findViewById(R.id.tv_stat_label_1);
-        if (tvStatLabel1 != null) {
-            tvStatLabel1.setText("Tours\nReservados");
-        }
-        
-        // Valoración promedio (por ahora usar valor por defecto, ya que no hay reseñas en BD)
-        // TODO: Calcular promedio de reseñas cuando esté implementado
-        double avgRating = 4.8; // Valor por defecto
-        tvRating.setText(String.format("%.1f", avgRating));
-        
-        // Miembro desde (año actual por defecto)
-        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        tvMemberSince.setText(String.valueOf(currentYear));
+        // Información personal
+        tvDocumentType.setText(currentUser.getDocumentType());
+        tvDocumentNumber.setText(currentUser.getDocumentNumber());
+        tvPhone.setText(currentUser.getPhoneNumber());
+    }
+
+    /**
+     * ✅ CARGAR ESTADÍSTICAS DESDE FIREBASE
+     */
+    private void loadStatisticsFromFirebase() {
+        // Cargar reservas del usuario
+        firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<Reservation> reservations = (List<Reservation>) result;
+                
+                // Tours Reservados
+                tvToursCount.setText(String.valueOf(reservations.size()));
+                
+                // Asegurar que la etiqueta diga "Tours Reservados"
+                TextView tvStatLabel1 = findViewById(R.id.tv_stat_label_1);
+                if (tvStatLabel1 != null) {
+                    tvStatLabel1.setText("Tours\nReservados");
+                }
+                
+                // Cargar valoración
+                loadRatingFromFirebase();
+                
+                // Miembro desde
+                if (currentUser.getCreatedAt() != null) {
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTime(currentUser.getCreatedAt());
+                    tvMemberSince.setText(String.valueOf(cal.get(Calendar.YEAR)));
+                } else {
+                    tvMemberSince.setText(String.valueOf(Calendar.getInstance().get(Calendar.YEAR)));
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // Usar valores por defecto
+                tvToursCount.setText("0");
+                tvMemberSince.setText(String.valueOf(Calendar.getInstance().get(Calendar.YEAR)));
+            }
+        });
+    }
+
+    /**
+     * ✅ CARGAR VALORACIÓN PROMEDIO
+     */
+    private void loadRatingFromFirebase() {
+        firestoreManager.getReviewsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<Review> reviews = (List<Review>) result;
+                
+                if (!reviews.isEmpty()) {
+                    double totalRating = 0;
+                    for (Review review : reviews) {
+                        totalRating += review.getRating();
+                    }
+                    double avgRating = totalRating / reviews.size();
+                    tvRating.setText(String.format("%.1f", avgRating));
+                } else {
+                    tvRating.setText("N/A");
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                tvRating.setText("N/A");
+            }
+        });
     }
 
     private void hideLanguagesSection() {

@@ -17,9 +17,12 @@ import java.util.Calendar;
 
 public class ClientRegistrationActivity extends AppCompatActivity {
 
+    private com.example.droidtour.firebase.FirebaseAuthManager authManager;
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
+    
     private TextInputEditText etNombres, etApellidos, etNumeroDocumento,
             etFechaNacimiento, etCorreo;
-    private AutoCompleteTextView etDocumento;  // Cambiado a AutoCompleteTextView
+    private AutoCompleteTextView etDocumento;
     private TextInputEditText etTelefono;
     private MaterialButton btnSiguiente;
     private CountryCodePicker ccp;
@@ -28,7 +31,10 @@ public class ClientRegistrationActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_registration);
-        //getWindow().setStatusBarColor(ContextCompat.getColor("#FF6200EE"));
+        
+        authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        
         initializeViews();
         setupDocumentTypeSpinner();
         setupCountryCodePicker();

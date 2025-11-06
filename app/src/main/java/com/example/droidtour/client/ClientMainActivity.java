@@ -44,10 +44,19 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private MaterialCardView cardExploreTours, cardMyReservations, cardChats;
     private TextView tvWelcomeMessage, tvActiveReservations;
     
-    // Storage y Notificaciones
+    // Firebase
+    private com.example.droidtour.firebase.FirebaseAuthManager authManager;
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
+    private String currentUserId;
+    
+    // Storage Local (deprecated - migrar a Firebase)
     private DatabaseHelper dbHelper;
     private PreferencesManager prefsManager;
     private NotificationHelper notificationHelper;
+    
+    // Datos Firebase
+    private List<com.example.droidtour.models.Tour> featuredTours = new java.util.ArrayList<>();
+    private List<com.example.droidtour.models.Company> popularCompanies = new java.util.ArrayList<>();
     
     // Toolbar menu elements
     private FrameLayout notificationActionLayout, avatarActionLayout;
@@ -60,7 +69,19 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         setContentView(R.layout.activity_client_main);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        // Inicializar helpers
+        // Inicializar Firebase
+        authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        currentUserId = authManager.getCurrentUserId();
+        
+        // 🔥 TEMPORAL: Para testing sin login
+        if (currentUserId == null) {
+            // Usar UID real de Firebase Authentication: prueba@droidtour.com
+            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
+            android.widget.Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", android.widget.Toast.LENGTH_LONG).show();
+        }
+        
+        // Inicializar helpers locales (deprecated)
         dbHelper = new DatabaseHelper(this);
         prefsManager = new PreferencesManager(this);
         notificationHelper = new NotificationHelper(this);
@@ -258,45 +279,63 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private void setupRecyclerViews() {
         // Featured Tours (horizontal)
         rvFeaturedTours.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        rvFeaturedTours.setAdapter(new FeaturedToursAdapter(this::onFeaturedTourClick));
+        rvFeaturedTours.setAdapter(new FeaturedToursAdapter(featuredTours, this::onFeaturedTourClick));
 
         // Popular Companies (vertical)
         rvPopularCompanies.setLayoutManager(new LinearLayoutManager(this));
-        rvPopularCompanies.setAdapter(new PopularCompaniesAdapter(this::onCompanyClick));
+        rvPopularCompanies.setAdapter(new PopularCompaniesAdapter(popularCompanies, this::onCompanyClick));
+        
+        // Cargar datos desde Firebase
+        loadFeaturedToursFromFirebase();
+        loadPopularCompaniesFromFirebase();
+    }
+    
+    private void loadFeaturedToursFromFirebase() {
+        firestoreManager.getTours(new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                featuredTours.clear();
+                featuredTours.addAll((List<com.example.droidtour.models.Tour>) result);
+                rvFeaturedTours.getAdapter().notifyDataSetChanged();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(ClientMainActivity.this, "Error cargando tours", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    private void loadPopularCompaniesFromFirebase() {
+        firestoreManager.getCompanies(new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                popularCompanies.clear();
+                popularCompanies.addAll((List<com.example.droidtour.models.Company>) result);
+                rvPopularCompanies.getAdapter().notifyDataSetChanged();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(ClientMainActivity.this, "Error cargando empresas", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    private void onFeaturedTourClick(int position) {
-        // Datos consistentes con catálogo
-        String name, company, imageUrl; double price;
-        switch (position % 4) {
-            case 0:
-                name = "City Tour Lima Centro Histórico"; company = "Lima Adventure Tours"; price = 85.0;
-                imageUrl = "https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg"; break;
-            case 1:
-                name = "Machu Picchu Full Day"; company = "Cusco Explorer"; price = 180.0;
-                imageUrl = "https://res.klook.com/image/upload/c_fill,w_627,h_470/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/jdnneadpdsxcsnghocbu.jpg"; break;
-            case 2:
-                name = "Islas Ballestas y Paracas"; company = "Paracas Tours"; price = 65.0;
-                imageUrl = "https://image.jimcdn.com/app/cms/image/transf/none/path/s336fd9bc7dca3ebc/image/ida0ff171f4a6d885/version/1391479285/image.jpg"; break;
-            default:
-                name = "Cañón del Colca 2D/1N"; company = "Arequipa Adventures"; price = 120.0;
-                imageUrl = "https://thriveandwander.com/wp-content/uploads/2023/12/barranco-lima-768x514.jpg"; break;
-        }
-
+    private void onFeaturedTourClick(com.example.droidtour.models.Tour tour) {
         Intent intent = new Intent(this, TourDetailActivity.class);
-        intent.putExtra("tour_id", position);
-        intent.putExtra("tour_name", name);
-        intent.putExtra("company_name", company);
-        intent.putExtra("price", price);
-        intent.putExtra("image_url", imageUrl);
+        intent.putExtra("tour_id", tour.getTourId());
+        intent.putExtra("tour_name", tour.getName());
+        intent.putExtra("company_name", tour.getCompanyName());
+        intent.putExtra("company_id", tour.getCompanyId());
+        intent.putExtra("price", tour.getPricePerPerson());
         startActivity(intent);
     }
 
-    private void onCompanyClick(int position) {
-        // Navigate to company's tours catalog
+    private void onCompanyClick(com.example.droidtour.models.Company company) {
         Intent intent = new Intent(this, ToursCatalogActivity.class);
-        intent.putExtra("company_id", position);
-        intent.putExtra("company_name", "Lima Adventure Tours");
+        intent.putExtra("company_id", company.getCompanyId());
+        intent.putExtra("company_name", company.getName());
         startActivity(intent);
     }
 
@@ -478,10 +517,12 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
 // Adaptador para tours destacados (horizontal)
 class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.ViewHolder> {
-    interface OnTourClick { void onClick(int position); }
+    interface OnTourClick { void onClick(com.example.droidtour.models.Tour tour); }
+    private final List<com.example.droidtour.models.Tour> tours;
     private final OnTourClick onTourClick;
     
-    FeaturedToursAdapter(OnTourClick listener) { 
+    FeaturedToursAdapter(List<com.example.droidtour.models.Tour> tours, OnTourClick listener) { 
+        this.tours = tours;
         this.onTourClick = listener; 
     }
 
@@ -494,44 +535,21 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
+        com.example.droidtour.models.Tour tour = tours.get(position);
+        
         android.widget.ImageView tourImage = holder.itemView.findViewById(R.id.iv_featured_image);
         TextView tourName = holder.itemView.findViewById(R.id.tv_tour_name);
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
         TextView rating = holder.itemView.findViewById(R.id.tv_rating);
         TextView price = holder.itemView.findViewById(R.id.tv_price);
 
-        String imageUrl;
-        switch (position % 4) {
-            case 0:
-                tourName.setText("City Tour Lima Centro Histórico");
-                companyName.setText("Lima Adventure Tours");
-                rating.setText("⭐ 4.8");
-                price.setText("S/. 85");
-                imageUrl = "https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg";
-                break;
-            case 1:
-                tourName.setText("Machu Picchu Full Day");
-                companyName.setText("Cusco Explorer");
-                rating.setText("⭐ 4.9");
-                price.setText("S/. 180");
-                imageUrl = "https://res.klook.com/image/upload/c_fill,w_627,h_470/q_80/w_80,x_15,y_15,g_south_west,l_Klook_water_br_trans_yhcmh3/activities/jdnneadpdsxcsnghocbu.jpg";
-                break;
-            case 2:
-                tourName.setText("Islas Ballestas y Paracas");
-                companyName.setText("Paracas Tours");
-                rating.setText("⭐ 4.7");
-                price.setText("S/. 65");
-                imageUrl = "https://image.jimcdn.com/app/cms/image/transf/none/path/s336fd9bc7dca3ebc/image/ida0ff171f4a6d885/version/1391479285/image.jpg";
-                break;
-            default:
-                tourName.setText("Cañón del Colca 2D/1N");
-                companyName.setText("Arequipa Adventures");
-                rating.setText("⭐ 4.6");
-                price.setText("S/. 120");
-                imageUrl = "https://thriveandwander.com/wp-content/uploads/2023/12/barranco-lima-768x514.jpg";
-        }
+        tourName.setText(tour.getName());
+        companyName.setText(tour.getCompanyName());
+        rating.setText("⭐ " + tour.getAverageRating());
+        price.setText("S/. " + String.format("%.0f", tour.getPricePerPerson()));
 
         if (tourImage != null) {
+            String imageUrl = tour.getImageUrl() != null ? tour.getImageUrl() : "https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg";
             Glide.with(tourImage.getContext())
                 .load(imageUrl)
                 .placeholder(android.R.drawable.ic_menu_gallery)
@@ -539,11 +557,11 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
                 .into(tourImage);
         }
 
-        holder.itemView.setOnClickListener(v -> onTourClick.onClick(position));
+        holder.itemView.setOnClickListener(v -> onTourClick.onClick(tour));
     }
 
     @Override
-    public int getItemCount() { return 4; }
+    public int getItemCount() { return tours.size(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder { 
         ViewHolder(android.view.View v) { super(v); } 
@@ -552,10 +570,12 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
 
 // Adaptador para empresas populares (vertical)
 class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapter.ViewHolder> {
-    interface OnCompanyClick { void onClick(int position); }
+    interface OnCompanyClick { void onClick(com.example.droidtour.models.Company company); }
+    private final List<com.example.droidtour.models.Company> companies;
     private final OnCompanyClick onCompanyClick;
     
-    PopularCompaniesAdapter(OnCompanyClick listener) { 
+    PopularCompaniesAdapter(List<com.example.droidtour.models.Company> companies, OnCompanyClick listener) { 
+        this.companies = companies;
         this.onCompanyClick = listener; 
     }
 
@@ -568,6 +588,8 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
+        com.example.droidtour.models.Company company = companies.get(position);
+        
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
         TextView location = holder.itemView.findViewById(R.id.tv_company_location);
         TextView rating = holder.itemView.findViewById(R.id.tv_rating);
@@ -575,35 +597,18 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
         TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
         android.view.View btnViewTours = holder.itemView.findViewById(R.id.btn_view_tours);
 
-        switch (position % 3) {
-            case 0:
-                companyName.setText("Lima Adventure Tours");
-                location.setText("📍 Lima, Perú");
-                rating.setText("⭐ 4.8");
-                toursCount.setText("• 12 tours");
-                reviewsCount.setText("• 245 reseñas");
-                break;
-            case 1:
-                companyName.setText("Cusco Explorer");
-                location.setText("📍 Cusco, Perú");
-                rating.setText("⭐ 4.9");
-                toursCount.setText("• 8 tours");
-                reviewsCount.setText("• 189 reseñas");
-                break;
-            default:
-                companyName.setText("Arequipa Adventures");
-                location.setText("📍 Arequipa, Perú");
-                rating.setText("⭐ 4.7");
-                toursCount.setText("• 6 tours");
-                reviewsCount.setText("• 156 reseñas");
-        }
+        companyName.setText(company.getName());
+        location.setText("📍 " + company.getCity() + ", " + company.getCountry());
+        rating.setText("⭐ " + company.getAverageRating());
+        toursCount.setText("• " + company.getTotalTours() + " tours");
+        reviewsCount.setText("• " + company.getTotalReviews() + " reseñas");
 
-        holder.itemView.setOnClickListener(v -> onCompanyClick.onClick(position));
-        btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(position));
+        holder.itemView.setOnClickListener(v -> onCompanyClick.onClick(company));
+        btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(company));
     }
 
     @Override
-    public int getItemCount() { return 3; }
+    public int getItemCount() { return companies.size(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder { 
         ViewHolder(android.view.View v) { super(v); } 

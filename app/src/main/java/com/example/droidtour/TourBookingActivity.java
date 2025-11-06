@@ -19,10 +19,13 @@ public class TourBookingActivity extends AppCompatActivity {
     private TextInputEditText etTourDate, etParticipants, etComments;
     private MaterialButton btnConfirmBooking;
     
-    private String tourName, companyName;
+    private com.example.droidtour.firebase.FirebaseAuthManager authManager;
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
+    private String currentUserId;
+    private String tourId, tourName, companyId, companyName;
     private double pricePerPerson;
     
-    // Storage Local
+    // Storage Local (deprecated)
     private DatabaseHelper dbHelper;
     private NotificationHelper notificationHelper;
 
@@ -31,7 +34,18 @@ public class TourBookingActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_booking);
 
-        // Inicializar Storage Local
+        // Inicializar Firebase
+        authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        currentUserId = authManager.getCurrentUserId();
+        
+        // 🔥 TEMPORAL: Para testing sin login
+        if (currentUserId == null) {
+            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
+            Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", Toast.LENGTH_SHORT).show();
+        }
+
+        // Inicializar Storage Local (deprecated)
         dbHelper = new DatabaseHelper(this);
         notificationHelper = new NotificationHelper(this);
 
@@ -44,12 +58,16 @@ public class TourBookingActivity extends AppCompatActivity {
     }
 
     private void getIntentData() {
+        tourId = getIntent().getStringExtra("tour_id");
         tourName = getIntent().getStringExtra("tour_name");
+        companyId = getIntent().getStringExtra("company_id");
         companyName = getIntent().getStringExtra("company_name");
         pricePerPerson = getIntent().getDoubleExtra("price", 85.0);
         
         if (tourName == null) tourName = "Tour Increíble";
         if (companyName == null) companyName = "Empresa de Tours";
+        if (tourId == null) tourId = "TOUR001";
+        if (companyId == null) companyId = "COMP001";
     }
 
     private void setupToolbar() {
@@ -114,48 +132,66 @@ public class TourBookingActivity extends AppCompatActivity {
 
     private void confirmBooking() {
         String participantsText = etParticipants.getText().toString().trim();
-        String dateText = etTourDate.getText().toString().trim();
-        String comments = etComments.getText().toString().trim();
+        String dateTemp = etTourDate.getText().toString().trim();
+        if (dateTemp.isEmpty()) {
+            dateTemp = "2024-12-15";
+        }
+        final String dateText = dateTemp;
+        final String comments = etComments.getText().toString().trim();
         
-        // Validaciones
         if (participantsText.isEmpty()) {
             Toast.makeText(this, "Por favor ingresa el número de personas", Toast.LENGTH_SHORT).show();
             return;
         }
         
-        if (dateText.isEmpty()) {
-            dateText = "28 Oct"; // Fecha por defecto
-        }
+        // dateText es final, no se puede reasignar
         
-        // Calcular datos de la reserva
         int participants = Integer.parseInt(participantsText);
-        double totalPrice = pricePerPerson * participants;
-        String qrCode = "QR-" + System.currentTimeMillis(); // Código QR único
         
-        // ✅ GUARDAR EN BASE DE DATOS
-        long reservationId = dbHelper.addReservation(
-            tourName,           // nombre del tour
-            companyName,        // empresa
-            dateText,           // fecha
-            "09:00 AM",         // hora por defecto
-            "CONFIRMADA",       // estado
-            totalPrice,         // precio total
-            participants,       // número de personas
-            qrCode              // código QR
-        );
-        
-        // ✅ ENVIAR NOTIFICACIONES
-        notificationHelper.sendReservationConfirmedNotification(tourName, dateText, qrCode);
-        notificationHelper.sendPaymentConfirmedNotification(tourName, totalPrice);
-        
-        // Mostrar mensaje de éxito
-        Toast.makeText(this, "¡Reserva confirmada! Código: " + qrCode, Toast.LENGTH_LONG).show();
-        
-        // Navegar a Mis Reservas
-        Intent intent = new Intent(this, MyReservationsActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(intent);
-        finish();
+        firestoreManager.getUser(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                
+                com.example.droidtour.models.Reservation reservation = new com.example.droidtour.models.Reservation(
+                    currentUserId,
+                    user.getFirstName() + " " + user.getLastName(),
+                    user.getEmail(),
+                    tourId,
+                    tourName,
+                    companyId,
+                    companyName,
+                    dateText,
+                    "09:00",
+                    participants,
+                    pricePerPerson
+                );
+                reservation.setStatus("CONFIRMADA");
+                reservation.setPaymentStatus("PENDIENTE");
+                reservation.setSpecialRequests(comments);
+                
+                firestoreManager.createReservation(reservation, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Toast.makeText(TourBookingActivity.this, "¡Reserva confirmada!", Toast.LENGTH_LONG).show();
+                        Intent intent = new Intent(TourBookingActivity.this, MyReservationsActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                        finish();
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        Toast.makeText(TourBookingActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(TourBookingActivity.this, "Error obteniendo datos", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override

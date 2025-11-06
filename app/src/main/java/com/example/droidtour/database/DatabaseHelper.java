@@ -49,6 +49,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String RES_PEOPLE = "people";
     private static final String RES_QR_CODE = "qr_code";
 
+    // Table: Notifications (for Clients)
+    private static final String TABLE_NOTIFICATIONS = "notifications";
+    private static final String NOTIF_ID = "id";
+    private static final String NOTIF_TYPE = "type"; // RESERVATION_CONFIRMED, PAYMENT_CONFIRMED, TOUR_REMINDER, TOUR_COMPLETED
+    private static final String NOTIF_TITLE = "title";
+    private static final String NOTIF_MESSAGE = "message";
+    private static final String NOTIF_TIMESTAMP = "timestamp";
+    private static final String NOTIF_IS_READ = "is_read"; // 0 = no visto, 1 = visto
+
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -94,10 +103,32 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 + RES_QR_CODE + " TEXT"
                 + ")";
         db.execSQL(CREATE_RESERVATIONS_TABLE);
+
+        // Create Notifications table
+        String CREATE_NOTIFICATIONS_TABLE = "CREATE TABLE " + TABLE_NOTIFICATIONS + "("
+                + NOTIF_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + NOTIF_TYPE + " TEXT,"
+                + NOTIF_TITLE + " TEXT,"
+                + NOTIF_MESSAGE + " TEXT,"
+                + NOTIF_TIMESTAMP + " TEXT,"
+                + NOTIF_IS_READ + " INTEGER DEFAULT 0"
+                + ")";
+        db.execSQL(CREATE_NOTIFICATIONS_TABLE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        // Crear tabla de notificaciones si no existe (para bases de datos antiguas)
+        String CREATE_NOTIFICATIONS_TABLE = "CREATE TABLE IF NOT EXISTS " + TABLE_NOTIFICATIONS + "("
+                + NOTIF_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + NOTIF_TYPE + " TEXT,"
+                + NOTIF_TITLE + " TEXT,"
+                + NOTIF_MESSAGE + " TEXT,"
+                + NOTIF_TIMESTAMP + " TEXT,"
+                + NOTIF_IS_READ + " INTEGER DEFAULT 0"
+                + ")";
+        db.execSQL(CREATE_NOTIFICATIONS_TABLE);
+        
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_TOURS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_OFFERS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_RESERVATIONS);
@@ -280,6 +311,160 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void deleteReservation(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.delete(TABLE_RESERVATIONS, RES_ID + " = ?",
+                new String[]{String.valueOf(id)});
+        db.close();
+    }
+
+    // ==================== CLIENT: NOTIFICATIONS ====================
+    
+    public long addNotification(String type, String title, String message, String timestamp) {
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            // Verificar si la tabla existe, si no, crearla
+            Cursor cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='" + TABLE_NOTIFICATIONS + "'", null);
+            boolean tableExists = cursor.getCount() > 0;
+            cursor.close();
+            
+            if (!tableExists) {
+                String CREATE_NOTIFICATIONS_TABLE = "CREATE TABLE " + TABLE_NOTIFICATIONS + "("
+                        + NOTIF_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                        + NOTIF_TYPE + " TEXT,"
+                        + NOTIF_TITLE + " TEXT,"
+                        + NOTIF_MESSAGE + " TEXT,"
+                        + NOTIF_TIMESTAMP + " TEXT,"
+                        + NOTIF_IS_READ + " INTEGER DEFAULT 0"
+                        + ")";
+                db.execSQL(CREATE_NOTIFICATIONS_TABLE);
+            }
+            
+            ContentValues values = new ContentValues();
+            values.put(NOTIF_TYPE, type);
+            values.put(NOTIF_TITLE, title);
+            values.put(NOTIF_MESSAGE, message);
+            values.put(NOTIF_TIMESTAMP, timestamp);
+            values.put(NOTIF_IS_READ, 0); // Por defecto no vista
+            
+            long id = db.insert(TABLE_NOTIFICATIONS, null, values);
+            db.close();
+            return id;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    public List<Notification> getAllNotifications() {
+        List<Notification> notifList = new ArrayList<>();
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            // Verificar si la tabla existe
+            Cursor checkCursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='" + TABLE_NOTIFICATIONS + "'", null);
+            boolean tableExists = checkCursor.getCount() > 0;
+            checkCursor.close();
+            
+            if (!tableExists) {
+                db.close();
+                return notifList;
+            }
+            
+            String selectQuery = "SELECT * FROM " + TABLE_NOTIFICATIONS + " ORDER BY " + NOTIF_ID + " DESC";
+            Cursor cursor = db.rawQuery(selectQuery, null);
+            
+            if (cursor.moveToFirst()) {
+                do {
+                    Notification notif = new Notification();
+                    notif.setId(cursor.getInt(0));
+                    notif.setType(cursor.getString(1));
+                    notif.setTitle(cursor.getString(2));
+                    notif.setMessage(cursor.getString(3));
+                    notif.setTimestamp(cursor.getString(4));
+                    notif.setRead(cursor.getInt(5) == 1);
+                    notifList.add(notif);
+                } while (cursor.moveToNext());
+            }
+            
+            cursor.close();
+            db.close();
+        } catch (Exception e) {
+            // Retornar lista vacía en caso de error
+        }
+        return notifList;
+    }
+
+    public int getUnreadNotificationsCount() {
+        try {
+            SQLiteDatabase db = this.getReadableDatabase();
+            // Verificar si la tabla existe
+            Cursor cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='" + TABLE_NOTIFICATIONS + "'", null);
+            boolean tableExists = cursor.getCount() > 0;
+            cursor.close();
+            
+            if (!tableExists) {
+                db.close();
+                return 0;
+            }
+            
+            String selectQuery = "SELECT COUNT(*) FROM " + TABLE_NOTIFICATIONS + " WHERE " + NOTIF_IS_READ + " = 0";
+            cursor = db.rawQuery(selectQuery, null);
+            
+            int count = 0;
+            if (cursor.moveToFirst()) {
+                count = cursor.getInt(0);
+            }
+            
+            cursor.close();
+            db.close();
+            return count;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public void markAllNotificationsAsRead() {
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            // Verificar si la tabla existe
+            Cursor cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='" + TABLE_NOTIFICATIONS + "'", null);
+            boolean tableExists = cursor.getCount() > 0;
+            cursor.close();
+            
+            if (!tableExists) {
+                db.close();
+                return;
+            }
+            
+            ContentValues values = new ContentValues();
+            values.put(NOTIF_IS_READ, 1);
+            
+            db.update(TABLE_NOTIFICATIONS, values, null, null);
+            db.close();
+        } catch (Exception e) {
+            // Ignorar errores
+        }
+    }
+    
+    public void deleteAllNotifications() {
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            // Verificar si la tabla existe
+            Cursor cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='" + TABLE_NOTIFICATIONS + "'", null);
+            boolean tableExists = cursor.getCount() > 0;
+            cursor.close();
+            
+            if (tableExists) {
+                db.delete(TABLE_NOTIFICATIONS, null, null);
+            }
+            db.close();
+        } catch (Exception e) {
+            // Ignorar errores
+        }
+    }
+
+    public void markNotificationAsRead(int id) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(NOTIF_IS_READ, 1);
+        
+        db.update(TABLE_NOTIFICATIONS, values, NOTIF_ID + " = ?",
                 new String[]{String.valueOf(id)});
         db.close();
     }
@@ -477,6 +662,36 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         public void setPeople(int people) { this.people = people; }
         public String getQrCode() { return qrCode; }
         public void setQrCode(String qrCode) { this.qrCode = qrCode; }
+    }
+
+    // Modelo para notificaciones (para clientes)
+    public static class Notification {
+        private int id;
+        private String type;
+        private String title;
+        private String message;
+        private String timestamp;
+        private boolean isRead;
+
+        public Notification() {}
+
+        public int getId() { return id; }
+        public void setId(int id) { this.id = id; }
+
+        public String getType() { return type; }
+        public void setType(String type) { this.type = type; }
+
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+
+        public String getMessage() { return message; }
+        public void setMessage(String message) { this.message = message; }
+
+        public String getTimestamp() { return timestamp; }
+        public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+
+        public boolean isRead() { return isRead; }
+        public void setRead(boolean read) { isRead = read; }
     }
 }
 

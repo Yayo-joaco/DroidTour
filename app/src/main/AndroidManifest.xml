@@ -180,6 +180,11 @@
             android:parentActivityName=".SuperadminMainActivity" />
 
         <activity
+            android:name=".client.ClientNotificationsActivity"
+            android:exported="false"
+            android:parentActivityName=".client.ClientMainActivity" />
+
+        <activity
             android:name=".TourRatingActivity"
             android:exported="false"
             android:parentActivityName=".MyReservationsActivity" />

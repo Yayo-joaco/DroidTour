@@ -53,7 +53,6 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private FrameLayout notificationActionLayout, avatarActionLayout;
     private TextView tvNotificationBadge;
     private ImageView ivAvatarAction;
-    private int notificationCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -130,7 +129,8 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_notifications) {
-            Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, ClientNotificationsActivity.class);
+            startActivityForResult(intent, 100);
             return true;
         } else if (id == R.id.action_profile) {
             // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
@@ -150,8 +150,10 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             if (notificationActionLayout != null) {
                 tvNotificationBadge = notificationActionLayout.findViewById(R.id.tv_notification_badge);
                 updateNotificationBadge();
-                notificationActionLayout.setOnClickListener(v ->
-                        Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show());
+                notificationActionLayout.setOnClickListener(v -> {
+                    Intent intent = new Intent(ClientMainActivity.this, ClientNotificationsActivity.class);
+                    startActivityForResult(intent, 100);
+                });
             }
         }
 
@@ -170,13 +172,23 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     }
 
     private void updateNotificationBadge() {
-        if (tvNotificationBadge != null) {
-            if (notificationCount > 0) {
+        if (tvNotificationBadge != null && dbHelper != null) {
+            int unreadCount = dbHelper.getUnreadNotificationsCount();
+            if (unreadCount > 0) {
                 tvNotificationBadge.setVisibility(View.VISIBLE);
-                tvNotificationBadge.setText(String.valueOf(Math.min(notificationCount, 9)));
+                tvNotificationBadge.setText(String.valueOf(Math.min(unreadCount, 99)));
             } else {
                 tvNotificationBadge.setVisibility(View.GONE);
             }
+        }
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 100) {
+            // Actualizar badge cuando se regresa de notificaciones
+            updateNotificationBadge();
         }
     }
 

@@ -8,7 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientMainActivity;
-import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textview.MaterialTextView;
@@ -18,7 +18,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText etEmail, etPassword;
     private MaterialButton btnLogin, btnRegister;
     private TextView tvForgotPassword;
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,10 +27,10 @@ public class LoginActivity extends AppCompatActivity {
         // Cambia el color de la barra de notificaciones al azul definido
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        prefsManager = new PrefsManager(this);
+        prefsManager = new PreferencesManager(this);
 
         //Redirección en caso se encuentre sesión activa
-        if (prefsManager.sesionActiva() && !prefsManager.obtenerTipoUsuario().isEmpty()) {
+        if (prefsManager.isLoggedIn() && !prefsManager.getUserType().isEmpty()) {
             redirigirSegunRol();
             finish();
             return;
@@ -76,25 +76,24 @@ public class LoginActivity extends AppCompatActivity {
         Intent intent = null;
 
         if (email.equals("superadmin@droidtour.com") && password.equals("admin123")) {
-            prefsManager.guardarUsuario("SUPERADMIN001", "Gabrielle Ivonne", email, "SUPERADMIN");
+            prefsManager.saveUserData("SUPERADMIN001", "Gabrielle Ivonne", email, "999888777", "SUPERADMIN");
             Toast.makeText(this, "Bienvenido Superadministrador", Toast.LENGTH_SHORT).show();
             intent = new Intent(this, SuperadminMainActivity.class);
 
         } else if (email.equals("admin@tours.com") && password.equals("admin123")) {
-
-            prefsManager.guardarUsuario("ADMIN001", "Laura Campos", email, "ADMIN");
+            prefsManager.saveUserData("ADMIN001", "Laura Campos", email, "987654321", "ADMIN");
             Toast.makeText(this, "Bienvenido Administrador de Empresa", Toast.LENGTH_SHORT).show();
             intent = new Intent(this, TourAdminMainActivity.class);
 
         } else if (email.equals("guia@tours.com") && password.equals("guia123")) {
-
-            prefsManager.guardarUsuario("GUIDE001", "Carlos Mendoza", email, "GUIDE");
+            prefsManager.saveUserData("GUIDE001", "Carlos Mendoza", email, "987654321", "GUIDE");
+            prefsManager.setGuideApproved(true);
+            prefsManager.setGuideRating(4.8f);
             Toast.makeText(this, "Bienvenido Guía de Turismo", Toast.LENGTH_SHORT).show();
             intent = new Intent(this, TourGuideMainActivity.class);
 
         } else if (email.equals("cliente@email.com") && password.equals("cliente123")) {
-
-            prefsManager.guardarUsuario("CLIENT001", "Gabrielle Ivonne", email, "CLIENT");
+            prefsManager.saveUserData("CLIENT001", "Gabrielle Ivonne", email, "912345678", "CLIENT");
             Toast.makeText(this, "Bienvenido Cliente", Toast.LENGTH_SHORT).show();
             intent = new Intent(this, ClientMainActivity.class);
 
@@ -116,7 +115,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void redirigirSegunRol(){
-        String tipoUsuario = prefsManager.obtenerTipoUsuario();
+        String tipoUsuario = prefsManager.getUserType();
         Intent intent = null;
 
         switch (tipoUsuario){

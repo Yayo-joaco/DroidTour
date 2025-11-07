@@ -169,6 +169,13 @@
             android:exported="false"
             android:parentActivityName=".client.ClientMainActivity" />
 
+        <!-- Client Notifications Activity -->
+        <activity
+            android:name=".client.ClientNotificationsActivity"
+            android:exported="false"
+            android:parentActivityName=".client.ClientMainActivity" />
++
+
         <activity
             android:name=".GuideMyAccount"
             android:exported="false"

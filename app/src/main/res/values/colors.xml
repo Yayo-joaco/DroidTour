@@ -16,4 +16,11 @@
     <color name="turista_color_luces">#FFEBE6</color>
     <color name="guia_turista_color">#825252</color>
     <color name="guia_turista_color_luces">#FFE3E3</color>
+    <color name="notification_blue">#2196F3</color>
+    <color name="notification_green">#4CAF50</color>
+    <color name="notification_orange">#FF9800</color>
+    <color name="notification_purple">#9C27B0</color>
+    <color name="notification_yellow">#FFC107</color>
+    <color name="notification_gray">#757575</color>
+    <color name="notification_read_bg">#FAFAFA</color>
 </resources>

@@ -1,5 +1,6 @@
 package com.example.droidtour.client;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -10,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
+import com.example.droidtour.LoginActivity;
 import com.example.droidtour.R;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.PreferencesManager;
@@ -85,7 +87,11 @@ public class ClientProfileActivity extends AppCompatActivity {
 
     private void loadUserData() {
         if (!prefsManager.isLoggedIn()) {
-            Toast.makeText(this, "No hay sesión activa", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Sesión expirada. Por favor, inicia sesión nuevamente", Toast.LENGTH_SHORT).show();
+            // Redirigir al login
+            Intent intent = new Intent(this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
             finish();
             return;
         }

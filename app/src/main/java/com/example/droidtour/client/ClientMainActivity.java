@@ -30,7 +30,7 @@ import com.example.droidtour.TourDetailActivity;
 import com.example.droidtour.ToursCatalogActivity;
 import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.NotificationHelper;
-import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
@@ -47,23 +47,42 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     
     // Storage y Notificaciones
     private DatabaseHelper dbHelper;
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
     private NotificationHelper notificationHelper;
     
     // Toolbar menu elements
     private FrameLayout notificationActionLayout, avatarActionLayout;
     private TextView tvNotificationBadge;
     private ImageView ivAvatarAction;
+    private int notificationCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea CLIENT
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("CLIENT")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_client_main);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar helpers
         dbHelper = new DatabaseHelper(this);
-        prefsManager = new PrefsManager(this);
         notificationHelper = new NotificationHelper(this);
 
         initializeViews();
@@ -130,6 +149,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_notifications) {
+            // Abrir la pantalla de notificaciones desde el toolbar
             Intent intent = new Intent(this, ClientNotificationsActivity.class);
             startActivityForResult(intent, 100);
             return true;
@@ -183,7 +203,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             }
         }
     }
-    
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -446,7 +466,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         tvActiveReservations.setText(activeCount + " reservas activas");
     }
     
-    // Metodo para crear una nueva reserva
+    // Método para crear una nueva reserva
     public void createReservation(String tourName, String company, String date, String time,
                                   double price, int people) {
         // Generar código QR único
@@ -470,12 +490,20 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     // ==================== NOTIFICACIONES ====================
     
     private void testClientNotifications() {
-        // Metodo de prueba para enviar notificaciones de ejemplo
+        // Método de prueba para enviar notificaciones de ejemplo
         notificationHelper.sendTourReminderForClient(
             "City Tour Lima Centro", 
             "28 Oct", 
             "09:00 AM"
         );
+    }
+    
+    // ==================== VALIDACIÓN DE SESIÓN ====================
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
 

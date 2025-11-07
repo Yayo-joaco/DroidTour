@@ -3,7 +3,6 @@ package com.example.droidtour;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -12,21 +11,38 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.LoginActivity;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
 public class GuideMyAccount extends AppCompatActivity {
     
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager
+        prefsManager = new PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea un guía
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("GUIDE")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_myaccount);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
-
-        // Inicializar PrefsManager
-        prefsManager = new PrefsManager(this);
 
         // Toolbar: permitir botón de retroceso y mostrar título de la app
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -72,13 +88,17 @@ public class GuideMyAccount extends AppCompatActivity {
         
         if (cardLogout != null) {
             cardLogout.setOnClickListener(v -> {
-                // Cerrar sesión
-                prefsManager.cerrarSesion();
-                Intent i = new Intent(GuideMyAccount.this, LoginActivity.class);
-                i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(i);
+                // Se limpian los datos de sesión
+                prefsManager.logout();
+                
+                // Limpiar el stack de activities y redirigir a Login
+                Intent intent = new Intent(GuideMyAccount.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
                 finish();
-                Toast.makeText(GuideMyAccount.this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
+                
+                android.widget.Toast.makeText(this, "Sesión cerrada correctamente", 
+                    android.widget.Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -91,44 +111,53 @@ public class GuideMyAccount extends AppCompatActivity {
     
     private void loadUserData() {
         // Verificar y corregir datos del guía
-        String userType = prefsManager.obtenerTipoUsuario();
-        String userName = prefsManager.obtenerUsuario();
-        String userEmail = prefsManager.obtenerEmail();
-
+        String userType = prefsManager.getUserType();
+        String userName = prefsManager.getUserName();
+        String userEmail = prefsManager.getUserEmail();
+        
         // Si no está logueado o el tipo no es GUIDE, inicializar como guía
-        if (!prefsManager.sesionActiva() || (userType != null && !userType.equals("GUIDE"))) {
-            prefsManager.guardarUsuario(
-                "GUIDE001",
-                "Carlos Mendoza",
-                "guia@tours.com",
+        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("GUIDE"))) {
+            prefsManager.saveUserData(
+                "GUIDE001", 
+                "Carlos Mendoza", 
+                "guia@tours.com", 
+                "987654321", 
                 "GUIDE"
             );
+            prefsManager.setGuideApproved(true);
+            prefsManager.setGuideRating(4.8f);
             userName = "Carlos Mendoza";
             userEmail = "guia@tours.com";
         } else {
             // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") ||
-                userName.equals("María López") || userName.equals("Ana García Rodríguez") ||
+            if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") || 
+                userName.equals("María López") || userName.equals("Ana García Rodríguez") || 
                 userName.equals("María González"))) {
-                prefsManager.guardarUsuario(
-                    "GUIDE001",
-                    "Carlos Mendoza",
-                    "guia@tours.com",
+                prefsManager.saveUserData(
+                    "GUIDE001", 
+                    "Carlos Mendoza", 
+                    "guia@tours.com", 
+                    "987654321", 
                     "GUIDE"
                 );
+                prefsManager.setGuideApproved(true);
+                prefsManager.setGuideRating(4.8f);
                 userName = "Carlos Mendoza";
                 userEmail = "guia@tours.com";
             }
         }
-
+        
         // Asegurar que el email sea el correcto del guía
         if (!userEmail.equals("guia@tours.com") && userType != null && userType.equals("GUIDE")) {
-            prefsManager.guardarUsuario(
-                "GUIDE001",
-                userName,
-                "guia@tours.com",
+            prefsManager.saveUserData(
+                "GUIDE001", 
+                userName, 
+                "guia@tours.com", 
+                "987654321", 
                 "GUIDE"
             );
+            prefsManager.setGuideApproved(true);
+            prefsManager.setGuideRating(4.8f);
             userEmail = "guia@tours.com";
         }
         
@@ -143,6 +172,12 @@ public class GuideMyAccount extends AppCompatActivity {
         if (tvUserEmail != null) {
             tvUserEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "guia@tours.com");
         }
+    }
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
 

@@ -2,21 +2,22 @@ package com.example.droidtour.managers;
 
 import android.content.Context;
 import android.widget.Toast;
+import com.example.droidtour.utils.PreferencesManager;
 import org.json.JSONObject;
 import org.json.JSONException;
 
 /**
- * LocalStorageExample - Ejemplos de uso de PrefsManager y FileManager
+ * LocalStorageExample - Ejemplos de uso de PreferencesManager y FileManager
  */
 public class LocalStorageExample {
     
     private Context context;
-    private PrefsManager prefsManager;
+    private PreferencesManager prefsManager;
     private FileManager fileManager;
     
     public LocalStorageExample(Context context) {
         this.context = context;
-        this.prefsManager = new PrefsManager(context);
+        this.prefsManager = new PreferencesManager(context);
         this.fileManager = new FileManager(context);
     }
     

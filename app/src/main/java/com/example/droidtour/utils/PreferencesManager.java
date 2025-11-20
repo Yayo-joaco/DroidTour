@@ -268,5 +268,19 @@ public class PreferencesManager {
     public Map<String, ?> obtenerTodasLasClaves() {
         return prefs.getAll();
     }
+
+
+    public void clearUserData() {
+        editor.remove(KEY_USER_ID);
+        editor.remove(KEY_USER_NAME);
+        editor.remove(KEY_USER_EMAIL);
+        editor.remove(KEY_USER_PHONE);
+        editor.remove(KEY_USER_TYPE);
+        editor.remove(KEY_IS_LOGGED_IN);
+        editor.remove(KEY_SESSION_ACTIVE);
+        editor.remove(KEY_GUIDE_APPROVED);
+        editor.remove(KEY_GUIDE_RATING);
+        editor.apply();
+    }
 }
 

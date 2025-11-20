@@ -1,58 +1,115 @@
 package com.example.droidtour;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 public class GuideCreatePasswordActivity extends AppCompatActivity {
     private TextInputEditText etPassword, etRepeatPassword;
     private TextView tvPasswordError;
     private MaterialButton btnSiguiente;
 
+    // Variables para datos del usuario
+    private String nombres, apellidos, correo, tipoDocumento, numeroDocumento, fechaNacimiento, telefono;
+    private List<String> idiomasSeleccionados;
+    private String photoUri;
+
+    private FirebaseAuth mAuth;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide_create_password);
+
+        mAuth = FirebaseAuth.getInstance();
+
+        initializeViews();
+        loadUserData();
+        setupTextWatchers();
+        setupClickListeners();
+    }
+
+    private void initializeViews() {
         etPassword = findViewById(R.id.etPassword);
         etRepeatPassword = findViewById(R.id.etRepeatPassword);
         tvPasswordError = findViewById(R.id.tvPasswordError);
         btnSiguiente = findViewById(R.id.btnSiguiente);
         findViewById(R.id.tvRegresar).setOnClickListener(v -> finish());
+    }
 
+    private void loadUserData() {
+        Intent intent = getIntent();
+        nombres = intent.getStringExtra("nombres");
+        apellidos = intent.getStringExtra("apellidos");
+        correo = intent.getStringExtra("correo");
+        tipoDocumento = intent.getStringExtra("tipoDocumento");
+        numeroDocumento = intent.getStringExtra("numeroDocumento");
+        fechaNacimiento = intent.getStringExtra("fechaNacimiento");
+        telefono = intent.getStringExtra("telefono");
+        photoUri = intent.getStringExtra("photoUri");
+
+        // Obtener idiomas si se pasaron
+        idiomasSeleccionados = intent.getStringArrayListExtra("idiomas");
+        if (idiomasSeleccionados == null) {
+            idiomasSeleccionados = new ArrayList<>();
+        }
+    }
+
+    private void setupTextWatchers() {
         TextWatcher watcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 validatePasswords();
             }
+
             @Override
             public void afterTextChanged(Editable s) {}
         };
+
         etPassword.addTextChangedListener(watcher);
         etRepeatPassword.addTextChangedListener(watcher);
+    }
 
+    private void setupClickListeners() {
         btnSiguiente.setOnClickListener(v -> {
-            // Aquí puedes finalizar el registro o navegar a otra pantalla
-            finish();
+            if (validatePasswords()) {
+                registerUser();
+            }
         });
     }
 
-    private void validatePasswords() {
+    private boolean validatePasswords() {
         String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
         String repeat = etRepeatPassword.getText() != null ? etRepeatPassword.getText().toString() : "";
         String error = getPasswordError(password, repeat);
+
         if (error == null) {
             tvPasswordError.setVisibility(TextView.GONE);
             btnSiguiente.setEnabled(true);
+            return true;
         } else {
             tvPasswordError.setText(error);
             tvPasswordError.setVisibility(TextView.VISIBLE);
             btnSiguiente.setEnabled(false);
+            return false;
         }
     }
 
@@ -80,5 +137,120 @@ public class GuideCreatePasswordActivity extends AppCompatActivity {
         }
         return null;
     }
-}
 
+    private void registerUser() {
+        btnSiguiente.setEnabled(false);
+        String password = etPassword.getText().toString().trim();
+
+        // 1. CREAR USUARIO EN FIREBASE AUTH
+        mAuth.createUserWithEmailAndPassword(correo, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // 2. USUARIO CREADO EN AUTH - GUARDAR EN FIRESTORE
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            saveUserToFirestore(user);
+                        } else {
+                            handleRegistrationError("Error al obtener usuario");
+                        }
+                    } else {
+                        handleRegistrationError(task.getException() != null ?
+                                task.getException().getMessage() : "Error en el registro");
+                    }
+                });
+    }
+
+    private void saveUserToFirestore(FirebaseUser user) {
+        String userId = user.getUid();
+        String fullName = nombres + " " + apellidos;
+
+        // 3. PREPARAR DATOS PARA FIRESTORE
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("uid", userId);
+        userData.put("email", correo);
+        userData.put("firstName", nombres);
+        userData.put("lastName", apellidos);
+        userData.put("fullName", fullName);
+        userData.put("documentType", tipoDocumento);
+        userData.put("documentNumber", numeroDocumento);
+        userData.put("birthDate", fechaNacimiento);
+        userData.put("phone", telefono);
+        userData.put("userType", "GUIDE");
+        userData.put("provider", "email");
+        userData.put("status", "pending_approval");
+        userData.put("createdAt", new java.util.Date());
+        userData.put("profileCompleted", true);
+        userData.put("profileCompletedAt", new java.util.Date());
+
+        // Agregar foto si existe
+        if (photoUri != null && !photoUri.isEmpty()) {
+            userData.put("photoURL", photoUri);
+            userData.put("customPhoto", true);
+        }
+
+        // Agregar idiomas
+        if (idiomasSeleccionados != null && !idiomasSeleccionados.isEmpty()) {
+            userData.put("languages", idiomasSeleccionados);
+        }
+
+        // 4. GUARDAR EN COLECCIÓN "users"
+        FirebaseFirestore.getInstance().collection("users")
+                .document(userId)
+                .set(userData)
+                .addOnSuccessListener(aVoid -> {
+                    // 5. GUARDAR ROL DEL USUARIO
+                    saveUserRole(userId);
+                })
+                .addOnFailureListener(e -> {
+                    handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                });
+    }
+
+    private void saveUserRole(String userId) {
+        Map<String, Object> roleData = new HashMap<>();
+        roleData.put("status", "pending");
+        roleData.put("appliedAt", new java.util.Date());
+        roleData.put("updatedAt", new java.util.Date());
+
+        Map<String, Object> roleUpdate = new HashMap<>();
+        roleUpdate.put("guide", roleData);
+
+        FirebaseFirestore.getInstance().collection("user_roles")
+                .document(userId)
+                .set(roleUpdate)
+                .addOnSuccessListener(aVoid -> {
+                    // 6. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
+                    saveToPreferencesManager(userId);
+
+                    Toast.makeText(this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+
+                    // 7. REDIRIGIR A PANTALLA DE ESPERA
+                    redirectToApprovalPending();
+                })
+                .addOnFailureListener(e -> {
+                    handleRegistrationError("Error al guardar rol: " + e.getMessage());
+                });
+    }
+
+    private void saveToPreferencesManager(String userId) {
+        com.example.droidtour.utils.PreferencesManager prefsManager =
+                new com.example.droidtour.utils.PreferencesManager(this);
+
+        String fullName = nombres + " " + apellidos;
+        prefsManager.saveUserData(userId, fullName, correo, telefono, "GUIDE");
+        prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+        prefsManager.marcarPrimeraVezCompletada();
+    }
+
+    private void redirectToApprovalPending() {
+        Intent intent = new Intent(this, GuideApprovalPendingActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void handleRegistrationError(String errorMessage) {
+        btnSiguiente.setEnabled(true);
+        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+    }
+}

@@ -21,6 +21,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DroidTour">
 
+
+        <!-- Meta-data para Google Services -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
+        <!-- Google Sign-In Activity -->
+        <activity
+            android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Bienvenida-->
         <activity
             android:name=".WelcomeActivity"
@@ -34,7 +47,8 @@
         <activity android:name=".Onboarding1" android:exported="false"/>
         <activity android:name=".Onboarding2" android:exported="false"/>
 
-        <activity android:name=".MainActivity" android:exported="true"/>
+        <!-- Eliminada la actividad MainActivity ya que la navegación inicia en WelcomeActivity y Login -->
+        <!-- <activity android:name=".MainActivity" android:exported="true"/> -->
 
         <activity
             android:name=".SuperadminMainActivity"
@@ -174,7 +188,6 @@
             android:name=".client.ClientNotificationsActivity"
             android:exported="false"
             android:parentActivityName=".client.ClientMainActivity" />
-+
 
         <activity
             android:name=".GuideMyAccount"
@@ -185,11 +198,6 @@
             android:name=".SuperadminMyAccount"
             android:exported="false"
             android:parentActivityName=".SuperadminMainActivity" />
-
-        <activity
-            android:name=".client.ClientNotificationsActivity"
-            android:exported="false"
-            android:parentActivityName=".client.ClientMainActivity" />
 
         <activity
             android:name=".TourRatingActivity"
@@ -327,6 +335,12 @@
         <activity android:name=".GuideRegistrationLanguagesActivity" android:exported="false" />
         <activity android:name=".GuideRegistrationPhotoActivity" android:exported="false" />
         <activity android:name=".GuideCreatePasswordActivity" android:exported="false" />
+
+
+        <!-- Actividad para mostrar estado de aprobación de guías -->
+        <activity
+            android:name=".GuideApprovalPendingActivity"
+            android:exported="false" />
 
 
         <meta-data

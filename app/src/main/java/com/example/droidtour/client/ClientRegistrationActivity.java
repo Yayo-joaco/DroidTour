@@ -30,9 +30,33 @@ public class ClientRegistrationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_client_registration);
         //getWindow().setStatusBarColor(ContextCompat.getColor("#FF6200EE"));
         initializeViews();
+
+        // Manejar datos de Google si vienen en el intent
+        handleGoogleUserData();
+
         setupDocumentTypeSpinner();
         setupCountryCodePicker();
         setupClickListeners();
+    }
+
+    // Nuevo: rellenar campos si venimos desde Google Sign-In
+    private void handleGoogleUserData() {
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.getBoolean("googleUser", false)) {
+            String userEmail = extras.getString("userEmail", "");
+            String userName = extras.getString("userName", "");
+
+            if (userEmail != null && !userEmail.isEmpty()) {
+                etCorreo.setText(userEmail);
+                etCorreo.setEnabled(false); // hacerlo de solo lectura
+            }
+
+            if (userName != null && !userName.isEmpty()) {
+                String[] parts = userName.split(" ", 2);
+                if (parts.length >= 1) etNombres.setText(parts[0]);
+                if (parts.length == 2) etApellidos.setText(parts[1]);
+            }
+        }
     }
 
     private void initializeViews() {
@@ -169,6 +193,17 @@ public class ClientRegistrationActivity extends AppCompatActivity {
         intent.putExtra("numeroDocumento", numeroDocumento);
         intent.putExtra("fechaNacimiento", fechaNacimiento);
         intent.putExtra("telefono", fullPhoneNumber);
+
+        // NUEVO: Pasar también los datos de Google si existen
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.getBoolean("googleUser", false)) {
+            intent.putExtra("googleUser", true);
+            intent.putExtra("userType", extras.getString("userType", ""));
+            intent.putExtra("userEmail", extras.getString("userEmail", ""));
+            intent.putExtra("userName", extras.getString("userName", ""));
+            intent.putExtra("userPhoto", extras.getString("userPhoto", "")); // ← ESTA ES LA CLAVE
+        }
+
         startActivity(intent);
     }
 

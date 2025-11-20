@@ -60,11 +60,6 @@
             android:layout_height="wrap_content"
             android:text="@string/tab_unread" />
 
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/tab_important" />
-
     </com.google.android.material.tabs.TabLayout>
 
     <!-- Content Container -->

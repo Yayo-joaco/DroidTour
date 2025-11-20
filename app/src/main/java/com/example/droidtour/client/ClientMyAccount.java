@@ -110,47 +110,9 @@ public class ClientMyAccount extends AppCompatActivity {
     }
     
     private void loadUserData() {
-        // Verificar y corregir datos del cliente
-        String userType = prefsManager.obtenerTipoUsuario();
+        // Obtener datos del usuario desde PreferencesManager (ya guardados correctamente por LoginActivity)
         String userName = prefsManager.obtenerUsuario();
         String userEmail = prefsManager.obtenerEmail();
-
-        // Si no está logueado o el tipo no es CLIENT, inicializar como cliente
-        if (!prefsManager.sesionActiva() || (userType != null && !userType.equals("CLIENT"))) {
-            prefsManager.guardarUsuario(
-                "CLIENT001",
-                "Gabrielle Ivonne",
-                "cliente@email.com",
-                "CLIENT"
-            );
-            userName = "Gabrielle Ivonne";
-            userEmail = "cliente@email.com";
-        } else {
-            // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") ||
-                userName.equals("María López") || userName.equals("Ana García Rodríguez") ||
-                userName.equals("María González"))) {
-                prefsManager.guardarUsuario(
-                    "CLIENT001",
-                    "Gabrielle Ivonne",
-                    "cliente@email.com",
-                    "CLIENT"
-                );
-                userName = "Gabrielle Ivonne";
-                userEmail = "cliente@email.com";
-            }
-        }
-
-        // Asegurar que el email sea el correcto
-        if (!userEmail.equals("cliente@email.com") && userType != null && userType.equals("CLIENT")) {
-            prefsManager.guardarUsuario(
-                "CLIENT001",
-                userName,
-                "cliente@email.com",
-                "CLIENT"
-            );
-            userEmail = "cliente@email.com";
-        }
 
         // Actualizar los TextView del header
         TextView tvUserName = findViewById(R.id.tv_user_name);

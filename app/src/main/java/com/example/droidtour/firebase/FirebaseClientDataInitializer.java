@@ -36,10 +36,19 @@ public class FirebaseClientDataInitializer {
     
     /**
      * Inicializar datos con un UID específico
-     * @param userId UID del usuario de Firebase Authentication (si es null, se crea uno nuevo)
+     * @param userId UID del usuario de Firebase Authentication (REQUERIDO - usa el UID del usuario actual)
      */
     public void initializeAllClientData(String userId, ClientDataCallback callback) {
         Log.d(TAG, "Iniciando creación de datos de ejemplo para CLIENTE...");
+        
+        // ⚠️ Validar que se proporcione un userId
+        if (userId == null || userId.isEmpty()) {
+            callback.onFailure(new Exception("Se requiere un UID de usuario válido. No se puede inicializar sin usuario autenticado."));
+            return;
+        }
+        
+        clientUserId = userId;
+        Log.d(TAG, "🔥 Usando UID del usuario actual: " + clientUserId);
         
         // Paso 1: Crear empresas primero (necesarias para tours)
         createExampleCompanies(new FirestoreManager.FirestoreCallback() {
@@ -53,15 +62,9 @@ public class FirebaseClientDataInitializer {
                     public void onSuccess(Object result) {
                         Log.d(TAG, "✅ Tours creados");
                         
-                        // Paso 3: Crear/actualizar usuario cliente de ejemplo
-                        createExampleClientUser(userId, new FirestoreManager.FirestoreCallback() {
-                            @Override
-                            public void onSuccess(Object result) {
-                                clientUserId = (String) result;
-                                Log.d(TAG, "✅ Usuario cliente actualizado: " + clientUserId);
-                                
-                                // Paso 4: Crear preferencias del usuario
-                                createExamplePreferences(clientUserId, new FirestoreManager.FirestoreCallback() {
+                        // Paso 3: NO crear usuario (ya existe) - ir directo a preferencias
+                        // Paso 4: Crear preferencias del usuario
+                        createExamplePreferences(clientUserId, new FirestoreManager.FirestoreCallback() {
                                     @Override
                                     public void onSuccess(Object result) {
                                         Log.d(TAG, "✅ Preferencias creadas");
@@ -104,55 +107,47 @@ public class FirebaseClientDataInitializer {
                                                                                 Log.e(TAG, "Error creando mensajes", e);
                                                                                 callback.onFailure(e);
                                                                             }
-                                                                        });
-                                                                    }
-                                                                    
-                                                                    @Override
-                                                                    public void onFailure(Exception e) {
-                                                                        Log.e(TAG, "Error creando reseñas", e);
-                                                                        callback.onFailure(e);
-                                                                    }
-                                                                });
-                                                            }
-                                                            
-                                                            @Override
-                                                            public void onFailure(Exception e) {
-                                                                Log.e(TAG, "Error creando notificaciones", e);
-                                                                callback.onFailure(e);
-                                                            }
-                                                        });
-                                                    }
-                                                    
-                                                    @Override
-                                                    public void onFailure(Exception e) {
-                                                        Log.e(TAG, "Error creando reservas", e);
-                                                        callback.onFailure(e);
-                                                    }
-                                                });
-                                            }
-                                            
-                                            @Override
-                                            public void onFailure(Exception e) {
-                                                Log.e(TAG, "Error creando métodos de pago", e);
-                                                callback.onFailure(e);
-                                            }
-                                        });
-                                    }
-                                    
-                                    @Override
-                                    public void onFailure(Exception e) {
-                                        Log.e(TAG, "Error creando preferencias", e);
-                                        callback.onFailure(e);
-                                    }
-                                });
-                            }
-                            
-                            @Override
-                            public void onFailure(Exception e) {
-                                Log.e(TAG, "Error creando usuario cliente", e);
-                                callback.onFailure(e);
-                            }
-                        });
+                                                    });
+                                                }
+                                                
+                                                @Override
+                                                public void onFailure(Exception e) {
+                                                    Log.e(TAG, "Error creando reseñas", e);
+                                                    callback.onFailure(e);
+                                                }
+                                            });
+                                        }
+                                        
+                                        @Override
+                                        public void onFailure(Exception e) {
+                                            Log.e(TAG, "Error creando notificaciones", e);
+                                            callback.onFailure(e);
+                                        }
+                                    });
+                                }
+                                
+                                @Override
+                                public void onFailure(Exception e) {
+                                    Log.e(TAG, "Error creando reservas", e);
+                                    callback.onFailure(e);
+                                }
+                            });
+                        }
+                        
+                        @Override
+                        public void onFailure(Exception e) {
+                            Log.e(TAG, "Error creando métodos de pago", e);
+                            callback.onFailure(e);
+                        }
+                    });
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error creando preferencias", e);
+                    callback.onFailure(e);
+                }
+            });
                     }
                     
                     @Override
@@ -172,18 +167,18 @@ public class FirebaseClientDataInitializer {
     }
 
     /**
-     * Crear usuario cliente de ejemplo: Gabrielle Ivonne
+     * Crear usuario cliente de ejemplo: a20221957@pucp.edu.pe
      */
     private void createExampleClientUser(String existingUserId, FirestoreManager.FirestoreCallback callback) {
         User cliente = new User(
-            "prueba@droidtour.com",
-            "Usuario",
-            "Prueba",
+            "a20221957@pucp.edu.pe",
+            "Gabrielle Ivonne",
+            "Valdivia Matos",
             "+51912345678",
             "DNI",
-            "12345678",
-            "1990-01-15",
-            "Av. Principal 123, Lima, Perú", // ✨ Domicilio
+            "72845123",
+            "2002-06-15",
+            "Av. Universitaria 1801, San Miguel, Lima, Perú",
             "CLIENT"
         );
         
@@ -214,32 +209,104 @@ public class FirebaseClientDataInitializer {
      * Crear 2 métodos de pago de ejemplo
      */
     private void createExamplePaymentMethods(String userId, FirestoreManager.FirestoreCallback callback) {
-        // Tarjeta 1: Visa (Principal)
+        // 🔥 Obtener el nombre del usuario actual desde Firestore
+        firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                User user = (User) result;
+                String cardHolderName = user != null && user.getFullName() != null ? 
+                                       user.getFullName().toUpperCase() : 
+                                       "GERARDO RABANAL";
+                
+                Log.d(TAG, "Creando payment methods para: " + cardHolderName);
+                
+                // Tarjeta 1: Visa (Principal)
+                PaymentMethod visa = new PaymentMethod(
+                    userId,
+                    cardHolderName,  // ← Usa el nombre REAL del usuario
+                    "4532123456781234", // Se enmascara automáticamente a ****1234
+                    "VISA",
+                    "12",
+                    "2026"
+                );
+                visa.setIsDefault(true);
+                
+                firestoreManager.addPaymentMethod(visa, new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Log.d(TAG, "✅ Visa creada: " + result);
+                        
+                        // Tarjeta 2: Mastercard
+                        PaymentMethod mastercard = new PaymentMethod(
+                            userId,
+                            cardHolderName,  // ← Usa el nombre REAL del usuario
+                            "5412123456785678", // Se enmascara a ****5678
+                            "MASTERCARD",
+                            "08",
+                            "2025"
+                        );
+                        mastercard.setIsDefault(false);
+                        
+                        firestoreManager.addPaymentMethod(mastercard, new FirestoreManager.FirestoreCallback() {
+                            @Override
+                            public void onSuccess(Object result) {
+                                Log.d(TAG, "✅ Mastercard creada: " + result);
+                                callback.onSuccess(true);
+                            }
+                            
+                            @Override
+                            public void onFailure(Exception e) {
+                                Log.e(TAG, "❌ Error creando Mastercard", e);
+                                callback.onFailure(e);
+                            }
+                        });
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e(TAG, "❌ Error creando Visa", e);
+                        callback.onFailure(e);
+                    }
+                });
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error obteniendo usuario, usando nombre por defecto", e);
+                // Fallback: usar nombre por defecto si falla
+                createPaymentMethodsWithDefaultName(userId, callback);
+            }
+        });
+    }
+    
+    /**
+     * Fallback: Crear payment methods con nombre por defecto
+     */
+    private void createPaymentMethodsWithDefaultName(String userId, FirestoreManager.FirestoreCallback callback) {
         PaymentMethod visa = new PaymentMethod(
             userId,
-            "ANA GARCIA PEREZ",
-            "4532123456781234", // Se enmascara automáticamente a ****1234
+            "CLIENTE EJEMPLO",
+            "4532123456781234",
             "VISA",
             "12",
             "2026"
         );
-        visa.setDefault(true);
+        visa.setIsDefault(true);
         
         firestoreManager.addPaymentMethod(visa, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                Log.d(TAG, "Visa creada: " + result);
+                Log.d(TAG, "✅ Visa creada (fallback)");
                 
-                // Tarjeta 2: Mastercard
                 PaymentMethod mastercard = new PaymentMethod(
                     userId,
-                    "ANA GARCIA PEREZ",
-                    "5412123456785678", // Se enmascara a ****5678
+                    "CLIENTE EJEMPLO",
+                    "5412123456785678",
                     "MASTERCARD",
                     "08",
                     "2025"
                 );
-                mastercard.setDefault(false);
+                mastercard.setIsDefault(false);
                 
                 firestoreManager.addPaymentMethod(mastercard, callback);
             }
@@ -260,8 +327,8 @@ public class FirebaseClientDataInitializer {
         // Reserva 1: City Tour Lima - CONFIRMADA
         Reservation res1 = new Reservation(
             userId,
-            "Gabrielle Ivonne",
-            "cliente@email.com",
+            "Gabrielle Ivonne Valdivia Matos",
+            "a20221957@pucp.edu.pe",
             "TOUR001",
             "City Tour Lima Centro Histórico",
             "COMP001",
@@ -278,8 +345,8 @@ public class FirebaseClientDataInitializer {
         // Reserva 2: Machu Picchu - CONFIRMADA
         Reservation res2 = new Reservation(
             userId,
-            "Gabrielle Ivonne",
-            "cliente@email.com",
+            "Gabrielle Ivonne Valdivia Matos",
+            "a20221957@pucp.edu.pe",
             "TOUR002",
             "Machu Picchu Full Day",
             "COMP002",
@@ -296,8 +363,8 @@ public class FirebaseClientDataInitializer {
         // Reserva 3: Islas Ballestas - CONFIRMADA
         Reservation res3 = new Reservation(
             userId,
-            "Gabrielle Ivonne",
-            "cliente@email.com",
+            "Gabrielle Ivonne Valdivia Matos",
+            "a20221957@pucp.edu.pe",
             "TOUR003",
             "Islas Ballestas y Paracas",
             "COMP003",
@@ -314,8 +381,8 @@ public class FirebaseClientDataInitializer {
         // Reserva 4: Cañón del Colca - COMPLETADA
         Reservation res4 = new Reservation(
             userId,
-            "Gabrielle Ivonne",
-            "cliente@email.com",
+            "Gabrielle Ivonne Valdivia Matos",
+            "a20221957@pucp.edu.pe",
             "TOUR004",
             "Cañón del Colca 2D/1N",
             "COMP004",
@@ -369,7 +436,7 @@ public class FirebaseClientDataInitializer {
         List<Notification> notifications = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
         
-        // Notificación 1: Reserva Confirmada (más reciente) - NO LEÍDA
+        // Notificación 1: Reserva Confirmada (más reciente) - NO LEÍDA - IMPORTANTE
         Notification notif1 = new Notification(
             userId,
             "CLIENT",
@@ -379,10 +446,11 @@ public class FirebaseClientDataInitializer {
             "RES001",
             "reservation"
         );
-        notif1.setRead(false);
+        notif1.setIsRead(false);
+        notif1.setIsImportant(true);  // ← IMPORTANTE
         notifications.add(notif1);
         
-        // Notificación 2: Pago Confirmado - NO LEÍDA
+        // Notificación 2: Pago Confirmado - NO LEÍDA - IMPORTANTE
         Notification notif2 = new Notification(
             userId,
             "CLIENT",
@@ -392,10 +460,11 @@ public class FirebaseClientDataInitializer {
             "RES001",
             "payment"
         );
-        notif2.setRead(false);
+        notif2.setIsRead(false);
+        notif2.setIsImportant(true);  // ← IMPORTANTE
         notifications.add(notif2);
         
-        // Notificación 3: Recordatorio de Tour - LEÍDA
+        // Notificación 3: Recordatorio de Tour - LEÍDA - IMPORTANTE
         Notification notif3 = new Notification(
             userId,
             "CLIENT",
@@ -405,11 +474,12 @@ public class FirebaseClientDataInitializer {
             "RES002",
             "reservation"
         );
-        notif3.setRead(true);
+        notif3.setIsRead(true);
+        notif3.setIsImportant(true);  // ← IMPORTANTE
         notif3.setReadAt(new Date());
         notifications.add(notif3);
         
-        // Notificación 4: Tour Completado - LEÍDA
+        // Notificación 4: Tour Completado - LEÍDA - NO importante
         Notification notif4 = new Notification(
             userId,
             "CLIENT",
@@ -419,11 +489,12 @@ public class FirebaseClientDataInitializer {
             "RES001",
             "reservation"
         );
-        notif4.setRead(true);
+        notif4.setIsRead(true);
+        notif4.setIsImportant(false);  // ← NO importante
         notif4.setReadAt(new Date());
         notifications.add(notif4);
         
-        // Notificación 5: Reserva Confirmada (Islas Ballestas) - LEÍDA
+        // Notificación 5: Reserva Confirmada (Islas Ballestas) - LEÍDA - NO importante
         Notification notif5 = new Notification(
             userId,
             "CLIENT",
@@ -433,11 +504,12 @@ public class FirebaseClientDataInitializer {
             "RES003",
             "reservation"
         );
-        notif5.setRead(true);
+        notif5.setIsRead(true);
+        notif5.setIsImportant(false);  // ← NO importante
         notif5.setReadAt(new Date());
         notifications.add(notif5);
         
-        // Notificación 6: Pago Confirmado (Islas Ballestas) - LEÍDA
+        // Notificación 6: Pago Confirmado (Islas Ballestas) - LEÍDA - NO importante
         Notification notif6 = new Notification(
             userId,
             "CLIENT",
@@ -447,7 +519,8 @@ public class FirebaseClientDataInitializer {
             "RES003",
             "payment"
         );
-        notif6.setRead(true);
+        notif6.setIsRead(true);
+        notif6.setIsImportant(false);  // ← NO importante
         notif6.setReadAt(new Date());
         notifications.add(notif6);
         
@@ -488,33 +561,33 @@ public class FirebaseClientDataInitializer {
     private void createExampleCompanies(FirestoreManager.FirestoreCallback callback) {
         List<Company> companies = new ArrayList<>();
         
-        // Empresa 1: Lima Adventure Tours
+        // Empresa 1: Lima Adventure Tours (1 tour)
         Company comp1 = new Company("Lima Adventure Tours", "ADMIN001", "info@limaadventure.com", "+51987654321", "Lima", "Perú");
         comp1.setCompanyId("COMP001");
         comp1.setAddress("Av. José Larco 123, Miraflores, Lima, Perú");
         comp1.setAverageRating(4.8);
         comp1.setTotalReviews(245);
-        comp1.setTotalTours(12);
+        comp1.setTotalTours(1); // ✅ Corregido: solo tiene 1 tour
         comp1.setActive(true);
         companies.add(comp1);
         
-        // Empresa 2: Cusco Explorer
+        // Empresa 2: Cusco Explorer (2 tours)
         Company comp2 = new Company("Cusco Explorer", "ADMIN002", "info@cuscoexplorer.com", "+51984123456", "Cusco", "Perú");
         comp2.setCompanyId("COMP002");
         comp2.setAddress("Plaza de Armas 456, Cusco, Perú");
         comp2.setAverageRating(4.9);
         comp2.setTotalReviews(189);
-        comp2.setTotalTours(8);
+        comp2.setTotalTours(2); // ✅ Corregido: tiene 2 tours (Machu Picchu + Valle Sagrado)
         comp2.setActive(true);
         companies.add(comp2);
         
-        // Empresa 3: Paracas Tours
+        // Empresa 3: Paracas Tours (1 tour)
         Company comp3 = new Company("Paracas Tours", "ADMIN003", "info@paracas-tours.com", "+51956789012", "Paracas", "Perú");
         comp3.setCompanyId("COMP003");
         comp3.setAddress("Av. Paracas 789, Paracas, Ica, Perú");
         comp3.setAverageRating(4.7);
         comp3.setTotalReviews(156);
-        comp3.setTotalTours(6);
+        comp3.setTotalTours(1); // ✅ Corregido: solo tiene 1 tour
         comp3.setActive(true);
         companies.add(comp3);
         
@@ -529,19 +602,40 @@ public class FirebaseClientDataInitializer {
         }
         
         Company company = companies.get(index);
-        firestoreManager.createCompany(company, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                Log.d(TAG, "Empresa " + (index + 1) + " creada: " + company.getCompanyName());
-                createCompaniesSequentially(companies, index + 1, finalCallback);
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error creando empresa " + (index + 1), e);
-                createCompaniesSequentially(companies, index + 1, finalCallback);
-            }
-        });
+        
+        // 🔥 Crear con ID específico para que los tours puedan referenciarla correctamente
+        String companyId = company.getCompanyId();
+        if (companyId != null && !companyId.isEmpty()) {
+            // Usar el ID que ya tiene asignado
+            firestoreManager.createCompanyWithId(companyId, company, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Log.d(TAG, "Empresa " + (index + 1) + " creada: " + company.getCompanyName() + " con ID: " + companyId);
+                    createCompaniesSequentially(companies, index + 1, finalCallback);
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error creando empresa " + (index + 1), e);
+                    createCompaniesSequentially(companies, index + 1, finalCallback);
+                }
+            });
+        } else {
+            // Si no tiene ID, usar el método normal
+            firestoreManager.createCompany(company, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Log.d(TAG, "Empresa " + (index + 1) + " creada: " + company.getCompanyName());
+                    createCompaniesSequentially(companies, index + 1, finalCallback);
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error creando empresa " + (index + 1), e);
+                    createCompaniesSequentially(companies, index + 1, finalCallback);
+                }
+            });
+        }
     }
 
     /**
@@ -609,19 +703,40 @@ public class FirebaseClientDataInitializer {
         }
         
         Tour tour = tours.get(index);
-        firestoreManager.createTour(tour, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                Log.d(TAG, "Tour " + (index + 1) + " creado: " + tour.getTourName());
-                createToursSequentially(tours, index + 1, finalCallback);
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error creando tour " + (index + 1), e);
-                createToursSequentially(tours, index + 1, finalCallback);
-            }
-        });
+        
+        // 🔥 Crear con ID específico para mantener referencias consistentes
+        String tourId = tour.getTourId();
+        if (tourId != null && !tourId.isEmpty()) {
+            // Usar el ID que ya tiene asignado
+            firestoreManager.createTourWithId(tourId, tour, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Log.d(TAG, "Tour " + (index + 1) + " creado: " + tour.getTourName() + " con ID: " + tourId);
+                    createToursSequentially(tours, index + 1, finalCallback);
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error creando tour " + (index + 1), e);
+                    createToursSequentially(tours, index + 1, finalCallback);
+                }
+            });
+        } else {
+            // Si no tiene ID, usar el método normal
+            firestoreManager.createTour(tour, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Log.d(TAG, "Tour " + (index + 1) + " creado: " + tour.getTourName());
+                    createToursSequentially(tours, index + 1, finalCallback);
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error creando tour " + (index + 1), e);
+                    createToursSequentially(tours, index + 1, finalCallback);
+                }
+            });
+        }
     }
 
     /**
@@ -684,7 +799,7 @@ public class FirebaseClientDataInitializer {
             "COMP001", 
             "Lima Adventure Tours",
             userId,
-            "Usuario Prueba",
+            "Gabrielle Valdivia",
             "COMPANY",
             "¡Hola! Gracias por tu interés en nuestros tours. ¿En qué podemos ayudarte?",
             conversationId1,
@@ -696,7 +811,7 @@ public class FirebaseClientDataInitializer {
                     // Mensaje 2: Del cliente a la empresa
                     firestoreManager.sendMessage(
                         userId,
-                        "Usuario Prueba",
+                        "Gabrielle Valdivia",
                         "COMP001",
                         "Lima Adventure Tours",
                         "CLIENT",
@@ -712,7 +827,7 @@ public class FirebaseClientDataInitializer {
                                     "COMP001",
                                     "Lima Adventure Tours",
                                     userId,
-                                    "Usuario Prueba",
+                                    "Gabrielle Valdivia",
                                     "COMPANY",
                                     "¡Claro! El City Tour incluye visita a la Plaza Mayor, Catedral de Lima, Convento de San Francisco y más. Duración: 4 horas. Precio: S/. 85 por persona. ¿Te gustaría reservar?",
                                     conversationId1,
@@ -724,7 +839,7 @@ public class FirebaseClientDataInitializer {
                                             // Mensaje 4: Del cliente
                                             firestoreManager.sendMessage(
                                                 userId,
-                                                "Usuario Prueba",
+                                                "Gabrielle Valdivia",
                                                 "COMP001",
                                                 "Lima Adventure Tours",
                                                 "CLIENT",
@@ -740,7 +855,7 @@ public class FirebaseClientDataInitializer {
                                                             "COMP001",
                                                             "Lima Adventure Tours",
                                                             userId,
-                                                            "Usuario Prueba",
+                                                            "Gabrielle Valdivia",
                                                             "COMPANY",
                                                             "Sí, incluye almuerzo en restaurante local del centro histórico. También incluye transporte y guía bilingüe.",
                                                             conversationId1,

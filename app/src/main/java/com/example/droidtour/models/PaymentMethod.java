@@ -133,25 +133,19 @@ public class PaymentMethod {
         this.cvv = cvv;
     }
 
-    public Boolean isDefault() {
-        return isDefault != null && isDefault;
-    }
-    
+    // ✅ ÚNICO getter para isDefault (Firestore-compatible)
     public Boolean getIsDefault() {
         return isDefault;
     }
-    
-    // Alias para compatibilidad
-    public Boolean getDefault() {
-        return isDefault;
-    }
 
-    public void setDefault(Boolean aDefault) {
-        isDefault = aDefault;
-    }
-    
+    // ✅ ÚNICO setter para isDefault
     public void setIsDefault(Boolean isDefault) {
         this.isDefault = isDefault;
+    }
+    
+    // Helper method (NO es un getter de Firestore)
+    public boolean isDefaultCard() {
+        return isDefault != null && isDefault;
     }
 
     public Date getCreatedAt() {

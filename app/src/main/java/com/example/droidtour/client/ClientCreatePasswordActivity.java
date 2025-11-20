@@ -10,17 +10,24 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.droidtour.R;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.models.UserSession;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import android.os.Build;
+import android.provider.Settings;
+import android.util.Log;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class ClientCreatePasswordActivity extends AppCompatActivity {
+    private static final String TAG = "ClientCreatePassword";
+    
     private TextInputEditText etPassword, etRepeatPassword;
     private TextView tvPasswordError;
     private MaterialButton btnSiguiente;
@@ -252,6 +259,41 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
         prefsManager.saveUserData(userId, fullName, correo, telefono, "CLIENT");
         prefsManager.guardarUltimoLogin(System.currentTimeMillis());
         prefsManager.marcarPrimeraVezCompletada();
+        
+        // 🔥 Guardar sesión en Firestore
+        saveSessionToFirestore(userId, correo, fullName);
+    }
+    
+    /**
+     * Guardar sesión en Firestore para persistencia multi-dispositivo
+     */
+    private void saveSessionToFirestore(String userId, String email, String name) {
+        // Obtener información del dispositivo
+        String deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+        String deviceModel = Build.MANUFACTURER + " " + Build.MODEL;
+        String deviceOS = "Android " + Build.VERSION.RELEASE;
+        String appVersion = "1.0.0";
+        
+        // Crear sesión
+        UserSession session = new UserSession(userId, email, name, "CLIENT", 
+                                            deviceId, deviceModel, deviceOS, appVersion);
+        
+        // Guardar en Firestore
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.createUserSession(session, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                String sessionId = (String) result;
+                PreferencesManager prefs = new PreferencesManager(ClientCreatePasswordActivity.this);
+                prefs.guardar("session_id", sessionId);
+                Log.d(TAG, "Sesión guardada en Firestore: " + sessionId);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error guardando sesión en Firestore", e);
+            }
+        });
     }
 
     private void redirectToMainActivity() {

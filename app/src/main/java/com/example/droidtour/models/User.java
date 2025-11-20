@@ -1,6 +1,7 @@
 package com.example.droidtour.models;
 
 import com.google.firebase.firestore.DocumentId;
+import com.google.firebase.firestore.PropertyName;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 import java.util.HashMap;
@@ -148,12 +149,25 @@ public class User {
         this.fullName = fullName;
     }
 
+    @PropertyName("phoneNumber")
     public String getPhoneNumber() {
         return phoneNumber;
     }
 
+    @PropertyName("phoneNumber")
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+    
+    // Getter alternativo para leer el campo "phone" de Firestore (legacy)
+    @PropertyName("phone")
+    public String getPhone() {
+        return phoneNumber;
+    }
+
+    @PropertyName("phone")
+    public void setPhone(String phone) {
+        this.phoneNumber = phone;
     }
 
     public String getCountryCode() {

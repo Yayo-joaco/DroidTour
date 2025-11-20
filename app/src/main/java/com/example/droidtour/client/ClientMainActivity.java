@@ -252,27 +252,12 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         if (headerView != null) {
             TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
             if (tvUserNameHeader != null) {
-                String userType = prefsManager.obtenerTipoUsuario();
                 String userName = prefsManager.obtenerUsuario();
-                
-                // Asegurar que el cliente tenga el nombre correcto
-                if (userType != null && userType.equals("CLIENT")) {
-                    if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
-                        userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-                        prefsManager.guardarUsuario(
-                            "CLIENT001", 
-                            "Gabrielle Ivonne", 
-                            "cliente@email.com",
-                            "CLIENT"
-                        );
-                        userName = "Gabrielle Ivonne";
-                    }
-                }
                 
                 if (userName != null && !userName.isEmpty()) {
                     tvUserNameHeader.setText(userName);
                 } else {
-                    tvUserNameHeader.setText("Gabrielle Ivonne");
+                    tvUserNameHeader.setText("Usuario");
                 }
             }
         }
@@ -294,6 +279,14 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             Intent intent = new Intent(ClientMainActivity.this, ClientChatActivity.class);
             startActivity(intent);
         });
+    }
+    
+    /**
+     * 🔥 Abrir activity para inicializar datos de prueba
+     */
+    private void openInitializeDataActivity() {
+        Intent intent = new Intent(this, com.example.droidtour.firebase.InitializeTestDataActivity.class);
+        startActivity(intent);
     }
 
     private void setupRecyclerViews() {
@@ -380,6 +373,9 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             startActivity(new Intent(this, ClientProfileActivity.class));
         } else if (id == R.id.nav_settings) {
             startActivity(new Intent(this, ClientSettingsActivity.class));
+        } else if (id == R.id.nav_init_test_data) {
+            // 🔥 Inicializar datos de prueba
+            openInitializeDataActivity();
         } else if (id == R.id.nav_logout) {
             //Se limpian los datos de seión
             prefsManager.cerrarSesion();
@@ -407,22 +403,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         // Verificar y corregir datos del cliente (sin actualizar vistas)
         String userType = prefsManager.obtenerTipoUsuario();
         String userName = prefsManager.obtenerUsuario();
-
-        // Corregir en caso el usuario sea CLIENT
-        if (userType != null && userType.equals("CLIENT")) {
-            // Si el nombre no es el correcto, corregirlo
-            if (!userName.equals("Gabrielle Ivonne") &&
-                    (userName.equals("Carlos Mendoza") ||
-                            userName.equals("María López") ||
-                            userName.equals("Ana García Rodríguez"))) {
-                prefsManager.guardarUsuario(
-                        "CLIENT001",
-                        "Gabrielle Ivonne",
-                        "cliente@email.com",
-                        "CLIENT"
-                );
-            }
-        }
+        // Ya no necesitamos corregir datos - LoginActivity ya guarda todo correctamente
     }
     
     private void loadUserData() {

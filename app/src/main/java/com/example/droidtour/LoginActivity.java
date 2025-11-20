@@ -9,6 +9,8 @@ import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientMainActivity;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.models.UserSession;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -27,11 +29,16 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
+import android.os.Build;
+import android.provider.Settings;
+import android.util.Log;
 
 import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
 
+    private static final String TAG = "LoginActivity";
+    
     private TextInputEditText etEmail, etPassword;
     private MaterialButton btnLogin, btnRegister, btnGoogleSignIn;
     private TextView tvForgotPassword;
@@ -176,20 +183,135 @@ public class LoginActivity extends AppCompatActivity {
     }
     private void handleExistingUser(FirebaseUser user, String userType) {
         String uid = user.getUid();
-        String userEmail = user.getEmail() != null ? user.getEmail() : "";
-        String displayName = user.getDisplayName() != null ? user.getDisplayName() : "Usuario";
+        
+        // 🔥 OBTENER DATOS COMPLETOS DESDE FIRESTORE PRIMERO
+        FirebaseFirestore.getInstance().collection("users")
+                .document(uid)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        // Extraer datos completos del usuario
+                        String fullName = documentSnapshot.getString("fullName");
+                        String displayName = fullName != null ? fullName : 
+                            (documentSnapshot.getString("firstName") + " " + documentSnapshot.getString("lastName"));
+                        String userEmail = documentSnapshot.getString("email");
+                        
+                        // Intentar leer teléfono (puede estar como "phoneNumber" o "phone")
+                        String phoneNumber = documentSnapshot.getString("phoneNumber");
+                        if (phoneNumber == null || phoneNumber.isEmpty()) {
+                            phoneNumber = documentSnapshot.getString("phone"); // Fallback a "phone"
+                        }
+                        
+                        // Guardar datos COMPLETOS en PreferencesManager
+                        Log.d(TAG, "[SAVE] GUARDANDO EN PreferencesManager:");
+                        Log.d(TAG, "   - UID: " + uid);
+                        Log.d(TAG, "   - DisplayName: " + displayName);
+                        Log.d(TAG, "   - Email: " + userEmail);
+                        Log.d(TAG, "   - Phone: " + phoneNumber);
+                        Log.d(TAG, "   - UserType: " + userType);
+                        
+                        prefsManager.saveUserData(
+                            uid, 
+                            displayName != null ? displayName : user.getDisplayName(),
+                            userEmail != null ? userEmail : user.getEmail(),
+                            phoneNumber != null ? phoneNumber : "",
+                            userType
+                        );
+                        prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+                        prefsManager.marcarPrimeraVezCompletada();
 
-        prefsManager.saveUserData(uid, displayName, userEmail, "", userType);
-        prefsManager.guardarUltimoLogin(System.currentTimeMillis());
-        prefsManager.marcarPrimeraVezCompletada();
+                        Log.d(TAG, "[OK] Datos guardados. Verificando...");
+                        Log.d(TAG, "   - getUserId(): " + prefsManager.getUserId());
+                        Log.d(TAG, "   - getUserEmail(): " + prefsManager.getUserEmail());
+                        Log.d(TAG, "   - getUserPhone(): " + prefsManager.getUserPhone());
 
-        // VERIFICAR STATUS DEL GUÍA ANTES DE REDIRIGIR
-        if ("GUIDE".equals(userType)) {
-            checkGuideApprovalStatus(uid);
-        } else {
-            redirigirSegunRol();
-            finish();
-        }
+                        // Guardar sesión en Firestore
+                        saveSessionToFirestore(uid, userEmail, displayName, userType);
+
+                        // VERIFICAR STATUS DEL GUÍA ANTES DE REDIRIGIR
+                        if ("GUIDE".equals(userType)) {
+                            checkGuideApprovalStatus(uid);
+                        } else {
+                            redirigirSegunRol();
+                            finish();
+                        }
+                    } else {
+                        // Si no existe en Firestore, crear usuario en Firestore primero
+                        Log.w(TAG, "[WARN] Usuario no encontrado en Firestore, creando documento...");
+                        String userEmail = user.getEmail() != null ? user.getEmail() : "";
+                        String displayName = user.getDisplayName() != null ? user.getDisplayName() : "Usuario";
+                        
+                        // Crear usuario en Firestore antes de guardar localmente
+                        com.example.droidtour.models.User newUser = new com.example.droidtour.models.User();
+                        newUser.setUserId(uid);
+                        newUser.setEmail(userEmail);
+                        newUser.setFirstName(displayName.split(" ")[0]);
+                        newUser.setLastName(displayName.contains(" ") ? displayName.substring(displayName.indexOf(" ") + 1) : "");
+                        newUser.setFullName(displayName);
+                        newUser.setUserType(userType);
+                        newUser.setActive(true);
+                        
+                        FirebaseFirestore.getInstance().collection("users")
+                            .document(uid)
+                            .set(newUser.toMap())
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "[OK] Usuario creado en Firestore");
+                                // Ahora guardar localmente con datos básicos
+                                prefsManager.saveUserData(uid, displayName, userEmail, "", userType);
+                                prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+                                prefsManager.marcarPrimeraVezCompletada();
+                                
+                                saveSessionToFirestore(uid, userEmail, displayName, userType);
+                                
+                                if ("GUIDE".equals(userType)) {
+                                    checkGuideApprovalStatus(uid);
+                                } else {
+                                    redirigirSegunRol();
+                                    finish();
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "[ERROR] Error creando usuario en Firestore", e);
+                                // Continuar de todos modos
+                                prefsManager.saveUserData(uid, displayName, userEmail, "", userType);
+                                prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+                                prefsManager.marcarPrimeraVezCompletada();
+                                
+                                if ("GUIDE".equals(userType)) {
+                                    checkGuideApprovalStatus(uid);
+                                } else {
+                                    redirigirSegunRol();
+                                    finish();
+                                }
+                            });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    // Error obteniendo datos de Firestore (red, permisos, etc.)
+                    Log.e(TAG, "[ERROR] Error de red/permisos al obtener usuario de Firestore", e);
+                    Log.e(TAG, "[WARN] GUARDANDO DATOS INCOMPLETOS - El perfil se actualizara al abrir Mi Perfil");
+                    
+                    String userEmail = user.getEmail() != null ? user.getEmail() : "";
+                    String displayName = user.getDisplayName() != null ? user.getDisplayName() : "Usuario";
+                    
+                    // Guardar datos básicos pero agregar log de advertencia
+                    prefsManager.saveUserData(uid, displayName, userEmail, "", userType);
+                    prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+                    prefsManager.marcarPrimeraVezCompletada();
+                    
+                    Toast.makeText(LoginActivity.this, 
+                        "Conexión limitada. Algunos datos pueden no estar actualizados.", 
+                        Toast.LENGTH_LONG).show();
+                    
+                    saveSessionToFirestore(uid, userEmail, displayName, userType);
+                    
+                    if ("GUIDE".equals(userType)) {
+                        checkGuideApprovalStatus(uid);
+                    } else {
+                        redirigirSegunRol();
+                        finish();
+                    }
+                });
     }
 
     private void checkGuideApprovalStatus(String userId) {
@@ -264,26 +386,59 @@ public class LoginActivity extends AppCompatActivity {
                                 String uid = user.getUid();
                                 String userEmail = user.getEmail() != null ? user.getEmail() : email;
 
-                                // Intent: obtener rol real desde Firestore si existe
+                                // Obtener TODOS los datos del usuario desde Firestore
                                 FirebaseFirestore db = FirebaseFirestore.getInstance();
                                 db.collection("users").document(uid).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
                                     @Override
                                     public void onComplete(Task<DocumentSnapshot> task2) {
                                         String role;
+                                        String displayName = "Usuario";
+                                        String phoneNumber = "";
+                                        
                                         if (task2.isSuccessful() && task2.getResult() != null && task2.getResult().exists()) {
                                             DocumentSnapshot doc = task2.getResult();
+                                            
+                                            // Obtener rol
                                             role = doc.getString("userType");
                                             if (role == null || role.isEmpty()) {
                                                 role = inferUserTypeFromEmail(userEmail);
                                             }
+                                            
+                                            // Obtener nombre completo
+                                            String fullName = doc.getString("fullName");
+                                            if (fullName != null && !fullName.isEmpty()) {
+                                                displayName = fullName;
+                                            } else {
+                                                String firstName = doc.getString("firstName");
+                                                String lastName = doc.getString("lastName");
+                                                if (firstName != null && lastName != null) {
+                                                    displayName = firstName + " " + lastName;
+                                                }
+                                            }
+                                            
+                                            // Obtener telefono (intentar "phoneNumber" primero, luego "phone")
+                                            phoneNumber = doc.getString("phoneNumber");
+                                            if (phoneNumber == null || phoneNumber.isEmpty()) {
+                                                phoneNumber = doc.getString("phone"); // Fallback a "phone"
+                                            }
+                                            if (phoneNumber == null) phoneNumber = "";
+                                            
+                                            Log.d(TAG, "[OK] Datos obtenidos de Firestore en login email/password:");
+                                            Log.d(TAG, "   - DisplayName: " + displayName);
+                                            Log.d(TAG, "   - Phone: " + phoneNumber);
+                                            Log.d(TAG, "   - Role: " + role);
                                         } else {
                                             // No hay documento de perfil, usar inferencia
                                             role = inferUserTypeFromEmail(userEmail);
+                                            Log.w(TAG, "[WARN] No se encontro documento en Firestore para login email/password");
                                         }
 
-                                        prefsManager.saveUserData(uid, "Usuario", userEmail, "", role);
+                                        prefsManager.saveUserData(uid, displayName, userEmail, phoneNumber, role);
                                         prefsManager.guardarUltimoLogin(System.currentTimeMillis());
                                         prefsManager.marcarPrimeraVezCompletada();
+
+                                        // Guardar sesion en Firestore
+                                        saveSessionToFirestore(uid, userEmail, displayName, role);
 
                                         // Redirigir según rol
                                         redirigirSegunRol();
@@ -301,6 +456,39 @@ public class LoginActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    /**
+     * Guardar sesión en Firestore para persistencia multi-dispositivo
+     */
+    private void saveSessionToFirestore(String userId, String email, String name, String userType) {
+        // Obtener información del dispositivo
+        String deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
+        String deviceModel = Build.MANUFACTURER + " " + Build.MODEL;
+        String deviceOS = "Android " + Build.VERSION.RELEASE;
+        String appVersion = "1.0.0"; // Puedes obtener esto de BuildConfig.VERSION_NAME
+        
+        // Crear sesión
+        UserSession session = new UserSession(userId, email, name, userType, 
+                                            deviceId, deviceModel, deviceOS, appVersion);
+        
+        // Guardar en Firestore
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.createUserSession(session, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                String sessionId = (String) result;
+                // Guardar sessionId en SharedPreferences para futuras referencias
+                prefsManager.guardar("session_id", sessionId);
+                android.util.Log.d("LoginActivity", "Sesión guardada en Firestore: " + sessionId);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // No bloquear el login si falla la sesión en Firestore
+                android.util.Log.e("LoginActivity", "Error guardando sesión en Firestore", e);
+            }
+        });
     }
 
     /**

@@ -27,6 +27,7 @@ public class Notification {
     
     // Estado
     private Boolean isRead;
+    private Boolean isImportant; // Si la notificación es importante/prioritaria
     private Boolean isPushSent; // Si se envió notificación push
     @ServerTimestamp
     private Date createdAt;
@@ -52,6 +53,7 @@ public class Notification {
         this.title = title;
         this.message = message;
         this.isRead = false;
+        this.isImportant = false;
         this.isPushSent = false;
     }
 
@@ -75,6 +77,7 @@ public class Notification {
         map.put("relatedId", relatedId);
         map.put("relatedType", relatedType);
         map.put("isRead", isRead);
+        map.put("isImportant", isImportant);
         map.put("isPushSent", isPushSent);
         map.put("readAt", readAt);
         return map;
@@ -153,25 +156,33 @@ public class Notification {
         this.relatedType = relatedType;
     }
 
-    public Boolean isRead() {
-        return isRead != null && isRead;
-    }
-    
+    // ✅ ÚNICO getter para isRead (Firestore-compatible)
     public Boolean getIsRead() {
         return isRead;
     }
-    
-    // Alias para compatibilidad
-    public Boolean getRead() {
-        return isRead;
-    }
 
-    public void setRead(Boolean read) {
-        isRead = read;
-    }
-    
+    // ✅ ÚNICO setter para isRead
     public void setIsRead(Boolean isRead) {
         this.isRead = isRead;
+    }
+    
+    // Helper method (NO es un getter de Firestore)
+    public boolean isReadNotification() {
+        return isRead != null && isRead;
+    }
+    
+    // ✅ Getter y Setter para isImportant
+    public Boolean getIsImportant() {
+        return isImportant;
+    }
+
+    public void setIsImportant(Boolean isImportant) {
+        this.isImportant = isImportant;
+    }
+    
+    // Helper method
+    public boolean isImportantNotification() {
+        return isImportant != null && isImportant;
     }
 
     public Boolean getPushSent() {
@@ -198,4 +209,5 @@ public class Notification {
         this.readAt = readAt;
     }
 }
+
 

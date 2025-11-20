@@ -35,6 +35,7 @@ public class FirestoreManager {
     private static final String COLLECTION_NOTIFICATIONS = "notifications";
     private static final String COLLECTION_USER_PREFERENCES = "user_preferences";
     private static final String COLLECTION_MESSAGES = "messages";
+    private static final String COLLECTION_USER_SESSIONS = "user_sessions";
 
     private FirestoreManager() {
         this.db = FirebaseFirestore.getInstance();
@@ -83,19 +84,33 @@ public class FirestoreManager {
      * Obtener usuario por ID
      */
     public void getUserById(String userId, FirestoreCallback callback) {
+        Log.d(TAG, "🔍 getUserById llamado con userId: '" + userId + "'");
+        Log.d(TAG, "🔍 Buscando en: " + COLLECTION_USERS + "/" + userId);
+        
+        if (userId == null || userId.isEmpty()) {
+            Log.e(TAG, "❌ userId es null o vacío");
+            callback.onFailure(new Exception("userId is null or empty"));
+            return;
+        }
+        
         db.collection(COLLECTION_USERS)
                 .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
+                    Log.d(TAG, "🔍 Respuesta de Firestore - exists: " + documentSnapshot.exists());
                     if (documentSnapshot.exists()) {
+                        Log.d(TAG, "✅ Documento encontrado!");
                         User user = documentSnapshot.toObject(User.class);
+                        Log.d(TAG, "✅ Usuario deserializado: " + (user != null ? user.getEmail() : "null"));
                         callback.onSuccess(user);
                     } else {
-                        callback.onFailure(new Exception("User not found"));
+                        Log.e(TAG, "❌ Documento NO existe en Firestore");
+                        Log.e(TAG, "❌ Ruta buscada: users/" + userId);
+                        callback.onFailure(new Exception("User not found in Firestore at path: users/" + userId));
                     }
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting user", e);
+                    Log.e(TAG, "❌ Error de red/permisos al obtener usuario", e);
                     callback.onFailure(e);
                 });
     }
@@ -170,6 +185,23 @@ public class FirestoreManager {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error creating company", e);
+                    callback.onFailure(e);
+                });
+    }
+    
+    /**
+     * Crear una nueva empresa con un ID específico
+     */
+    public void createCompanyWithId(String companyId, Company company, FirestoreCallback callback) {
+        db.collection(COLLECTION_COMPANIES)
+                .document(companyId)
+                .set(company.toMap())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Company created with custom ID: " + companyId);
+                    callback.onSuccess(companyId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error creating company with ID", e);
                     callback.onFailure(e);
                 });
     }
@@ -255,6 +287,23 @@ public class FirestoreManager {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error creating tour", e);
+                    callback.onFailure(e);
+                });
+    }
+    
+    /**
+     * Crear un nuevo tour con un ID específico
+     */
+    public void createTourWithId(String tourId, Tour tour, FirestoreCallback callback) {
+        db.collection(COLLECTION_TOURS)
+                .document(tourId)
+                .set(tour.toMap())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Tour created with custom ID: " + tourId);
+                    callback.onSuccess(tourId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error creating tour with ID", e);
                     callback.onFailure(e);
                 });
     }
@@ -432,11 +481,11 @@ public class FirestoreManager {
 
     /**
      * Obtener reservas por usuario
+     * Nota: No usamos orderBy en Firestore para evitar requerir índice compuesto
      */
     public void getReservationsByUser(String userId, FirestoreCallback callback) {
         db.collection(COLLECTION_RESERVATIONS)
                 .whereEqualTo("userId", userId)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<Reservation> reservations = new ArrayList<>();
@@ -444,6 +493,15 @@ public class FirestoreManager {
                         Reservation reservation = document.toObject(Reservation.class);
                         reservations.add(reservation);
                     }
+                    
+                    // Ordenar en el cliente por fecha (más reciente primero)
+                    reservations.sort((a, b) -> {
+                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                            return b.getCreatedAt().compareTo(a.getCreatedAt());
+                        }
+                        return 0;
+                    });
+                    
                     callback.onSuccess(reservations);
                 })
                 .addOnFailureListener(e -> {
@@ -659,9 +717,13 @@ public class FirestoreManager {
                     
                     // Ordenar por isDefault (principal primero) y luego por fecha
                     paymentMethods.sort((a, b) -> {
+                        // Null-safe: considerar null como false
+                        Boolean aIsDefault = a.getIsDefault() != null ? a.getIsDefault() : false;
+                        Boolean bIsDefault = b.getIsDefault() != null ? b.getIsDefault() : false;
+                        
                         // Primero, la tarjeta principal
-                        if (a.isDefault() && !b.isDefault()) return -1;
-                        if (!a.isDefault() && b.isDefault()) return 1;
+                        if (aIsDefault && !bIsDefault) return -1;
+                        if (!aIsDefault && bIsDefault) return 1;
                         
                         // Luego, ordenar por fecha de creación (más reciente primero)
                         if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
@@ -787,11 +849,43 @@ public class FirestoreManager {
 
     /**
      * Obtener notificaciones no leídas de un usuario
+     * Nota: No usamos orderBy en Firestore para evitar requerir índice compuesto
      */
     public void getUnreadNotifications(String userId, FirestoreCallback callback) {
         db.collection(COLLECTION_NOTIFICATIONS)
                 .whereEqualTo("userId", userId)
                 .whereEqualTo("isRead", false)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Notification> notifications = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : querySnapshot) {
+                        Notification notification = document.toObject(Notification.class);
+                        notifications.add(notification);
+                    }
+                    
+                    // Ordenar en el cliente por fecha (más reciente primero)
+                    notifications.sort((a, b) -> {
+                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                            return b.getCreatedAt().compareTo(a.getCreatedAt());
+                        }
+                        return 0;
+                    });
+                    
+                    callback.onSuccess(notifications);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error getting unread notifications", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Obtener notificaciones importantes de un usuario
+     */
+    public void getImportantNotifications(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_NOTIFICATIONS)
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isImportant", true)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
@@ -803,7 +897,7 @@ public class FirestoreManager {
                     callback.onSuccess(notifications);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting unread notifications", e);
+                    Log.e(TAG, "Error getting important notifications", e);
                     callback.onFailure(e);
                 });
     }
@@ -1057,6 +1151,144 @@ public class FirestoreManager {
             })
             .addOnFailureListener(e -> {
                 Log.e(TAG, "Error getting messages to mark as read", e);
+                callback.onFailure(e);
+            });
+    }
+
+    // ==================== SESIONES DE USUARIO ====================
+
+    /**
+     * Crear una nueva sesión de usuario al iniciar sesión
+     */
+    public void createUserSession(UserSession session, FirestoreCallback callback) {
+        db.collection(COLLECTION_USER_SESSIONS)
+            .add(session.toMap())
+            .addOnSuccessListener(documentReference -> {
+                String sessionId = documentReference.getId();
+                Log.d(TAG, "Session created with ID: " + sessionId);
+                callback.onSuccess(sessionId);
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error creating session", e);
+                callback.onFailure(e);
+            });
+    }
+
+    /**
+     * Obtener sesión activa de un usuario
+     */
+    public void getActiveUserSession(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_USER_SESSIONS)
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("isActive", true)
+            .orderBy("loginTime", Query.Direction.DESCENDING)
+            .limit(1)
+            .get()
+            .addOnSuccessListener(querySnapshot -> {
+                if (!querySnapshot.isEmpty()) {
+                    UserSession session = querySnapshot.getDocuments().get(0).toObject(UserSession.class);
+                    callback.onSuccess(session);
+                } else {
+                    callback.onFailure(new Exception("No active session found"));
+                }
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error getting active session", e);
+                callback.onFailure(e);
+            });
+    }
+
+    /**
+     * Obtener todas las sesiones de un usuario (para gestión de dispositivos)
+     */
+    public void getUserSessions(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_USER_SESSIONS)
+            .whereEqualTo("userId", userId)
+            .orderBy("loginTime", Query.Direction.DESCENDING)
+            .get()
+            .addOnSuccessListener(querySnapshot -> {
+                List<UserSession> sessions = new ArrayList<>();
+                for (QueryDocumentSnapshot document : querySnapshot) {
+                    UserSession session = document.toObject(UserSession.class);
+                    sessions.add(session);
+                }
+                callback.onSuccess(sessions);
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error getting user sessions", e);
+                callback.onFailure(e);
+            });
+    }
+
+    /**
+     * Actualizar actividad de la sesión (mantener sesión viva)
+     */
+    public void updateSessionActivity(String sessionId, FirestoreCallback callback) {
+        Map<String, Object> updates = new java.util.HashMap<>();
+        updates.put("lastAccessTime", new java.util.Date());
+        
+        db.collection(COLLECTION_USER_SESSIONS)
+            .document(sessionId)
+            .update(updates)
+            .addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "Session activity updated");
+                callback.onSuccess(true);
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error updating session activity", e);
+                callback.onFailure(e);
+            });
+    }
+
+    /**
+     * Cerrar sesión (marcar como inactiva)
+     */
+    public void closeUserSession(String sessionId, FirestoreCallback callback) {
+        Map<String, Object> updates = new java.util.HashMap<>();
+        updates.put("isActive", false);
+        updates.put("logoutTime", new java.util.Date());
+        
+        db.collection(COLLECTION_USER_SESSIONS)
+            .document(sessionId)
+            .update(updates)
+            .addOnSuccessListener(aVoid -> {
+                Log.d(TAG, "Session closed");
+                callback.onSuccess(true);
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error closing session", e);
+                callback.onFailure(e);
+            });
+    }
+
+    /**
+     * Cerrar todas las sesiones activas de un usuario (útil para "cerrar sesión en todos los dispositivos")
+     */
+    public void closeAllUserSessions(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_USER_SESSIONS)
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("isActive", true)
+            .get()
+            .addOnSuccessListener(querySnapshot -> {
+                WriteBatch batch = db.batch();
+                for (QueryDocumentSnapshot document : querySnapshot) {
+                    Map<String, Object> updates = new java.util.HashMap<>();
+                    updates.put("isActive", false);
+                    updates.put("logoutTime", new java.util.Date());
+                    batch.update(document.getReference(), updates);
+                }
+                batch.commit()
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "All sessions closed for user: " + userId);
+                        callback.onSuccess(true);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error closing all sessions", e);
+                        callback.onFailure(e);
+                    });
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error finding sessions to close", e);
                 callback.onFailure(e);
             });
     }

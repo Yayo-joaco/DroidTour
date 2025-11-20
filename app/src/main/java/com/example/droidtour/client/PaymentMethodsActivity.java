@@ -1,6 +1,8 @@
 package com.example.droidtour.client;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.LayoutInflater;
 import android.widget.TextView;
@@ -11,17 +13,28 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.droidtour.R;
+import com.example.droidtour.models.PaymentMethod;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PaymentMethodsActivity extends AppCompatActivity {
 
+    private static final String TAG = "PaymentMethodsActivity";
     private RecyclerView rvPaymentMethods;
     private PaymentMethodsAdapter paymentMethodsAdapter;
     private MaterialCardView cardAddNew;
     private TextView tvCardsCount;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private FirestoreManager firestoreManager;
+    private FirebaseAuthManager authManager;
+    private String currentUserId;
+    private List<PaymentMethod> paymentMethodsList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,11 +61,25 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_payment_methods);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
+        // Inicializar Firebase
+        firestoreManager = FirestoreManager.getInstance();
+        authManager = FirebaseAuthManager.getInstance(this);
+        currentUserId = authManager.getCurrentUserId();
+        
+        // Si no hay usuario autenticado, usar del PreferencesManager
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = prefsManager.getUserId();
+        }
+        
+        Log.d(TAG, "📱 PaymentMethodsActivity iniciada para userId: " + currentUserId);
+
         setupToolbar();
         initializeViews();
-        setupHeaderData();
-        setupRecyclerView();
+        setupRecyclerView(); // IMPORTANTE: Configurar RecyclerView ANTES de cargar datos
         setupClickListeners();
+        
+        // 🔥 Cargar datos desde Firestore
+        loadPaymentMethodsFromFirestore();
     }
 
     private void setupToolbar() {
@@ -70,35 +97,153 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         tvCardsCount = findViewById(R.id.tv_cards_count);
     }
 
-    private void setupHeaderData() {
-        tvCardsCount.setText("2");
-    }
-
     private void setupRecyclerView() {
         rvPaymentMethods.setLayoutManager(new LinearLayoutManager(this));
-        paymentMethodsAdapter = new PaymentMethodsAdapter(this::onPaymentMethodAction);
+        paymentMethodsAdapter = new PaymentMethodsAdapter(paymentMethodsList, this::onPaymentMethodAction);
         rvPaymentMethods.setAdapter(paymentMethodsAdapter);
+    }
+    
+    /**
+     * 🔥 Cargar métodos de pago desde Firestore
+     */
+    private void loadPaymentMethodsFromFirestore() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "❌ Error: currentUserId es null o vacío");
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        Log.d(TAG, "🔄 Cargando métodos de pago para userId: " + currentUserId);
+        
+        firestoreManager.getPaymentMethodsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                paymentMethodsList = (List<PaymentMethod>) result;
+                
+                Log.d(TAG, "✅ Métodos de pago cargados: " + paymentMethodsList.size());
+                
+                // Actualizar contador (null-safe y hacer visible)
+                if (tvCardsCount != null) {
+                    tvCardsCount.setText(String.valueOf(paymentMethodsList.size()));
+                    tvCardsCount.setVisibility(android.view.View.VISIBLE);
+                }
+                
+                // Actualizar RecyclerView
+                if (paymentMethodsAdapter != null) {
+                    paymentMethodsAdapter.updateData(paymentMethodsList);
+                }
+                
+                if (paymentMethodsList.isEmpty()) {
+                    Log.d(TAG, "⚠️ No hay métodos de pago registrados para este usuario");
+                    Toast.makeText(PaymentMethodsActivity.this, 
+                        "No tienes métodos de pago registrados", Toast.LENGTH_SHORT).show();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error al cargar métodos de pago", e);
+                Toast.makeText(PaymentMethodsActivity.this, 
+                    "Error al cargar métodos de pago: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void setupClickListeners() {
         cardAddNew.setOnClickListener(v -> {
-            Toast.makeText(this, "Agregar nueva tarjeta", Toast.LENGTH_SHORT).show();
-            // In real app: startActivity(new Intent(this, AddPaymentMethodActivity.class));
+            Intent intent = new Intent(this, AddPaymentMethodActivity.class);
+            startActivity(intent);
         });
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Recargar métodos de pago cuando volvemos de agregar/editar
+        loadPaymentMethodsFromFirestore();
     }
 
     private void onPaymentMethodAction(int position, String action) {
+        if (position < 0 || position >= paymentMethodsList.size()) return;
+        
+        PaymentMethod paymentMethod = paymentMethodsList.get(position);
+        
         switch (action) {
             case "set_default":
-                Toast.makeText(this, "Tarjeta establecida como principal", Toast.LENGTH_SHORT).show();
+                setAsDefaultPaymentMethod(paymentMethod);
                 break;
             case "edit":
-                Toast.makeText(this, "Editar tarjeta", Toast.LENGTH_SHORT).show();
+                openEditPaymentMethod(paymentMethod);
                 break;
             case "delete":
-                Toast.makeText(this, "Tarjeta eliminada", Toast.LENGTH_SHORT).show();
+                deletePaymentMethod(paymentMethod, position);
                 break;
         }
+    }
+    
+    /**
+     * 🔥 Abrir pantalla de edición
+     */
+    private void openEditPaymentMethod(PaymentMethod paymentMethod) {
+        Intent intent = new Intent(this, EditPaymentMethodActivity.class);
+        intent.putExtra("paymentMethodId", paymentMethod.getPaymentMethodId());
+        intent.putExtra("cardHolderName", paymentMethod.getCardHolderName());
+        intent.putExtra("cardNumber", paymentMethod.getCardNumber());
+        intent.putExtra("cardType", paymentMethod.getCardType());
+        intent.putExtra("expiryMonth", paymentMethod.getExpiryMonth());
+        intent.putExtra("expiryYear", paymentMethod.getExpiryYear());
+        startActivity(intent);
+    }
+    
+    /**
+     * 🔥 Establecer tarjeta como predeterminada
+     */
+    private void setAsDefaultPaymentMethod(PaymentMethod paymentMethod) {
+        firestoreManager.setDefaultPaymentMethod(currentUserId, paymentMethod.getPaymentMethodId(), 
+            new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Toast.makeText(PaymentMethodsActivity.this, 
+                        "Tarjeta establecida como principal", Toast.LENGTH_SHORT).show();
+                    loadPaymentMethodsFromFirestore(); // Recargar lista
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Toast.makeText(PaymentMethodsActivity.this, 
+                        "Error al establecer tarjeta principal", Toast.LENGTH_SHORT).show();
+                }
+            });
+    }
+    
+    /**
+     * 🔥 Eliminar método de pago
+     */
+    private void deletePaymentMethod(PaymentMethod paymentMethod, int position) {
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Eliminar Tarjeta")
+            .setMessage("¿Estás seguro de que deseas eliminar esta tarjeta?")
+            .setPositiveButton("Eliminar", (dialog, which) -> {
+                firestoreManager.deletePaymentMethod(paymentMethod.getPaymentMethodId(), 
+                    new FirestoreManager.FirestoreCallback() {
+                        @Override
+                        public void onSuccess(Object result) {
+                            Toast.makeText(PaymentMethodsActivity.this, 
+                                "Tarjeta eliminada", Toast.LENGTH_SHORT).show();
+                            paymentMethodsList.remove(position);
+                            paymentMethodsAdapter.notifyItemRemoved(position);
+                            tvCardsCount.setText(String.valueOf(paymentMethodsList.size()));
+                        }
+                        
+                        @Override
+                        public void onFailure(Exception e) {
+                            Toast.makeText(PaymentMethodsActivity.this, 
+                                "Error al eliminar tarjeta", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+            })
+            .setNegativeButton("Cancelar", null)
+            .show();
     }
 
     @Override
@@ -121,9 +266,16 @@ public class PaymentMethodsActivity extends AppCompatActivity {
 class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.ViewHolder> {
     interface OnPaymentMethodAction { void onAction(int position, String action); }
     private final OnPaymentMethodAction onPaymentMethodAction;
+    private List<PaymentMethod> paymentMethods;
 
-    PaymentMethodsAdapter(OnPaymentMethodAction listener) {
+    PaymentMethodsAdapter(List<PaymentMethod> paymentMethods, OnPaymentMethodAction listener) {
+        this.paymentMethods = paymentMethods;
         this.onPaymentMethodAction = listener;
+    }
+    
+    public void updateData(List<PaymentMethod> newData) {
+        this.paymentMethods = newData;
+        notifyDataSetChanged();
     }
 
     @Override
@@ -135,65 +287,129 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        android.widget.ImageView ivCardType = holder.itemView.findViewById(R.id.iv_card_type);
-        TextView cardNumber = holder.itemView.findViewById(R.id.tv_card_number);
-        TextView cardHolder = holder.itemView.findViewById(R.id.tv_card_holder);
-        TextView expiryDate = holder.itemView.findViewById(R.id.tv_expiry_date);
-        TextView lastUsed = holder.itemView.findViewById(R.id.tv_last_used);
-        TextView totalSpent = holder.itemView.findViewById(R.id.tv_total_spent);
-        TextView defaultBadge = holder.itemView.findViewById(R.id.tv_default_badge);
-        MaterialButton btnSetDefault = holder.itemView.findViewById(R.id.btn_set_default);
-        MaterialButton btnEditCard = holder.itemView.findViewById(R.id.btn_edit_card);
-        MaterialButton btnDeleteCard = holder.itemView.findViewById(R.id.btn_delete_card);
-
-        String[] cardTypes = {"Visa", "Mastercard", "American Express"};
-        String[] cardNumbers = {"**** **** **** 1234", "**** **** **** 5678", "**** **** **** 9012"};
-        String[] expiryDates = {"12/26", "08/25", "03/27"};
-        String[] lastUsedDates = {"10 Dic, 2024", "05 Dic, 2024", "28 Nov, 2024"};
-        String[] totalAmounts = {"S/. 425", "S/. 255", "S/. 180"};
-
-        int index = position % cardTypes.length;
-
-        cardNumber.setText(cardNumbers[index]);
-        cardHolder.setText("ANA GARCIA PEREZ");
-        expiryDate.setText(expiryDates[index]);
-        lastUsed.setText("Última vez: " + lastUsedDates[index]);
-        totalSpent.setText(totalAmounts[index]);
+        if (paymentMethods == null || paymentMethods.isEmpty()) return;
+        
+        PaymentMethod paymentMethod = paymentMethods.get(position);
+        
+        // 🔥 Usar vistas cacheadas del ViewHolder (¡MUCHO MÁS EFICIENTE!)
+        // Validar que no sean null antes de usar
+        if (holder.tvCardNumber != null) {
+            holder.tvCardNumber.setText(formatCardNumber(paymentMethod.getCardNumber()));
+        }
+        
+        if (holder.tvCardHolder != null) {
+            holder.tvCardHolder.setText(paymentMethod.getCardHolderName() != null ? 
+                paymentMethod.getCardHolderName() : "N/A");
+        }
+        
+        if (holder.tvExpiryDate != null) {
+            String expiry = (paymentMethod.getExpiryMonth() != null ? paymentMethod.getExpiryMonth() : "??") + 
+                            "/" + 
+                            (paymentMethod.getExpiryYear() != null ? paymentMethod.getExpiryYear() : "????");
+            holder.tvExpiryDate.setText(expiry);
+        }
+        
+        // Calcular uso de la tarjeta dinámicamente
+        if (holder.tvUsageInfo != null) {
+            // TODO: Por ahora mostrar 0, luego calcular desde reservas
+            holder.tvUsageInfo.setText("Sin uso registrado");
+        }
+        
+        if (holder.tvLastUsed != null) {
+            holder.tvLastUsed.setText("Última vez: " + formatDate(paymentMethod.getUpdatedAt()));
+        }
+        
+        if (holder.tvTotalSpent != null) {
+            holder.tvTotalSpent.setText("S/. 0.00"); // TODO: Calcular desde reservas
+        }
 
         // Asignar icono de marca según el tipo de tarjeta
-        // La variable `cardTypes[index]` contiene el nombre del tipo (p.ej. "Visa", "Mastercard", "American Express").
-        // Aquí mapeamos explícitamente esos nombres a los drawables existentes (más seguro y eficiente que getIdentifier).
-        String type = cardTypes[index].toLowerCase();
-        int brandRes = R.drawable.ic_visa_logo; // fallback
-        if (type.contains("visa")) {
-            brandRes = R.drawable.ic_visa_logo;
-        } else if (type.contains("master")) {
-            // Usar el drawable vectorial que tenemos: ic_mastercard_logo.xml
-            brandRes = R.drawable.ic_mastercard_logo;
-        } else if (type.contains("american") || type.contains("amex")) {
-            // American Express -> ic_amex_logo.xml
-            brandRes = R.drawable.ic_amex_logo;
-        }
-        if (ivCardType != null) ivCardType.setImageResource(brandRes);
-
-        // Show default badge only for first card
-        if (position == 0) {
-            defaultBadge.setVisibility(android.view.View.VISIBLE);
-            btnSetDefault.setVisibility(android.view.View.GONE);
-        } else {
-            defaultBadge.setVisibility(android.view.View.GONE);
-            btnSetDefault.setVisibility(android.view.View.VISIBLE);
+        if (holder.ivCardType != null) {
+            String type = paymentMethod.getCardType() != null ? paymentMethod.getCardType().toLowerCase() : "";
+            int brandRes = R.drawable.ic_visa_logo; // fallback
+            if (type.contains("visa")) {
+                brandRes = R.drawable.ic_visa_logo;
+            } else if (type.contains("master")) {
+                brandRes = R.drawable.ic_mastercard_logo;
+            } else if (type.contains("american") || type.contains("amex")) {
+                brandRes = R.drawable.ic_amex_logo;
+            }
+            holder.ivCardType.setImageResource(brandRes);
         }
 
-        btnSetDefault.setOnClickListener(v -> onPaymentMethodAction.onAction(position, "set_default"));
-        btnEditCard.setOnClickListener(v -> onPaymentMethodAction.onAction(position, "edit"));
-        btnDeleteCard.setOnClickListener(v -> onPaymentMethodAction.onAction(position, "delete"));
+        // Mostrar badge de default solo para tarjeta principal
+        Boolean isDefault = paymentMethod.getIsDefault();
+        if (holder.tvDefaultBadge != null && holder.btnSetDefault != null) {
+            if (isDefault != null && isDefault) {
+                holder.tvDefaultBadge.setVisibility(android.view.View.VISIBLE);
+                holder.btnSetDefault.setVisibility(android.view.View.GONE);
+            } else {
+                holder.tvDefaultBadge.setVisibility(android.view.View.GONE);
+                holder.btnSetDefault.setVisibility(android.view.View.VISIBLE);
+            }
+        }
+
+        // Configurar listeners (null-safe)
+        if (holder.btnSetDefault != null) {
+            holder.btnSetDefault.setOnClickListener(v -> onPaymentMethodAction.onAction(holder.getAdapterPosition(), "set_default"));
+        }
+        if (holder.btnEditCard != null) {
+            holder.btnEditCard.setOnClickListener(v -> onPaymentMethodAction.onAction(holder.getAdapterPosition(), "edit"));
+        }
+        if (holder.btnDeleteCard != null) {
+            holder.btnDeleteCard.setOnClickListener(v -> onPaymentMethodAction.onAction(holder.getAdapterPosition(), "delete"));
+        }
+    }
+    
+    private String formatCardNumber(String cardNumber) {
+        if (cardNumber == null) return "****";
+        // Ya viene enmascarado de Firestore (ej: "****1234")
+        // Agregar espacios para mejor legibilidad
+        if (cardNumber.length() >= 8) {
+            return cardNumber.substring(0, 4) + " **** **** " + cardNumber.substring(4);
+        }
+        return cardNumber;
+    }
+    
+    private String formatDate(java.util.Date date) {
+        if (date == null) return "N/A";
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd MMM, yyyy", java.util.Locale.getDefault());
+        return sdf.format(date);
     }
 
     @Override
-    public int getItemCount() { return 3; }
+    public int getItemCount() { 
+        return paymentMethods != null ? paymentMethods.size() : 0; 
+    }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        ViewHolder(android.view.View v) { super(v); }
+        // 🔥 Cachear todas las vistas para evitar findViewById repetidos
+        android.widget.ImageView ivCardType;
+        TextView tvCardNumber;
+        TextView tvCardHolder;
+        TextView tvExpiryDate;
+        TextView tvUsageInfo;  // ← NUEVO
+        TextView tvLastUsed;
+        TextView tvTotalSpent;
+        TextView tvDefaultBadge;
+        MaterialButton btnSetDefault;
+        MaterialButton btnEditCard;
+        MaterialButton btnDeleteCard;
+        
+        ViewHolder(android.view.View v) {
+            super(v);
+            // Inicializar todas las vistas UNA SOLA VEZ
+            ivCardType = v.findViewById(R.id.iv_card_type);
+            tvCardNumber = v.findViewById(R.id.tv_card_number);
+            tvCardHolder = v.findViewById(R.id.tv_card_holder);
+            tvExpiryDate = v.findViewById(R.id.tv_expiry_date);
+            tvUsageInfo = v.findViewById(R.id.tv_usage_info);  // ← NUEVO
+            tvLastUsed = v.findViewById(R.id.tv_last_used);
+            tvTotalSpent = v.findViewById(R.id.tv_total_spent);
+            tvDefaultBadge = v.findViewById(R.id.tv_default_badge);
+            btnSetDefault = v.findViewById(R.id.btn_set_default);
+            btnEditCard = v.findViewById(R.id.btn_edit_card);
+            btnDeleteCard = v.findViewById(R.id.btn_delete_card);
+        }
     }
 }

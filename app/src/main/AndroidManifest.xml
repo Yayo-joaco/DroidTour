@@ -66,6 +66,12 @@
             android:name=".client.ClientMainActivity"
             android:exported="false" />
 
+        <!-- 🔥 Activity para inicializar datos de prueba en Firestore (solo desarrollo) -->
+        <activity
+            android:name=".firebase.InitializeTestDataActivity"
+            android:exported="false"
+            android:parentActivityName=".client.ClientMainActivity" />
+
         <activity
             android:name=".SuperadminUsersActivity"
             android:exported="false"
@@ -162,6 +168,16 @@
             android:name=".client.PaymentMethodsActivity"
             android:exported="false"
             android:parentActivityName=".client.ClientMainActivity" />
+        
+        <activity
+            android:name=".client.AddPaymentMethodActivity"
+            android:exported="false"
+            android:parentActivityName=".client.PaymentMethodsActivity" />
+        
+        <activity
+            android:name=".client.EditPaymentMethodActivity"
+            android:exported="false"
+            android:parentActivityName=".client.PaymentMethodsActivity" />
         
         <activity
             android:name=".CompanyChatActivity"

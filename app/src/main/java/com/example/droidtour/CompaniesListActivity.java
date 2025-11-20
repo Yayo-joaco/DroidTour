@@ -14,7 +14,8 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
-import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Company;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -26,8 +27,9 @@ public class CompaniesListActivity extends AppCompatActivity {
     private CompaniesAdapter companiesAdapter;
     private TextInputEditText etSearch;
     private ChipGroup chipGroupFilter;
-    private List<DatabaseHelper.Company> allCompanies;
-    private List<DatabaseHelper.Company> filteredCompanies;
+    private List<Company> allCompanies;
+    private List<Company> filteredCompanies;
+    private FirestoreManager firestoreManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,11 +55,20 @@ public class CompaniesListActivity extends AppCompatActivity {
         
         setContentView(R.layout.activity_companies_list);
 
+        // Inicializar Firebase
+        firestoreManager = FirestoreManager.getInstance();
+        
+        // Inicializar listas
+        allCompanies = new ArrayList<>();
+        filteredCompanies = new ArrayList<>();
+
         setupToolbar();
         initializeViews();
-        initializeCompanies();
         setupRecyclerView();
         setupFilters();
+        
+        // 🔥 Cargar empresas desde Firestore
+        loadCompaniesFromFirestore();
     }
 
     private void setupToolbar() {
@@ -75,22 +86,31 @@ public class CompaniesListActivity extends AppCompatActivity {
         chipGroupFilter = findViewById(R.id.chip_group_filter);
     }
 
-    private void initializeCompanies() {
-        allCompanies = new ArrayList<>();
-        allCompanies.add(new DatabaseHelper.Company("Lima Adventure Tours", "📍 Lima, Perú", 4.8, 245, 12, 1245, 45.0, 
-            "Especialistas en tours culturales y gastronómicos por Lima. Más de 10 años de experiencia mostrando lo mejor de nuestra ciudad."));
-        allCompanies.add(new DatabaseHelper.Company("Cusco Explorer", "📍 Cusco, Perú", 4.9, 189, 8, 987, 65.0, 
-            "Especialistas en tours culturales y gastronómicos por Cusco. Más de 8 años de experiencia mostrando lo mejor de nuestra ciudad."));
-        allCompanies.add(new DatabaseHelper.Company("Arequipa Adventures", "📍 Arequipa, Perú", 4.7, 156, 6, 654, 55.0, 
-            "Especialistas en tours culturales y gastronómicos por Arequipa. Más de 6 años de experiencia mostrando lo mejor de nuestra ciudad."));
-        allCompanies.add(new DatabaseHelper.Company("Trujillo Tours", "📍 Trujillo, Perú", 4.6, 98, 4, 432, 35.0, 
-            "Especialistas en tours arqueológicos por Trujillo. Más de 5 años de experiencia mostrando las ruinas de Chan Chan."));
-        allCompanies.add(new DatabaseHelper.Company("Iquitos Jungle Tours", "📍 Iquitos, Perú", 4.5, 76, 3, 321, 85.0, 
-            "Especialistas en tours de selva por Iquitos. Más de 7 años de experiencia mostrando la biodiversidad amazónica."));
-        allCompanies.add(new DatabaseHelper.Company("Puno Lake Tours", "📍 Puno, Perú", 4.8, 134, 5, 567, 75.0, 
-            "Especialistas en tours del Lago Titicaca. Más de 9 años de experiencia mostrando las islas flotantes."));
-        
-        filteredCompanies = new ArrayList<>(allCompanies);
+    /**
+     * 🔥 Cargar empresas desde Firestore
+     */
+    private void loadCompaniesFromFirestore() {
+        firestoreManager.getCompanies(new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                allCompanies = (List<Company>) result;
+                filteredCompanies.clear();
+                filteredCompanies.addAll(allCompanies);
+                companiesAdapter.notifyDataSetChanged();
+                
+                if (allCompanies.isEmpty()) {
+                    Toast.makeText(CompaniesListActivity.this, 
+                        "No hay empresas registradas", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(CompaniesListActivity.this, 
+                    "Error cargando empresas: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                android.util.Log.e("CompaniesListActivity", "Error loading companies", e);
+            }
+        });
     }
 
     private void setupRecyclerView() {
@@ -126,15 +146,28 @@ public class CompaniesListActivity extends AppCompatActivity {
                 break;
             case "best_rated":
                 filteredCompanies.addAll(allCompanies);
-                Collections.sort(filteredCompanies, (c1, c2) -> Double.compare(c2.getRating(), c1.getRating()));
+                Collections.sort(filteredCompanies, (c1, c2) -> {
+                    Double rating1 = c1.getAverageRating() != null ? c1.getAverageRating() : 0.0;
+                    Double rating2 = c2.getAverageRating() != null ? c2.getAverageRating() : 0.0;
+                    return Double.compare(rating2, rating1);
+                });
                 break;
             case "most_tours":
                 filteredCompanies.addAll(allCompanies);
-                Collections.sort(filteredCompanies, (c1, c2) -> Integer.compare(c2.getToursCount(), c1.getToursCount()));
+                Collections.sort(filteredCompanies, (c1, c2) -> {
+                    Integer tours1 = c1.getTotalTours() != null ? c1.getTotalTours() : 0;
+                    Integer tours2 = c2.getTotalTours() != null ? c2.getTotalTours() : 0;
+                    return Integer.compare(tours2, tours1);
+                });
                 break;
             case "best_price":
+                // Ordenar por rating como alternativa (Firebase Company no tiene priceFrom)
                 filteredCompanies.addAll(allCompanies);
-                Collections.sort(filteredCompanies, (c1, c2) -> Double.compare(c1.getPriceFrom(), c2.getPriceFrom()));
+                Collections.sort(filteredCompanies, (c1, c2) -> {
+                    Double rating1 = c1.getAverageRating() != null ? c1.getAverageRating() : 0.0;
+                    Double rating2 = c2.getAverageRating() != null ? c2.getAverageRating() : 0.0;
+                    return Double.compare(rating2, rating1);
+                });
                 break;
         }
         
@@ -142,9 +175,10 @@ public class CompaniesListActivity extends AppCompatActivity {
     }
 
     private void onCompanyClick(int position) {
+        Company company = filteredCompanies.get(position);
         Intent intent = new Intent(this, ToursCatalogActivity.class);
-        intent.putExtra("company_id", position);
-        intent.putExtra("company_name", filteredCompanies.get(position).getName());
+        intent.putExtra("company_id", company.getCompanyId());
+        intent.putExtra("company_name", company.getName());
         startActivity(intent);
     }
 
@@ -168,9 +202,9 @@ public class CompaniesListActivity extends AppCompatActivity {
 class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder> {
     interface OnCompanyClick { void onClick(int position); }
     private final OnCompanyClick onCompanyClick;
-    private final List<DatabaseHelper.Company> companies;
+    private final List<Company> companies;
     
-    CompaniesAdapter(List<DatabaseHelper.Company> companies, OnCompanyClick listener) { 
+    CompaniesAdapter(List<Company> companies, OnCompanyClick listener) { 
         this.companies = companies;
         this.onCompanyClick = listener; 
     }
@@ -184,7 +218,7 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        DatabaseHelper.Company company = companies.get(position);
+        Company company = companies.get(position);
         
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
         TextView location = holder.itemView.findViewById(R.id.tv_company_location);
@@ -198,13 +232,31 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
         MaterialButton btnViewTours = holder.itemView.findViewById(R.id.btn_view_tours);
 
         companyName.setText(company.getName());
-        location.setText(company.getLocation());
-        rating.setText("⭐ " + company.getRating());
-        reviewsCount.setText("(" + company.getReviewsCount() + " reseñas)");
-        toursCount.setText(String.valueOf(company.getToursCount()));
-        clientsCount.setText(String.valueOf(company.getClientsCount()));
-        priceFrom.setText("S/. " + (int)company.getPriceFrom());
-        description.setText(company.getDescription());
+        
+        // Formato de ubicación: Ciudad, País
+        String locationText = "📍 " + (company.getCity() != null ? company.getCity() : "") + 
+                             (company.getCountry() != null ? ", " + company.getCountry() : "");
+        location.setText(locationText);
+        
+        // Rating y reseñas
+        Double avgRating = company.getAverageRating() != null ? company.getAverageRating() : 0.0;
+        Integer totalReviews = company.getTotalReviews() != null ? company.getTotalReviews() : 0;
+        rating.setText("⭐ " + String.format("%.1f", avgRating));
+        reviewsCount.setText("(" + totalReviews + " reseñas)");
+        
+        // Total de tours
+        Integer tours = company.getTotalTours() != null ? company.getTotalTours() : 0;
+        toursCount.setText(String.valueOf(tours));
+        
+        // Clientes (si no hay campo, mostrar 0)
+        clientsCount.setText("0"); // Firebase Company no tiene este campo
+        
+        // Precio (si no hay campo, mostrar valor por defecto)
+        priceFrom.setText("50"); // Precio base de ejemplo
+        
+        // Descripción (si existe)
+        String desc = company.getAddress() != null ? company.getAddress() : "Empresa de turismo";
+        description.setText(desc);
 
         btnContact.setOnClickListener(v -> {
             android.content.Intent intent = new android.content.Intent(v.getContext(), CompanyChatActivity.class);

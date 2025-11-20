@@ -13,15 +13,18 @@ import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.LoginActivity;
 import com.example.droidtour.R;
-import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.User;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import android.util.Log;
 import java.util.Calendar;
-import java.util.List;
 
 public class ClientProfileActivity extends AppCompatActivity {
 
+    private static final String TAG = "ClientProfileActivity";
+    
     private TextView tvUserName, tvUserEmail, tvUserRole;
     private TextView tvDocumentType, tvDocumentNumber, tvPhone;
     private TextView tvToursCount, tvRating, tvMemberSince;
@@ -30,7 +33,7 @@ public class ClientProfileActivity extends AppCompatActivity {
     private ImageButton btnEditPhoto;
     
     private PreferencesManager prefsManager;
-    private DatabaseHelper dbHelper;
+    private FirestoreManager firestoreManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,13 +43,11 @@ public class ClientProfileActivity extends AppCompatActivity {
 
         // Inicializar helpers
         prefsManager = new PreferencesManager(this);
-        dbHelper = new DatabaseHelper(this);
+        firestoreManager = FirestoreManager.getInstance();
 
         setupToolbar();
         initializeViews();
-        loadUserData();
-        loadStatistics();
-        setupClickListeners();
+        loadUserDataFromFirestore();
         
         // Ocultar sección de idiomas para cliente
         hideLanguagesSection();
@@ -85,10 +86,12 @@ public class ClientProfileActivity extends AppCompatActivity {
         fabEdit = findViewById(R.id.fab_edit);
     }
 
-    private void loadUserData() {
+    /**
+     * 🔥 Cargar datos del usuario desde Firestore
+     */
+    private void loadUserDataFromFirestore() {
         if (!prefsManager.isLoggedIn()) {
             Toast.makeText(this, "Sesión expirada. Por favor, inicia sesión nuevamente", Toast.LENGTH_SHORT).show();
-            // Redirigir al login
             Intent intent = new Intent(this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
@@ -96,81 +99,122 @@ public class ClientProfileActivity extends AppCompatActivity {
             return;
         }
 
-        // Verificar que el usuario sea un cliente
-        String userType = prefsManager.getUserType();
-        if (userType == null || !userType.equals("CLIENT")) {
-            // Si no es cliente, inicializar datos del cliente
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                "Gabrielle Ivonne", 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
-            );
-            userType = "CLIENT";
-        }
-
-        // Cargar datos del usuario (cliente)
-        String userName = prefsManager.getUserName();
-        String userEmail = prefsManager.getUserEmail();
-        String userPhone = prefsManager.getUserPhone();
-
-        // Si los datos no son de Gabrielle Ivonne, reemplazarlos con datos correctos del cliente
-        if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
-            userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                "Gabrielle Ivonne", 
-                "cliente@email.com", 
-                "912345678", 
-                "CLIENT"
-            );
-            userName = "Gabrielle Ivonne";
-            userEmail = "cliente@email.com";
-            userPhone = "912345678";
-        }
+        String userId = prefsManager.getUserId();
+        Log.d(TAG, "🔥 ==========================================");
+        Log.d(TAG, "🔥 INICIANDO CARGA DE PERFIL");
+        Log.d(TAG, "🔥 ==========================================");
+        Log.d(TAG, "🔥 userId de PreferencesManager: " + userId);
+        Log.d(TAG, "🔥 userName de PreferencesManager: " + prefsManager.getUserName());
+        Log.d(TAG, "🔥 userEmail de PreferencesManager: " + prefsManager.getUserEmail());
+        Log.d(TAG, "🔥 userPhone de PreferencesManager: " + prefsManager.getUserPhone());
+        Log.d(TAG, "🔥 ==========================================");
         
-        // Asegurar que el email sea el correcto
-        if (!userEmail.equals("cliente@email.com") && userType.equals("CLIENT")) {
-            prefsManager.saveUserData(
-                "CLIENT001", 
-                userName, 
-                "cliente@email.com", 
-                userPhone, 
-                "CLIENT"
-            );
-            userEmail = "cliente@email.com";
+        if (userId == null || userId.isEmpty()) {
+            Log.e(TAG, "❌ userId es NULL o vacío!");
+            Toast.makeText(this, "Error: No se encontró el ID del usuario", Toast.LENGTH_SHORT).show();
+            // Mostrar datos de PreferencesManager como fallback
+            tvUserName.setText(prefsManager.getUserName());
+            tvUserEmail.setText(prefsManager.getUserEmail());
+            tvUserRole.setText("CLIENTE");
+            tvPhone.setText(prefsManager.getUserPhone() != null ? prefsManager.getUserPhone() : "N/A");
+            tvDocumentType.setText("DNI");
+            tvDocumentNumber.setText("N/A");
+            setupClickListeners();
+            return;
         }
 
-        // Actualizar header
-        tvUserName.setText(userName);
-        tvUserEmail.setText(userEmail);
-        
-        // Actualizar rol - siempre mostrar "CLIENTE" para esta actividad
-        tvUserRole.setText("CLIENTE");
+        // Cargar datos del usuario desde Firestore
+        firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "✅ getUserById onSuccess - result: " + result);
+                User user = (User) result;
+                if (user != null) {
+                    Log.d(TAG, "✅ Usuario encontrado: " + user.getEmail());
+                    
+                    // Actualizar UI con datos reales de Firestore
+                    String fullName = user.getFullName() != null && !user.getFullName().isEmpty() 
+                        ? user.getFullName() 
+                        : user.getFirstName() + " " + user.getLastName();
+                    tvUserName.setText(fullName);
+                    tvUserEmail.setText(user.getEmail());
+                    tvUserRole.setText("CLIENTE");
+                    
+                    // Información personal
+                    tvDocumentType.setText(user.getDocumentType() != null ? user.getDocumentType() : "DNI");
+                    tvDocumentNumber.setText(user.getDocumentNumber() != null ? user.getDocumentNumber() : "N/A");
+                    
+                    // Intentar obtener teléfono (puede estar como "phoneNumber" o "phone" en Firestore)
+                    String phone = user.getPhoneNumber();
+                    if (phone == null || phone.isEmpty()) {
+                        // Fallback a PreferencesManager si no está en Firestore
+                        phone = prefsManager.getUserPhone();
+                    }
+                    tvPhone.setText(phone != null && !phone.isEmpty() ? phone : "N/A");
+                    
+                    // Cargar estadísticas después de cargar los datos del usuario
+                    loadStatistics(userId);
+                    setupClickListeners();
+                } else {
+                    Log.e(TAG, "❌ Usuario es null en Firestore");
+                    Toast.makeText(ClientProfileActivity.this, "No se pudo cargar la información del perfil", Toast.LENGTH_SHORT).show();
+                    
+                    // Mostrar datos de PreferencesManager como fallback
+                    tvUserName.setText(prefsManager.getUserName());
+                    tvUserEmail.setText(prefsManager.getUserEmail());
+                    tvUserRole.setText("CLIENTE");
+                    tvPhone.setText(prefsManager.getUserPhone() != null ? prefsManager.getUserPhone() : "N/A");
+                    tvDocumentType.setText("DNI");
+                    tvDocumentNumber.setText("N/A");
+                    setupClickListeners();
+                }
+            }
 
-        // Actualizar información personal
-        tvDocumentType.setText("DNI");
-        tvDocumentNumber.setText("12345678"); // TODO: Agregar campo de documento a PreferencesManager
-        tvPhone.setText(userPhone != null && !userPhone.isEmpty() ? userPhone : "+51 987 654 321");
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando usuario desde Firestore: " + e.getMessage(), e);
+                Toast.makeText(ClientProfileActivity.this, "Error cargando perfil: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                
+                // Mostrar datos de PreferencesManager como fallback
+                tvUserName.setText(prefsManager.getUserName());
+                tvUserEmail.setText(prefsManager.getUserEmail());
+                tvUserRole.setText("CLIENTE");
+                tvPhone.setText(prefsManager.getUserPhone() != null ? prefsManager.getUserPhone() : "N/A");
+                tvDocumentType.setText("DNI");
+                tvDocumentNumber.setText("N/A");
+                setupClickListeners();
+            }
+        });
     }
 
-    private void loadStatistics() {
-        // Cargar reservas de la base de datos
-        List<DatabaseHelper.Reservation> reservations = dbHelper.getAllReservations();
-        
-        // Tours Reservados
-        int toursCount = reservations.size();
-        tvToursCount.setText(String.valueOf(toursCount));
-        
+    /**
+     * 🔥 Cargar estadísticas del usuario desde Firestore
+     */
+    private void loadStatistics(String userId) {
         // Asegurar que la etiqueta diga "Tours Reservados" para cliente
         TextView tvStatLabel1 = findViewById(R.id.tv_stat_label_1);
         if (tvStatLabel1 != null) {
             tvStatLabel1.setText("Tours\nReservados");
         }
         
-        // Valoración promedio (por ahora usar valor por defecto, ya que no hay reseñas en BD)
-        // TODO: Calcular promedio de reseñas cuando esté implementado
+        // Cargar cantidad de reservas desde Firestore
+        firestoreManager.getReservationsByUser(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                java.util.List<com.example.droidtour.models.Reservation> reservations = 
+                    (java.util.List<com.example.droidtour.models.Reservation>) result;
+                tvToursCount.setText(String.valueOf(reservations.size()));
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando reservas", e);
+                tvToursCount.setText("0");
+            }
+        });
+        
+        // Cargar rating promedio del usuario
+        // TODO: Implementar cuando exista un sistema de reviews
         double avgRating = 4.8; // Valor por defecto
         tvRating.setText(String.format("%.1f", avgRating));
         

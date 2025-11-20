@@ -15,6 +15,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.tabs.TabLayout;
 import com.example.droidtour.R;
+import com.example.droidtour.models.Notification;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ClientNotificationsActivity extends AppCompatActivity {
 
@@ -25,6 +31,10 @@ public class ClientNotificationsActivity extends AppCompatActivity {
     private ImageView ivMarkAllRead;
     private LinearLayout emptyState, loadingState;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private FirestoreManager firestoreManager;
+    private FirebaseAuthManager authManager;
+    private String currentUserId;
+    private List<Notification> notificationsList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,15 +61,25 @@ public class ClientNotificationsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_notifications);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
+        // Inicializar Firebase
+        firestoreManager = FirestoreManager.getInstance();
+        authManager = FirebaseAuthManager.getInstance(this);
+        currentUserId = authManager.getCurrentUserId();
+        
+        // Si no hay usuario autenticado, usar del PreferencesManager
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = prefsManager.getUserId();
+        }
+
         initializeViews();
         setupToolbar();
         setupTabs();
         setupRecyclerView();
         setupClickListeners();
 
-        // Simulate loading
+        // 🔥 Cargar notificaciones desde Firestore
         showLoading();
-        loadNotifications();
+        loadNotificationsFromFirestore();
     }
 
     private void initializeViews() {
@@ -95,24 +115,118 @@ public class ClientNotificationsActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         rvNotifications.setLayoutManager(new LinearLayoutManager(this));
-        notificationsAdapter = new ClientNotificationsAdapter((position, action) -> onNotificationAction(position, action));
+        notificationsAdapter = new ClientNotificationsAdapter(notificationsList, (position, action) -> onNotificationAction(position, action));
         rvNotifications.setAdapter(notificationsAdapter);
+    }
+    
+    /**
+     * 🔥 Cargar notificaciones desde Firestore
+     */
+    private void loadNotificationsFromFirestore() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            hideLoading();
+            emptyState.setVisibility(View.VISIBLE);
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        firestoreManager.getNotificationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                notificationsList = (List<Notification>) result;
+                hideLoading();
+                
+                if (notificationsList.isEmpty()) {
+                    emptyState.setVisibility(View.VISIBLE);
+                    rvNotifications.setVisibility(View.GONE);
+                } else {
+                    emptyState.setVisibility(View.GONE);
+                    rvNotifications.setVisibility(View.VISIBLE);
+                    notificationsAdapter.updateData(notificationsList);
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                hideLoading();
+                emptyState.setVisibility(View.VISIBLE);
+                Toast.makeText(ClientNotificationsActivity.this, 
+                    "Error al cargar notificaciones: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                android.util.Log.e("ClientNotifications", "Error loading notifications", e);
+            }
+        });
     }
 
     private void setupClickListeners() {
         ivMarkAllRead.setOnClickListener(v -> {
-            Toast.makeText(this, "Todas marcadas como leídas", Toast.LENGTH_SHORT).show();
-            notificationsAdapter.markAllAsRead();
+            markAllNotificationsAsRead();
+        });
+    }
+    
+    /**
+     * 🔥 Marcar todas las notificaciones como leídas
+     */
+    private void markAllNotificationsAsRead() {
+        if (currentUserId == null || currentUserId.isEmpty()) return;
+        
+        firestoreManager.markAllNotificationsAsRead(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Toast.makeText(ClientNotificationsActivity.this, 
+                    "Todas marcadas como leídas", Toast.LENGTH_SHORT).show();
+                loadNotificationsFromFirestore(); // Recargar
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(ClientNotificationsActivity.this, 
+                    "Error al marcar notificaciones", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
     private void filterNotifications(int tabPosition) {
         showLoading();
-        // Simulate API call
-        rvNotifications.postDelayed(() -> {
-            hideLoading();
-            Toast.makeText(this, "Filtro: " + getFilterName(tabPosition), Toast.LENGTH_SHORT).show();
-        }, 500);
+        
+        if (tabPosition == 0) {
+            // Tab 0: Todas las notificaciones
+            loadNotificationsFromFirestore();
+        } else if (tabPosition == 1) {
+            // Tab 1: Sin leer
+            firestoreManager.getUnreadNotifications(currentUserId, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    notificationsList = (List<Notification>) result;
+                    hideLoading();
+                    updateUI();
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    hideLoading();
+                    Toast.makeText(ClientNotificationsActivity.this, 
+                        "Error al filtrar notificaciones sin leer: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            // Fallback: mostrar todas
+            loadNotificationsFromFirestore();
+        }
+    }
+    
+    /**
+     * Actualizar UI después de cargar notificaciones
+     */
+    private void updateUI() {
+        notificationsAdapter.updateData(notificationsList);
+        
+        if (notificationsList.isEmpty()) {
+            emptyState.setVisibility(View.VISIBLE);
+            rvNotifications.setVisibility(View.GONE);
+        } else {
+            emptyState.setVisibility(View.GONE);
+            rvNotifications.setVisibility(View.VISIBLE);
+        }
     }
 
     private String getFilterName(int position) {
@@ -124,14 +238,6 @@ public class ClientNotificationsActivity extends AppCompatActivity {
         }
     }
 
-    private void loadNotifications() {
-        // Simulate API call
-        rvNotifications.postDelayed(() -> {
-            hideLoading();
-            // If no notifications, show empty state
-            // emptyState.setVisibility(View.VISIBLE);
-        }, 1500);
-    }
 
     private void showLoading() {
         loadingState.setVisibility(View.VISIBLE);
@@ -145,23 +251,49 @@ public class ClientNotificationsActivity extends AppCompatActivity {
     }
 
     private void onNotificationAction(int position, String action) {
+        if (position < 0 || position >= notificationsList.size()) return;
+        
+        Notification notification = notificationsList.get(position);
+        
         switch (action) {
             case "click":
-                Toast.makeText(this, "Abrir notificación " + position, Toast.LENGTH_SHORT).show();
-                notificationsAdapter.markAsRead(position);
+                markNotificationAsRead(notification);
+                Toast.makeText(this, "Notificación: " + notification.getTitle(), Toast.LENGTH_SHORT).show();
+                // TODO: Navegar a la pantalla relacionada
                 break;
             case "menu":
-                Toast.makeText(this, "Abrir menú opción para " + position, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Abrir menú opción", Toast.LENGTH_SHORT).show();
                 break;
             case "delete":
-                Toast.makeText(this, "Notificación eliminada", Toast.LENGTH_SHORT).show();
-                notificationsAdapter.removeNotification(position);
+                // TODO: Implementar eliminación de notificación
+                Toast.makeText(this, "Función de eliminación no implementada aún", Toast.LENGTH_SHORT).show();
                 break;
             case "mark_read":
-                Toast.makeText(this, "Marcada como leída", Toast.LENGTH_SHORT).show();
-                notificationsAdapter.markAsRead(position);
+                markNotificationAsRead(notification);
                 break;
         }
+    }
+    
+    /**
+     * 🔥 Marcar notificación como leída
+     */
+    private void markNotificationAsRead(Notification notification) {
+        if (notification.isReadNotification()) return; // Ya está leída
+        
+        firestoreManager.markNotificationAsRead(notification.getNotificationId(), 
+            new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                        notification.setIsRead(true);
+                    notificationsAdapter.notifyDataSetChanged();
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Toast.makeText(ClientNotificationsActivity.this, 
+                        "Error al marcar notificación", Toast.LENGTH_SHORT).show();
+                }
+            });
     }
 
     @Override

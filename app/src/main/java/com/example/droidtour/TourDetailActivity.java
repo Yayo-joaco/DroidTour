@@ -22,8 +22,10 @@ public class TourDetailActivity extends AppCompatActivity {
     private MaterialButton btnViewFullMap, btnGetDirections;
     
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
+    private com.example.droidtour.firebase.FirebaseAuthManager authManager;
     private com.example.droidtour.models.Tour currentTour;
     private String tourId, tourName, companyName, companyId, imageUrl;
+    private String currentUserId;
     private double price;
 
     @Override
@@ -51,6 +53,8 @@ public class TourDetailActivity extends AppCompatActivity {
         setContentView(R.layout.activity_tour_detail);
 
         firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
+        currentUserId = authManager.getCurrentUserId();
         
         getIntentData();
         setupToolbar();
@@ -58,6 +62,7 @@ public class TourDetailActivity extends AppCompatActivity {
         loadTourFromFirebase();
         setupRecyclerViews();
         setupClickListeners();
+        checkExistingReservation();
     }
 
     private void getIntentData() {
@@ -223,6 +228,32 @@ public class TourDetailActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+    
+    /**
+     * Verificar si el usuario ya tiene una reserva confirmada para este tour
+     */
+    private void checkExistingReservation() {
+        if (currentUserId == null || tourId == null) return;
+        
+        firestoreManager.hasConfirmedReservation(currentUserId, tourId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Boolean hasReservation = (Boolean) result;
+                if (hasReservation != null && hasReservation) {
+                    // Usuario ya tiene una reserva confirmada
+                    btnReserveNow.setEnabled(false);
+                    btnReserveNow.setText("Ya tienes una reserva");
+                    btnReserveNow.setAlpha(0.5f);
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // Si falla la verificación, permitir reservar de todas formas
+                android.util.Log.e("TourDetail", "Error verificando reserva: " + e.getMessage());
+            }
+        });
     }
     
     private void redirectToLogin() {

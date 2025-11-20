@@ -511,6 +511,25 @@ public class FirestoreManager {
     }
 
     /**
+     * Verificar si el usuario ya tiene una reserva confirmada para un tour específico
+     */
+    public void hasConfirmedReservation(String userId, String tourId, FirestoreCallback callback) {
+        db.collection(COLLECTION_RESERVATIONS)
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("tourId", tourId)
+                .whereEqualTo("status", "CONFIRMADA")
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    boolean hasReservation = !querySnapshot.isEmpty();
+                    callback.onSuccess(hasReservation);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error checking reservation", e);
+                    callback.onFailure(e);
+                });
+    }
+    
+    /**
      * Obtener reservas por empresa
      */
     public void getReservationsByCompany(String companyId, FirestoreCallback callback) {

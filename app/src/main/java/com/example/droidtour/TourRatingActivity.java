@@ -156,24 +156,62 @@ public class TourRatingActivity extends AppCompatActivity {
 
         String comment = etComment.getText().toString().trim();
         
+        // Deshabilitar botón para evitar múltiples envíos
+        btnSubmitRating.setEnabled(false);
+        btnSubmitRating.setText("Enviando...");
+        
         if (tourId != null) {
             firestoreManager.createReview(tourId, currentUserId, currentRating, comment, 
                 new FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
-                    Toast.makeText(TourRatingActivity.this, "Valoración enviada: " + currentRating + " estrellas", Toast.LENGTH_SHORT).show();
-                    finish();
+                    // Marcar la reserva como reviewed ANTES de cerrar
+                    if (reservationId != null && !reservationId.isEmpty()) {
+                        markReservationAsReviewed();
+                    } else {
+                        // Si no hay reservationId, cerrar inmediatamente
+                        Toast.makeText(TourRatingActivity.this, "✅ Valoración enviada: " + currentRating + " estrellas", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
                 }
                 
                 @Override
                 public void onFailure(Exception e) {
-                    Toast.makeText(TourRatingActivity.this, "Error enviando valoración", Toast.LENGTH_SHORT).show();
+                    btnSubmitRating.setEnabled(true);
+                    btnSubmitRating.setText("Enviar Valoración");
+                    Toast.makeText(TourRatingActivity.this, "❌ Error enviando valoración", Toast.LENGTH_SHORT).show();
                 }
             });
         } else {
-            Toast.makeText(this, "Valoración enviada: " + currentRating + " estrellas", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "✅ Valoración enviada: " + currentRating + " estrellas", Toast.LENGTH_SHORT).show();
             finish();
         }
+    }
+    
+    /**
+     * Marcar la reserva como ya valorada
+     */
+    private void markReservationAsReviewed() {
+        java.util.Map<String, Object> updates = new java.util.HashMap<>();
+        updates.put("hasReview", true);
+        
+        firestoreManager.updateReservation(reservationId, updates, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                android.util.Log.d("TourRating", "✅ Reserva marcada como valorada");
+                // Ahora sí cerrar la actividad
+                Toast.makeText(TourRatingActivity.this, "✅ Valoración enviada: " + currentRating + " estrellas", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourRating", "❌ Error marcando reserva como valorada", e);
+                // Cerrar de todas formas porque la review ya se guardó
+                Toast.makeText(TourRatingActivity.this, "✅ Valoración enviada", Toast.LENGTH_SHORT).show();
+                finish();
+            }
+        });
     }
 
     @Override

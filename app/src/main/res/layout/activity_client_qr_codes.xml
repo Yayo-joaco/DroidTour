@@ -143,38 +143,14 @@
 
                     </LinearLayout>
 
-                    <!-- QR Code Placeholder -->
-                    <LinearLayout
-                        android:layout_width="200dp"
-                        android:layout_height="200dp"
-                        android:background="@drawable/qr_frame_overlay"
-                        android:gravity="center"
-                        android:layout_marginBottom="16dp">
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:gravity="center">
-
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@android:drawable/ic_menu_camera"
-                                android:tint="@color/primary" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="QR Check-in"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/primary"
-                                android:layout_marginTop="8dp" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
+                    <!-- QR Code Checkin -->
+                    <ImageView
+                        android:id="@+id/iv_qr_checkin"
+                        android:layout_width="250dp"
+                        android:layout_height="250dp"
+                        android:layout_marginBottom="16dp"
+                        android:scaleType="fitXY"
+                        android:contentDescription="QR Code Check-in" />
 
                     <!-- Instructions -->
                     <TextView
@@ -268,38 +244,14 @@
 
                     </LinearLayout>
 
-                    <!-- QR Code Placeholder -->
-                    <LinearLayout
-                        android:layout_width="200dp"
-                        android:layout_height="200dp"
-                        android:background="@drawable/qr_frame_overlay"
-                        android:gravity="center"
-                        android:layout_marginBottom="16dp">
-
-                        <LinearLayout
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:gravity="center">
-
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@android:drawable/ic_menu_camera"
-                                android:tint="@color/orange" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="QR Check-out"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/orange"
-                                android:layout_marginTop="8dp" />
-
-                        </LinearLayout>
-
-                    </LinearLayout>
+                    <!-- QR Code Checkout -->
+                    <ImageView
+                        android:id="@+id/iv_qr_checkout"
+                        android:layout_width="250dp"
+                        android:layout_height="250dp"
+                        android:layout_marginBottom="16dp"
+                        android:scaleType="fitXY"
+                        android:contentDescription="QR Code Check-out" />
 
                     <!-- Instructions -->
                     <TextView

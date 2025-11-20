@@ -1,8 +1,11 @@
 package com.example.droidtour.client;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,6 +13,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.droidtour.R;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 public class ClientQRCodesActivity extends AppCompatActivity {
     
@@ -18,6 +25,7 @@ public class ClientQRCodesActivity extends AppCompatActivity {
     private TextView tvCheckinStatus, tvCheckoutStatus;
     private MaterialButton btnShareCheckin, btnSaveCheckin;
     private MaterialButton btnShareCheckout, btnSaveCheckout;
+    private ImageView ivQrCheckin, ivQrCheckout;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
     
     private String reservationId;
@@ -69,6 +77,7 @@ public class ClientQRCodesActivity extends AppCompatActivity {
             public void onSuccess(Object result) {
                 currentReservation = (com.example.droidtour.models.Reservation) result;
                 displayReservationData();
+                generateQRCodes();
             }
             
             @Override
@@ -123,6 +132,8 @@ public class ClientQRCodesActivity extends AppCompatActivity {
         btnSaveCheckin = findViewById(R.id.btn_save_checkin);
         btnShareCheckout = findViewById(R.id.btn_share_checkout);
         btnSaveCheckout = findViewById(R.id.btn_save_checkout);
+        ivQrCheckin = findViewById(R.id.iv_qr_checkin);
+        ivQrCheckout = findViewById(R.id.iv_qr_checkout);
     }
 
     private void setupTourData() {
@@ -162,6 +173,52 @@ public class ClientQRCodesActivity extends AppCompatActivity {
 
     private void saveQRCode(String type) {
         Toast.makeText(this, "QR " + type + " guardado en galería", Toast.LENGTH_SHORT).show();
+    }
+    
+    /**
+     * Generar códigos QR usando ZXing
+     */
+    private void generateQRCodes() {
+        if (currentReservation == null) return;
+        
+        String qrCheckinData = currentReservation.getQrCodeCheckIn();
+        String qrCheckoutData = currentReservation.getQrCodeCheckOut();
+        
+        if (qrCheckinData != null && !qrCheckinData.isEmpty()) {
+            Bitmap qrCheckinBitmap = generateQRCodeBitmap(qrCheckinData, 500, 500);
+            if (qrCheckinBitmap != null) {
+                ivQrCheckin.setImageBitmap(qrCheckinBitmap);
+            }
+        }
+        
+        if (qrCheckoutData != null && !qrCheckoutData.isEmpty()) {
+            Bitmap qrCheckoutBitmap = generateQRCodeBitmap(qrCheckoutData, 500, 500);
+            if (qrCheckoutBitmap != null) {
+                ivQrCheckout.setImageBitmap(qrCheckoutBitmap);
+            }
+        }
+    }
+    
+    /**
+     * Generar bitmap de código QR usando ZXing
+     */
+    private Bitmap generateQRCodeBitmap(String data, int width, int height) {
+        try {
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, width, height);
+            
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    bitmap.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : Color.WHITE);
+                }
+            }
+            return bitmap;
+        } catch (WriterException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error generando código QR", Toast.LENGTH_SHORT).show();
+            return null;
+        }
     }
 
     @Override

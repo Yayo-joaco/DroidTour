@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.droidtour.R;
 import com.example.droidtour.models.PaymentMethod;
+import com.example.droidtour.models.Reservation;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -21,7 +22,9 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PaymentMethodsActivity extends AppCompatActivity {
 
@@ -35,6 +38,8 @@ public class PaymentMethodsActivity extends AppCompatActivity {
     private FirebaseAuthManager authManager;
     private String currentUserId;
     private List<PaymentMethod> paymentMethodsList = new ArrayList<>();
+    private List<Reservation> userReservations = new ArrayList<>();
+    private Map<String, PaymentMethodStats> paymentMethodStatsMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,7 +84,7 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         setupClickListeners();
         
         // 🔥 Cargar datos desde Firestore
-        loadPaymentMethodsFromFirestore();
+        loadUserReservations(); // Primero cargar reservas
     }
 
     private void setupToolbar() {
@@ -101,6 +106,70 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         rvPaymentMethods.setLayoutManager(new LinearLayoutManager(this));
         paymentMethodsAdapter = new PaymentMethodsAdapter(paymentMethodsList, this::onPaymentMethodAction);
         rvPaymentMethods.setAdapter(paymentMethodsAdapter);
+    }
+    
+    /**
+     * 🔥 Cargar reservas del usuario para calcular estadísticas de uso
+     */
+    private void loadUserReservations() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "❌ Error: currentUserId es null o vacío");
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        Log.d(TAG, "🔄 Cargando reservas para userId: " + currentUserId);
+        
+        firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                userReservations = (List<Reservation>) result;
+                Log.d(TAG, "✅ Reservas cargadas: " + userReservations.size());
+                
+                // Calcular estadísticas por método de pago
+                calculatePaymentMethodStats();
+                
+                // Ahora cargar los métodos de pago
+                loadPaymentMethodsFromFirestore();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando reservas", e);
+                // Continuar sin estadísticas
+                loadPaymentMethodsFromFirestore();
+            }
+        });
+    }
+    
+    /**
+     * 🔥 Calcular estadísticas de uso por método de pago
+     */
+    private void calculatePaymentMethodStats() {
+        paymentMethodStatsMap.clear();
+        
+        for (Reservation reservation : userReservations) {
+            String paymentMethodId = reservation.getPaymentMethodId();
+            if (paymentMethodId != null && !paymentMethodId.isEmpty()) {
+                PaymentMethodStats stats = paymentMethodStatsMap.get(paymentMethodId);
+                if (stats == null) {
+                    stats = new PaymentMethodStats();
+                    paymentMethodStatsMap.put(paymentMethodId, stats);
+                }
+                
+                stats.totalSpent += reservation.getTotalPrice() != null ? reservation.getTotalPrice() : 0.0;
+                stats.usageCount++;
+                
+                // Actualizar última fecha de uso
+                if (reservation.getCreatedAt() != null) {
+                    if (stats.lastUsedDate == null || reservation.getCreatedAt().after(stats.lastUsedDate)) {
+                        stats.lastUsedDate = reservation.getCreatedAt();
+                    }
+                }
+            }
+        }
+        
+        Log.d(TAG, "📊 Estadísticas calculadas para " + paymentMethodStatsMap.size() + " métodos de pago");
     }
     
     /**
@@ -128,8 +197,9 @@ public class PaymentMethodsActivity extends AppCompatActivity {
                     tvCardsCount.setVisibility(android.view.View.VISIBLE);
                 }
                 
-                // Actualizar RecyclerView
+                // Actualizar RecyclerView con estadísticas
                 if (paymentMethodsAdapter != null) {
+                    paymentMethodsAdapter.setPaymentMethodStats(paymentMethodStatsMap);
                     paymentMethodsAdapter.updateData(paymentMethodsList);
                 }
                 
@@ -160,7 +230,7 @@ public class PaymentMethodsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         // Recargar métodos de pago cuando volvemos de agregar/editar
-        loadPaymentMethodsFromFirestore();
+        loadUserReservations(); // Recargar todo desde el principio
     }
 
     private void onPaymentMethodAction(int position, String action) {
@@ -262,11 +332,21 @@ public class PaymentMethodsActivity extends AppCompatActivity {
     }
 }
 
+/**
+ * Clase helper para almacenar estadísticas de uso de métodos de pago
+ */
+class PaymentMethodStats {
+    double totalSpent = 0.0;
+    int usageCount = 0;
+    java.util.Date lastUsedDate = null;
+}
+
 // Adaptador para métodos de pago
 class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.ViewHolder> {
     interface OnPaymentMethodAction { void onAction(int position, String action); }
     private final OnPaymentMethodAction onPaymentMethodAction;
     private List<PaymentMethod> paymentMethods;
+    private Map<String, PaymentMethodStats> statsMap = new HashMap<>();
 
     PaymentMethodsAdapter(List<PaymentMethod> paymentMethods, OnPaymentMethodAction listener) {
         this.paymentMethods = paymentMethods;
@@ -276,6 +356,10 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
     public void updateData(List<PaymentMethod> newData) {
         this.paymentMethods = newData;
         notifyDataSetChanged();
+    }
+    
+    public void setPaymentMethodStats(Map<String, PaymentMethodStats> stats) {
+        this.statsMap = stats != null ? stats : new HashMap<>();
     }
 
     @Override
@@ -309,18 +393,32 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
             holder.tvExpiryDate.setText(expiry);
         }
         
-        // Calcular uso de la tarjeta dinámicamente
+        // Calcular uso de la tarjeta dinámicamente desde estadísticas reales
+        PaymentMethodStats stats = statsMap.get(paymentMethod.getPaymentMethodId());
+        
         if (holder.tvUsageInfo != null) {
-            // TODO: Por ahora mostrar 0, luego calcular desde reservas
-            holder.tvUsageInfo.setText("Sin uso registrado");
+            if (stats != null && stats.usageCount > 0) {
+                String usageText = stats.usageCount == 1 ? "Usada en 1 reserva" : "Usada en " + stats.usageCount + " reservas";
+                holder.tvUsageInfo.setText(usageText);
+            } else {
+                holder.tvUsageInfo.setText("Sin uso registrado");
+            }
         }
         
         if (holder.tvLastUsed != null) {
-            holder.tvLastUsed.setText("Última vez: " + formatDate(paymentMethod.getUpdatedAt()));
+            if (stats != null && stats.lastUsedDate != null) {
+                holder.tvLastUsed.setText("Última vez: " + formatDate(stats.lastUsedDate));
+            } else {
+                holder.tvLastUsed.setText("Última vez: N/A");
+            }
         }
         
         if (holder.tvTotalSpent != null) {
-            holder.tvTotalSpent.setText("S/. 0.00"); // TODO: Calcular desde reservas
+            if (stats != null && stats.totalSpent > 0) {
+                holder.tvTotalSpent.setText("S/. " + String.format("%.2f", stats.totalSpent));
+            } else {
+                holder.tvTotalSpent.setText("S/. 0.00");
+            }
         }
 
         // Asignar icono de marca según el tipo de tarjeta

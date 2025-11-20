@@ -78,6 +78,16 @@ public class MyReservationsActivity extends AppCompatActivity {
         setupFilters();
     }
     
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Recargar reservas cada vez que la actividad vuelve al primer plano
+        // Esto asegura que si se califica un tour, el botón desaparezca
+        if (currentUserId != null) {
+            loadReservationsFromFirebase();
+        }
+    }
+    
     private void loadReservationsFromFirebase() {
         firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
@@ -300,13 +310,18 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
         // Set status and button visibility based on status from database
         boolean isCompleted = reservation.getStatus().equals("COMPLETADA");
         boolean isConfirmed = reservation.getStatus().equals("CONFIRMADA");
+        boolean hasReview = reservation.getHasReview() != null && reservation.getHasReview();
         
         if (isCompleted) {
             reservationStatus.setText("COMPLETADA");
             // Hide QR section for completed tours
             layoutQRSection.setVisibility(android.view.View.GONE);
-            // Show rating button for completed tours
-            btnRateTour.setVisibility(android.view.View.VISIBLE);
+            // Show rating button only if tour hasn't been reviewed yet
+            if (hasReview) {
+                btnRateTour.setVisibility(android.view.View.GONE);
+            } else {
+                btnRateTour.setVisibility(android.view.View.VISIBLE);
+            }
         } else if (isConfirmed) {
             reservationStatus.setText("CONFIRMADA");
             // Show QR section for confirmed tours
@@ -351,6 +366,7 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
         btnRateTour.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), TourRatingActivity.class);
             intent.putExtra("reservation_id", reservation.getReservationId());
+            intent.putExtra("tour_id", reservation.getTourId());
             intent.putExtra("tour_name", reservation.getTourName());
             intent.putExtra("company_name", reservation.getCompanyName());
             v.getContext().startActivity(intent);

@@ -354,7 +354,7 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Gráfico de Distribución de Tours -->
+                <!-- Gráfico de Precio Promedio por Persona -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="280dp"
@@ -372,8 +372,6 @@
                         android:padding="16dp"
                         android:gravity="center_vertical">
 
-
-
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
@@ -384,14 +382,14 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Tours por Categoría"
+                                android:text="Precio Promedio por Persona"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"
                                 android:layout_marginBottom="8dp" />
 
-                            <com.github.mikephil.charting.charts.PieChart
-                                android:id="@+id/pie_chart_tours"
+                            <com.github.mikephil.charting.charts.LineChart
+                                android:id="@+id/line_chart_average_price"
                                 android:layout_width="match_parent"
                                 android:layout_height="0dp"
                                 android:layout_weight="1" />
@@ -440,6 +438,100 @@
 
                             <com.github.mikephil.charting.charts.BarChart
                                 android:id="@+id/bar_chart_bookings"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Gráfico de Barras - Personas por Mes -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="280dp"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginHorizontal="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:padding="16dp"
+                        android:gravity="center_vertical">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="16dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Personas por Mes"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/black"
+                                android:layout_marginBottom="8dp" />
+
+                            <com.github.mikephil.charting.charts.BarChart
+                                android:id="@+id/bar_chart_people"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Gráfico de Distribución de Tours -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="280dp"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:layout_marginHorizontal="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:padding="16dp"
+                        android:gravity="center_vertical">
+
+
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="16dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tours por Categoría"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/black"
+                                android:layout_marginBottom="8dp" />
+
+                            <com.github.mikephil.charting.charts.PieChart
+                                android:id="@+id/pie_chart_tours"
                                 android:layout_width="match_parent"
                                 android:layout_height="0dp"
                                 android:layout_weight="1" />

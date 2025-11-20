@@ -2,7 +2,10 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -11,13 +14,22 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.LoginActivity;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class SuperadminMyAccount extends AppCompatActivity {
     
+    private static final String TAG = "SuperadminMyAccount";
+    
     private PreferencesManager prefsManager;
+    private FirebaseFirestore db;
+    private ImageView profileImage;
+    private TextView tvUserName, tvUserEmail;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +56,14 @@ public class SuperadminMyAccount extends AppCompatActivity {
         setContentView(R.layout.activity_myaccount);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
+        // Inicializar Firestore
+        db = FirebaseFirestore.getInstance();
+
+        // Inicializar vistas
+        profileImage = findViewById(R.id.profile_image);
+        tvUserName = findViewById(R.id.tv_user_name);
+        tvUserEmail = findViewById(R.id.tv_user_email);
+
         // Toolbar: permitir botón de retroceso y mostrar título de la app
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -59,8 +79,8 @@ public class SuperadminMyAccount extends AppCompatActivity {
         toolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.white));
         toolbar.setNavigationOnClickListener(v -> finish());
         
-        // Cargar y mostrar datos del usuario
-        loadUserData();
+        // Cargar y mostrar datos del usuario desde Firestore
+        loadUserDataFromFirestore();
 
         // Encontrar las tarjetas y asignar listeners para redirecciones
         CardView cardProfile = findViewById(R.id.card_my_profile);
@@ -103,63 +123,124 @@ public class SuperadminMyAccount extends AppCompatActivity {
         });
     }
     
-    private void loadUserData() {
-        // Verificar y corregir datos del superadministrador
-        String userType = prefsManager.getUserType();
-        String userName = prefsManager.getUserName();
-        String userEmail = prefsManager.getUserEmail();
+    private void loadUserDataFromFirestore() {
+        String userId = prefsManager.getUserId();
         
-        // Si no está logueado o el tipo no es SUPERADMIN, inicializar como superadministrador
-        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("SUPERADMIN") && !userType.equals("ADMIN"))) {
-            prefsManager.saveUserData(
-                "SUPERADMIN001", 
-                "Gabrielle Ivonne", 
-                "superadmin@droidtour.com", 
-                "999888777", 
-                "SUPERADMIN"
-            );
-            userName = "Gabrielle Ivonne";
-            userEmail = "superadmin@droidtour.com";
-        } else {
-            // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Gabrielle Ivonne") && (userName.equals("Carlos Mendoza") || 
-                userName.equals("María López") || userName.equals("Ana García Rodríguez") || 
-                userName.equals("María González"))) {
-                prefsManager.saveUserData(
-                    "SUPERADMIN001", 
-                    "Gabrielle Ivonne", 
-                    "superadmin@droidtour.com", 
-                    "999888777", 
-                    "SUPERADMIN"
-                );
-                userName = "Gabrielle Ivonne";
-                userEmail = "superadmin@droidtour.com";
+        if (userId == null || userId.isEmpty()) {
+            Log.w(TAG, "No se encontró userId en PreferencesManager");
+            loadFallbackData();
+            return;
+        }
+
+        // Mostrar datos básicos desde PreferencesManager mientras se carga desde Firestore
+        if (tvUserName != null) {
+            String name = prefsManager.getUserName();
+            tvUserName.setText(name != null && !name.isEmpty() ? name : "Usuario");
+        }
+        if (tvUserEmail != null) {
+            String email = prefsManager.getUserEmail();
+            tvUserEmail.setText(email != null && !email.isEmpty() ? email : "");
+        }
+
+        // Cargar datos completos desde Firestore
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot != null && documentSnapshot.exists()) {
+                        updateUIWithFirestoreData(documentSnapshot);
+                    } else {
+                        Log.w(TAG, "Usuario no encontrado en Firestore con ID: " + userId);
+                        loadFallbackData();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error cargando datos del usuario desde Firestore", e);
+                    Toast.makeText(this, "Error cargando datos del perfil", Toast.LENGTH_SHORT).show();
+                    loadFallbackData();
+                });
+    }
+
+    private void updateUIWithFirestoreData(DocumentSnapshot document) {
+        // Obtener nombre completo
+        String fullName = document.getString("fullName");
+        if (fullName == null || fullName.isEmpty()) {
+            String firstName = document.getString("firstName");
+            String lastName = document.getString("lastName");
+            if (firstName != null && lastName != null) {
+                fullName = firstName + " " + lastName;
+            } else if (firstName != null) {
+                fullName = firstName;
             }
         }
         
-        // Asegurar que el email sea el correcto del superadministrador
-        if (!userEmail.equals("superadmin@droidtour.com") && userType != null && 
-            (userType.equals("SUPERADMIN") || userType.equals("ADMIN"))) {
-            prefsManager.saveUserData(
-                "SUPERADMIN001", 
-                userName, 
-                "superadmin@droidtour.com", 
-                "999888777", 
-                "SUPERADMIN"
-            );
-            userEmail = "superadmin@droidtour.com";
+        // Obtener email
+        String email = document.getString("email");
+        
+        // Obtener foto de perfil
+        String profileImageUrl = document.getString("profileImageUrl");
+        if (profileImageUrl == null || profileImageUrl.isEmpty()) {
+            profileImageUrl = document.getString("photoUrl");
         }
-        
-        // Actualizar los TextView del header
-        TextView tvUserName = findViewById(R.id.tv_user_name);
-        TextView tvUserEmail = findViewById(R.id.tv_user_email);
-        
+        if (profileImageUrl == null || profileImageUrl.isEmpty()) {
+            profileImageUrl = document.getString("photoURL");
+        }
+
+        // Actualizar UI
         if (tvUserName != null) {
-            tvUserName.setText(userName != null && !userName.isEmpty() ? userName : "Gabrielle Ivonne");
+            tvUserName.setText(fullName != null && !fullName.isEmpty() ? fullName : "Usuario");
         }
         
         if (tvUserEmail != null) {
-            tvUserEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "superadmin@droidtour.com");
+            tvUserEmail.setText(email != null && !email.isEmpty() ? email : "");
+        }
+
+        // Cargar imagen de perfil
+        if (profileImage != null) {
+            if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
+                Glide.with(this)
+                        .load(profileImageUrl)
+                        .transform(new CircleCrop())
+                        .placeholder(R.drawable.ic_avatar_24)
+                        .error(R.drawable.ic_avatar_24)
+                        .into(profileImage);
+            } else {
+                profileImage.setImageResource(R.drawable.ic_avatar_24);
+            }
+        }
+
+        // Actualizar PreferencesManager con los datos más recientes
+        String phoneNumber = document.getString("phoneNumber");
+        if (phoneNumber == null || phoneNumber.isEmpty()) {
+            phoneNumber = document.getString("phone");
+        }
+        String userType = document.getString("userType");
+        
+        if (userType != null && !userType.isEmpty()) {
+            prefsManager.saveUserData(
+                    prefsManager.getUserId(),
+                    fullName != null ? fullName : prefsManager.getUserName(),
+                    email != null ? email : prefsManager.getUserEmail(),
+                    phoneNumber != null ? phoneNumber : prefsManager.getUserPhone(),
+                    userType
+            );
+        }
+    }
+
+    private void loadFallbackData() {
+        // Cargar datos desde PreferencesManager como fallback
+        String userName = prefsManager.getUserName();
+        String userEmail = prefsManager.getUserEmail();
+        
+        if (tvUserName != null) {
+            tvUserName.setText(userName != null && !userName.isEmpty() ? userName : "Usuario");
+        }
+        
+        if (tvUserEmail != null) {
+            tvUserEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "");
+        }
+        
+        if (profileImage != null) {
+            profileImage.setImageResource(R.drawable.ic_avatar_24);
         }
     }
     
@@ -169,4 +250,5 @@ public class SuperadminMyAccount extends AppCompatActivity {
         startActivity(intent);
     }
 }
+
 

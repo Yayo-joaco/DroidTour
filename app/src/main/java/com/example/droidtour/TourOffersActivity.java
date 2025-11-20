@@ -2,36 +2,44 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.TourOffer;
 import com.example.droidtour.LoginActivity;
-import com.example.droidtour.utils.NotificationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TourOffersActivity extends AppCompatActivity {
 
+    private static final String TAG = "TourOffersActivity";
     private RecyclerView rvTourOffers;
     private Chip chipAll, chipPending, chipRejected;
     private String currentFilter = "PENDING";
     
-    // Storage Local
-    private DatabaseHelper dbHelper;
-    private NotificationHelper notificationHelper;
+    private FirestoreManager firestoreManager;
+    private FirebaseAuthManager authManager;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
-    private List<DatabaseHelper.Offer> allOffers;
+    private String currentUserId;
+    private List<TourOffer> allOffers = new ArrayList<>();
+    private TourOffersAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Inicializar PreferencesManager
+        // Inicializar helpers
         prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
+        firestoreManager = FirestoreManager.getInstance();
+        authManager = FirebaseAuthManager.getInstance(this);
         
         // Validar sesión PRIMERO
         if (!prefsManager.isLoggedIn()) {
@@ -48,27 +56,75 @@ public class TourOffersActivity extends AppCompatActivity {
             return;
         }
         
+        // Obtener ID del usuario actual
+        currentUserId = authManager.getCurrentUserId();
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = prefsManager.getUserId();
+        }
+        
         setContentView(R.layout.activity_tour_offers);
-
-        // Inicializar Storage Local
-        dbHelper = new DatabaseHelper(this);
-        notificationHelper = new NotificationHelper(this);
 
         initializeViews();
         setupToolbar();
-        loadOffersFromDatabase();
         setupRecyclerView();
         setupFilters();
+        loadOffersFromFirebase();
     }
     
-    private void loadOffersFromDatabase() {
-        // ✅ CARGAR OFERTAS DE LA BASE DE DATOS
-        allOffers = dbHelper.getAllOffers();
-        
-        if (allOffers.isEmpty()) {
-            android.widget.Toast.makeText(this, "No hay ofertas disponibles", 
-                android.widget.Toast.LENGTH_SHORT).show();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Recargar ofertas cuando volvemos de la actividad de detalles
+        loadOffersFromFirebase();
+    }
+    
+    private void loadOffersFromFirebase() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "❌ Error: currentUserId es null o vacío");
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+            return;
         }
+        
+        Log.d(TAG, "🔄 Cargando ofertas para guía: " + currentUserId);
+        
+        firestoreManager.getOffersByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                allOffers = (List<TourOffer>) result;
+                Log.d(TAG, "✅ Ofertas cargadas: " + allOffers.size());
+                filterAndUpdateList();
+                
+                if (allOffers.isEmpty()) {
+                    Toast.makeText(TourOffersActivity.this, "No hay ofertas disponibles", 
+                        Toast.LENGTH_SHORT).show();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando ofertas", e);
+                Toast.makeText(TourOffersActivity.this, 
+                    "Error al cargar ofertas: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    private void filterAndUpdateList() {
+        List<TourOffer> filteredOffers = new ArrayList<>();
+        
+        for (TourOffer offer : allOffers) {
+            String status = offer.getStatus();
+            if (currentFilter.equals("ALL")) {
+                filteredOffers.add(offer);
+            } else if (currentFilter.equals("PENDING") && "PENDIENTE".equals(status)) {
+                filteredOffers.add(offer);
+            } else if (currentFilter.equals("REJECTED") && "RECHAZADA".equals(status)) {
+                filteredOffers.add(offer);
+            }
+        }
+        
+        adapter.updateData(filteredOffers);
+        Log.d(TAG, "📊 Ofertas filtradas (" + currentFilter + "): " + filteredOffers.size());
     }
 
     private void initializeViews() {
@@ -87,8 +143,8 @@ public class TourOffersActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         rvTourOffers.setLayoutManager(layoutManager);
-        // ✅ PASAR OFERTAS DE LA BD AL ADAPTADOR
-        rvTourOffers.setAdapter(new TourOffersAdapter(allOffers, currentFilter));
+        adapter = new TourOffersAdapter(new ArrayList<>());
+        rvTourOffers.setAdapter(adapter);
     }
 
     private void setupFilters() {
@@ -96,46 +152,32 @@ public class TourOffersActivity extends AppCompatActivity {
         
         chipAll.setOnClickListener(v -> {
             currentFilter = "ALL";
-            refreshList();
+            filterAndUpdateList();
         });
         
         chipPending.setOnClickListener(v -> {
             currentFilter = "PENDING";
-            refreshList();
+            filterAndUpdateList();
         });
         
         chipRejected.setOnClickListener(v -> {
             currentFilter = "REJECTED";
-            refreshList();
+            filterAndUpdateList();
         });
-    }
-
-    private void refreshList() {
-        // ✅ RECARGAR DATOS DE LA BD Y ACTUALIZAR ADAPTADOR
-        allOffers = dbHelper.getAllOffers();
-        rvTourOffers.setAdapter(new TourOffersAdapter(allOffers, currentFilter));
     }
 
     // Adapter for Tour Offers
     private class TourOffersAdapter extends RecyclerView.Adapter<TourOffersAdapter.ViewHolder> {
         
-        private final List<DatabaseHelper.Offer> offers;
-        private final List<DatabaseHelper.Offer> filteredOffers;
+        private List<TourOffer> offers;
         
-        TourOffersAdapter(List<DatabaseHelper.Offer> allOffers, String filter) {
-            this.offers = allOffers;
-            this.filteredOffers = new java.util.ArrayList<>();
-            
-            // ✅ FILTRAR OFERTAS SEGÚN EL FILTRO SELECCIONADO
-            for (DatabaseHelper.Offer offer : allOffers) {
-                if (filter.equals("ALL")) {
-                    filteredOffers.add(offer);
-                } else if (filter.equals("PENDING") && offer.getStatus().equals("PENDIENTE")) {
-                    filteredOffers.add(offer);
-                } else if (filter.equals("REJECTED") && offer.getStatus().equals("RECHAZADA")) {
-                    filteredOffers.add(offer);
-                }
-            }
+        TourOffersAdapter(List<TourOffer> offers) {
+            this.offers = offers != null ? offers : new ArrayList<>();
+        }
+        
+        public void updateData(List<TourOffer> newOffers) {
+            this.offers = newOffers != null ? newOffers : new ArrayList<>();
+            notifyDataSetChanged();
         }
 
         @Override
@@ -146,112 +188,140 @@ public class TourOffersActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
-            // ✅ OBTENER OFERTA DE LA BASE DE DATOS
-            DatabaseHelper.Offer offer = filteredOffers.get(position);
+            TourOffer offer = offers.get(position);
             
-            holder.tvTourName.setText(offer.getTourName());
-            holder.tvCompanyName.setText(offer.getCompany());
-            holder.tvTourDate.setText(offer.getDate());
-            holder.tvTourTime.setText(offer.getTime());
-            holder.tvTourDuration.setText("4 horas"); // Duración por defecto
-            holder.tvPaymentAmount.setText(String.format("S/. %.2f", offer.getPayment()));
-            holder.tvParticipants.setText(offer.getParticipants() + " personas");
-            holder.tvOfferStatus.setText(offer.getStatus());
+            holder.tvTourName.setText(offer.getTourName() != null ? offer.getTourName() : "Tour sin nombre");
+            holder.tvCompanyName.setText(offer.getCompanyName() != null ? offer.getCompanyName() : "Empresa no especificada");
+            holder.tvTourDate.setText(offer.getTourDate() != null ? offer.getTourDate() : "Fecha no especificada");
+            holder.tvTourTime.setText(offer.getTourTime() != null ? offer.getTourTime() : "Hora no especificada");
+            holder.tvTourDuration.setText(offer.getTourDuration() != null ? offer.getTourDuration() : "4 horas");
+            holder.tvPaymentAmount.setText(String.format("S/. %.2f", offer.getPaymentAmount() != null ? offer.getPaymentAmount() : 0.0));
+            holder.tvParticipants.setText((offer.getNumberOfParticipants() != null ? offer.getNumberOfParticipants() : 0) + " personas");
+            holder.tvOfferStatus.setText(offer.getStatus() != null ? offer.getStatus() : "PENDIENTE");
             
-            // Set status color
-            if (offer.getStatus().equals("PENDIENTE")) {
+            // Set status color and visibility based on status
+            String status = offer.getStatus();
+            if ("PENDIENTE".equals(status)) {
                 holder.tvOfferStatus.setTextColor(getColor(R.color.white));
                 holder.tvOfferStatus.setBackgroundResource(R.drawable.circle_orange);
-            } else if (offer.getStatus().equals("RECHAZADA")) {
+                // Mostrar botones de acción para ofertas pendientes
+                holder.layoutPendingActions.setVisibility(View.VISIBLE);
+                holder.layoutResponseStatus.setVisibility(View.GONE);
+            } else if ("RECHAZADA".equals(status)) {
                 holder.tvOfferStatus.setTextColor(getColor(R.color.white));
                 holder.tvOfferStatus.setBackgroundResource(R.drawable.circle_red);
-            }
-
-            // Handle button clicks
-            holder.btnAcceptOffer.setOnClickListener(v -> {
-                // ✅ GUARDAR ACEPTACIÓN EN BASE DE DATOS
-                
-                // 1. Marcar oferta como ACEPTADA
-                dbHelper.updateOfferStatus(offer.getId(), "ACEPTADA");
-                
-                // 2. Agregar tour a "Mis Tours"
-                dbHelper.addTour(
-                    offer.getTourName(),
-                    offer.getCompany(),
-                    offer.getDate(),
-                    offer.getTime(),
-                    "PROGRAMADO",                    // estado inicial
-                    offer.getPayment(),
-                    offer.getParticipants()
-                );
-                
-                // 3. Enviar notificación
-                notificationHelper.sendTourReminderNotification(
-                    offer.getTourName(), 
-                    offer.getTime()
-                );
-                
-                // 4. Mostrar mensaje
-                android.widget.Toast.makeText(TourOffersActivity.this, 
-                    "✅ Oferta aceptada: " + offer.getTourName(), 
-                    android.widget.Toast.LENGTH_LONG).show();
-                
-                // 5. Actualizar UI
-                holder.layoutPendingActions.setVisibility(View.GONE);
-                holder.layoutResponseStatus.setVisibility(View.VISIBLE);
-                holder.tvResponseMessage.setText("Oferta aceptada - Tour asignado");
-                holder.tvResponseMessage.setTextColor(getColor(R.color.green));
-                holder.ivResponseIcon.setColorFilter(getColor(R.color.green));
-                
-                // 6. Recargar lista para actualizar dashboard
-                refreshList();
-            });
-
-            holder.btnRejectOffer.setOnClickListener(v -> {
-                // ✅ GUARDAR RECHAZO EN BASE DE DATOS
-                
-                // 1. Marcar oferta como RECHAZADA
-                dbHelper.updateOfferStatus(offer.getId(), "RECHAZADA");
-                
-                // 2. Mostrar mensaje
-                android.widget.Toast.makeText(TourOffersActivity.this, 
-                    "Oferta rechazada", 
-                    android.widget.Toast.LENGTH_SHORT).show();
-                
-                // 3. Actualizar UI
+                // Ocultar botones de acción y mostrar mensaje de rechazada
                 holder.layoutPendingActions.setVisibility(View.GONE);
                 holder.layoutResponseStatus.setVisibility(View.VISIBLE);
                 holder.tvResponseMessage.setText("Oferta rechazada");
                 holder.tvResponseMessage.setTextColor(getColor(R.color.red));
                 holder.ivResponseIcon.setColorFilter(getColor(R.color.red));
-                
-                // 4. Recargar lista
-                refreshList();
+            } else if ("ACEPTADA".equals(status)) {
+                holder.tvOfferStatus.setTextColor(getColor(R.color.white));
+                holder.tvOfferStatus.setBackgroundResource(R.drawable.circle_green);
+                // Ocultar botones de acción y mostrar mensaje de aceptada
+                holder.layoutPendingActions.setVisibility(View.GONE);
+                holder.layoutResponseStatus.setVisibility(View.VISIBLE);
+                holder.tvResponseMessage.setText("Oferta aceptada - Tour asignado");
+                holder.tvResponseMessage.setTextColor(getColor(R.color.green));
+                holder.ivResponseIcon.setColorFilter(getColor(R.color.green));
+            }
+
+            // Handle button clicks
+            holder.btnAcceptOffer.setOnClickListener(v -> {
+                // Marcar oferta como ACEPTADA en Firebase
+                firestoreManager.updateOfferStatus(offer.getOfferId(), "ACEPTADA", new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Toast.makeText(TourOffersActivity.this, 
+                            "✅ Oferta aceptada: " + offer.getTourName(), 
+                            Toast.LENGTH_LONG).show();
+                        
+                        // Actualizar UI
+                        holder.layoutPendingActions.setVisibility(View.GONE);
+                        holder.layoutResponseStatus.setVisibility(View.VISIBLE);
+                        holder.tvResponseMessage.setText("Oferta aceptada - Tour asignado");
+                        holder.tvResponseMessage.setTextColor(getColor(R.color.green));
+                        holder.ivResponseIcon.setColorFilter(getColor(R.color.green));
+                        
+                        // Recargar ofertas
+                        loadOffersFromFirebase();
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        Toast.makeText(TourOffersActivity.this, 
+                            "Error al aceptar oferta: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+
+            holder.btnRejectOffer.setOnClickListener(v -> {
+                // Marcar oferta como RECHAZADA en Firebase
+                firestoreManager.updateOfferStatus(offer.getOfferId(), "RECHAZADA", new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Toast.makeText(TourOffersActivity.this, 
+                            "Oferta rechazada", 
+                            Toast.LENGTH_SHORT).show();
+                        
+                        // Actualizar UI
+                        holder.layoutPendingActions.setVisibility(View.GONE);
+                        holder.layoutResponseStatus.setVisibility(View.VISIBLE);
+                        holder.tvResponseMessage.setText("Oferta rechazada");
+                        holder.tvResponseMessage.setTextColor(getColor(R.color.red));
+                        holder.ivResponseIcon.setColorFilter(getColor(R.color.red));
+                        
+                        // Recargar ofertas
+                        loadOffersFromFirebase();
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        Toast.makeText(TourOffersActivity.this, 
+                            "Error al rechazar oferta: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
+                    }
+                });
             });
 
             holder.btnViewDetails.setOnClickListener(v -> {
-                // ✅ MOSTRAR DETALLES DE LA OFERTA DESDE LA BD
-                String details = "Tour: " + offer.getTourName() + "\n" +
-                        "Empresa: " + offer.getCompany() + "\n" +
-                        "Fecha: " + offer.getDate() + "\n" +
-                        "Hora: " + offer.getTime() + "\n" +
-                        "Duración: 4 horas\n" +
-                        "Pago: S/. " + String.format("%.2f", offer.getPayment()) + "\n" +
-                        "Participantes: " + offer.getParticipants() + " personas\n" +
-                        "Estado: " + offer.getStatus();
-                
-                new android.app.AlertDialog.Builder(TourOffersActivity.this)
-                    .setTitle("Detalles de la Oferta")
-                    .setMessage(details)
-                    .setPositiveButton("Cerrar", null)
-                    .show();
+                Intent intent = new Intent(TourOffersActivity.this, TourOfferDetailsActivity.class);
+                intent.putExtra("offerId", offer.getOfferId());
+                intent.putExtra("tourName", offer.getTourName());
+                intent.putExtra("companyName", offer.getCompanyName());
+                intent.putExtra("tourDate", offer.getTourDate());
+                intent.putExtra("tourTime", offer.getTourTime());
+                intent.putExtra("tourDuration", offer.getTourDuration());
+                intent.putExtra("paymentAmount", offer.getPaymentAmount() != null ? offer.getPaymentAmount() : 0.0);
+                intent.putExtra("participants", offer.getNumberOfParticipants() != null ? offer.getNumberOfParticipants() : 0);
+                intent.putExtra("status", offer.getStatus());
+                // Formatear fecha de creación si existe
+                String createdTime = "Enviado hace poco";
+                if (offer.getCreatedAt() != null) {
+                    long diff = new java.util.Date().getTime() - offer.getCreatedAt().getTime();
+                    long hours = diff / (1000 * 60 * 60);
+                    if (hours < 1) {
+                        createdTime = "Enviado hace menos de 1 hora";
+                    } else if (hours == 1) {
+                        createdTime = "Enviado hace 1 hora";
+                    } else if (hours < 24) {
+                        createdTime = "Enviado hace " + hours + " horas";
+                    } else {
+                        long days = hours / 24;
+                        createdTime = "Enviado hace " + days + " día" + (days > 1 ? "s" : "");
+                    }
+                }
+                intent.putExtra("createdTime", createdTime);
+                intent.putExtra("languages", "es,en"); // Por defecto español e inglés
+                startActivity(intent);
             });
         }
 
         @Override
         public int getItemCount() {
-            // ✅ RETORNAR EL NÚMERO REAL DE OFERTAS FILTRADAS
-            return filteredOffers.size();
+            return offers.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {

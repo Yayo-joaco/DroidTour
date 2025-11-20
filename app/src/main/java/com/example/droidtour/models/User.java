@@ -258,12 +258,25 @@ public class User {
         this.guideRating = guideRating;
     }
 
+    @com.google.firebase.firestore.PropertyName("guideLanguages")
     public List<String> getGuideLanguages() {
         return guideLanguages;
     }
 
+    @com.google.firebase.firestore.PropertyName("guideLanguages")
     public void setGuideLanguages(List<String> guideLanguages) {
         this.guideLanguages = guideLanguages;
+    }
+    
+    // Método alternativo para compatibilidad con campo "languages"
+    @com.google.firebase.firestore.PropertyName("languages")
+    public List<String> getLanguages() {
+        return guideLanguages;
+    }
+    
+    @com.google.firebase.firestore.PropertyName("languages")
+    public void setLanguages(List<String> languages) {
+        this.guideLanguages = languages;
     }
 
     public String getGuideSpecialties() {

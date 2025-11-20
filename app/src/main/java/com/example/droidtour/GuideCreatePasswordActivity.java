@@ -195,15 +195,20 @@ public class GuideCreatePasswordActivity extends AppCompatActivity {
         userData.put("profileCompleted", true);
         userData.put("profileCompletedAt", new java.util.Date());
 
+        // ✅ Campos específicos para guías
+        userData.put("isGuideApproved", false); // Requiere aprobación de superadmin
+        userData.put("guideRating", 4.8f); // Calificación inicial del guía
+        
+        // Agregar idiomas como guideLanguages
+        if (idiomasSeleccionados != null && !idiomasSeleccionados.isEmpty()) {
+            userData.put("guideLanguages", idiomasSeleccionados);
+            userData.put("languages", idiomasSeleccionados); // Por compatibilidad
+        }
+
         // Agregar foto si existe
         if (photoUri != null && !photoUri.isEmpty()) {
             userData.put("photoURL", photoUri);
             userData.put("customPhoto", true);
-        }
-
-        // Agregar idiomas
-        if (idiomasSeleccionados != null && !idiomasSeleccionados.isEmpty()) {
-            userData.put("languages", idiomasSeleccionados);
         }
 
         // 4. GUARDAR EN COLECCIÓN "users"

@@ -2,6 +2,7 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
@@ -9,40 +10,94 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.User;
+import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.Review;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GuideProfileActivity extends AppCompatActivity {
 
+    private static final String TAG = "GuideProfileActivity";
     private TextView tvUserName, tvUserEmail, tvUserRole;
     private TextView tvDocumentType, tvDocumentNumber, tvPhone;
-    private TextView tvLanguages;
+    private ChipGroup chipGroupLanguages;
     private TextView tvToursCount, tvRating, tvMemberSince, tvStatLabel1;
     private CardView cardLanguages;
     private FloatingActionButton fabEdit;
     private ImageButton btnEditPhoto;
     
     private PreferencesManager prefsManager;
-    private DatabaseHelper dbHelper;
+    private FirestoreManager firestoreManager;
+    private FirebaseAuthManager authManager;
+    private String currentUserId;
+    
+    // Mapa para convertir códigos de idioma a nombres completos
+    private static final Map<String, String> LANGUAGE_NAMES = new HashMap<String, String>() {{
+        put("es", "Español");
+        put("en", "Inglés");
+        put("fr", "Francés");
+        put("pt", "Portugués");
+        put("de", "Alemán");
+        put("it", "Italiano");
+        put("ja", "Japonés");
+        put("zh", "Chino");
+        put("ko", "Coreano");
+        put("ru", "Ruso");
+        put("ar", "Árabe");
+        put("qu", "Quechua");
+        put("ay", "Aymara");
+    }};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_myprofile);
-
+        
         // Inicializar helpers
         prefsManager = new PreferencesManager(this);
-        dbHelper = new DatabaseHelper(this);
+        firestoreManager = FirestoreManager.getInstance();
+        authManager = FirebaseAuthManager.getInstance(this);
+        
+        // Validar sesión
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea un guía
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("GUIDE")) {
+            Toast.makeText(this, "Acceso denegado: Solo guías", Toast.LENGTH_SHORT).show();
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Obtener ID del usuario actual
+        currentUserId = authManager.getCurrentUserId();
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = prefsManager.getUserId();
+        }
+        
+        setContentView(R.layout.activity_myprofile);
 
         setupToolbar();
         initializeViews();
+        setupClickListeners();
+        
+        // Cargar datos del guía desde Firebase
         loadUserData();
         loadStatistics();
-        setupClickListeners();
         
         // Mostrar sección de idiomas para guía
         showLanguagesSection();
@@ -70,7 +125,7 @@ public class GuideProfileActivity extends AppCompatActivity {
         tvPhone = findViewById(R.id.tv_phone);
         
         // Idiomas
-        tvLanguages = findViewById(R.id.tv_languages);
+        chipGroupLanguages = findViewById(R.id.chip_group_languages);
         
         // Estadísticas
         tvToursCount = findViewById(R.id.tv_tours_count);
@@ -86,105 +141,152 @@ public class GuideProfileActivity extends AppCompatActivity {
     }
 
     private void loadUserData() {
-        if (!prefsManager.isLoggedIn()) {
-            Toast.makeText(this, "Sesión expirada. Por favor, inicia sesión nuevamente", Toast.LENGTH_SHORT).show();
-            // Redirigir al login
-            Intent intent = new Intent(this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-            finish();
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "❌ Error: currentUserId es null o vacío");
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+            redirectToLogin();
             return;
         }
-
-        // Verificar que el usuario sea un guía
-        String userType = prefsManager.getUserType();
-        if (userType == null || !userType.equals("GUIDE")) {
-            // Si no es guía, inicializar datos del guía
-            prefsManager.saveUserData(
-                "GUIDE001", 
-                "Carlos Mendoza", 
-                "guia@tours.com", 
-                "987654321", 
-                "GUIDE"
-            );
-            prefsManager.setGuideApproved(true);
-            prefsManager.setGuideRating(4.8f);
-            userType = "GUIDE";
-        }
-
-        // Cargar datos del usuario (guía)
-        String userName = prefsManager.getUserName();
-        String userEmail = prefsManager.getUserEmail();
-        String userPhone = prefsManager.getUserPhone();
-
-        // Si los datos no son de Carlos Mendoza, reemplazarlos con datos correctos del guía
-        if (!userName.equals("Carlos Mendoza") && (userName.equals("María López") || 
-            userName.equals("Ana García Rodríguez") || userName.equals("Gabrielle Ivonne")) && userType.equals("GUIDE")) {
-            prefsManager.saveUserData(
-                "GUIDE001", 
-                "Carlos Mendoza", 
-                "guia@tours.com", 
-                "987654321", 
-                "GUIDE"
-            );
-            prefsManager.setGuideApproved(true);
-            prefsManager.setGuideRating(4.8f);
-            userName = "Carlos Mendoza";
-            userEmail = "guia@tours.com";
-            userPhone = "987654321";
-        }
         
-        // Asegurar que el email sea el correcto del guía
-        if (!userEmail.equals("guia@tours.com") && userType.equals("GUIDE")) {
-            prefsManager.saveUserData(
-                "GUIDE001", 
-                userName, 
-                "guia@tours.com", 
-                userPhone, 
-                "GUIDE"
-            );
-            userEmail = "guia@tours.com";
-        }
-
-        // Actualizar header
-        tvUserName.setText(userName);
-        tvUserEmail.setText(userEmail);
+        Log.d(TAG, "🔄 Cargando datos del guía: " + currentUserId);
         
-        // Actualizar rol - siempre mostrar "GUIA DE TURISMO" en mayúsculas
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                User user = (User) result;
+                Log.d(TAG, "✅ Datos del guía cargados");
+                displayUserData(user);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando datos del guía", e);
+                Toast.makeText(GuideProfileActivity.this, 
+                    "Error al cargar perfil: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                // Usar datos de PreferencesManager como fallback
+                displayFallbackData();
+            }
+        });
+    }
+    
+    private void displayUserData(User user) {
+        // Header
+        String fullName = user.getFullName() != null ? user.getFullName() : 
+                         (user.getFirstName() + " " + user.getLastName());
+        tvUserName.setText(fullName);
+        tvUserEmail.setText(user.getEmail() != null ? user.getEmail() : "N/A");
         tvUserRole.setText("GUIA DE TURISMO");
-
-        // Actualizar información personal
-        tvDocumentType.setText("DNI");
-        tvDocumentNumber.setText("87654321"); // Diferente al del cliente
-        tvPhone.setText(userPhone != null && !userPhone.isEmpty() ? userPhone : "+51 987 654 321");
         
-        // Cargar idiomas (por ahora valor por defecto)
-        tvLanguages.setText("Español, Inglés, Francés"); // TODO: Agregar idiomas a PreferencesManager
+        // Información personal
+        tvDocumentType.setText("DNI");
+        tvDocumentNumber.setText(user.getDocumentNumber() != null ? user.getDocumentNumber() : "N/A");
+        
+        String phoneNumber = user.getPhoneNumber();
+        tvPhone.setText(phoneNumber != null && !phoneNumber.isEmpty() ? phoneNumber : "N/A");
+        
+        // Idiomas
+        List<String> languages = user.getGuideLanguages();
+        displayLanguageChips(languages);
+    }
+    
+    private void displayLanguageChips(List<String> languageCodes) {
+        // Limpiar chips existentes
+        chipGroupLanguages.removeAllViews();
+        
+        if (languageCodes == null || languageCodes.isEmpty()) {
+            // Agregar un chip indicando que no hay idiomas
+            Chip chip = new Chip(this);
+            chip.setText("No especificado");
+            chip.setChipBackgroundColorResource(R.color.light_gray);
+            chip.setTextColor(getResources().getColor(R.color.dark_gray, null));
+            chip.setClickable(false);
+            chipGroupLanguages.addView(chip);
+            return;
+        }
+        
+        // Agregar un chip por cada idioma
+        for (String languageCode : languageCodes) {
+            Chip chip = new Chip(this);
+            
+            // Convertir código a nombre completo
+            String languageName = LANGUAGE_NAMES.get(languageCode.toLowerCase());
+            if (languageName == null) {
+                // Si no se encuentra el código, usar el código en mayúsculas
+                languageName = languageCode.toUpperCase();
+            }
+            
+            chip.setText(languageName);
+            chip.setChipBackgroundColorResource(R.color.primary);
+            chip.setTextColor(getResources().getColor(R.color.white, null));
+            chip.setClickable(false);
+            chip.setChipIconResource(R.drawable.ic_language);
+            chip.setChipIconTintResource(R.color.white);
+            
+            chipGroupLanguages.addView(chip);
+        }
+    }
+    
+    private void displayFallbackData() {
+        tvUserName.setText(prefsManager.getUserName());
+        tvUserEmail.setText(prefsManager.getUserEmail());
+        tvUserRole.setText("GUIA DE TURISMO");
+        tvDocumentType.setText("DNI");
+        tvDocumentNumber.setText("N/A");
+        tvPhone.setText(prefsManager.getUserPhone() != null && !prefsManager.getUserPhone().isEmpty() 
+                       ? prefsManager.getUserPhone() : "N/A");
+        displayLanguageChips(null);
     }
 
     private void loadStatistics() {
-        // Cargar tours del guía desde la base de datos
-        List<DatabaseHelper.Tour> allTours = dbHelper.getAllTours();
-        
-        // Tours Guiados: contar todos los tours (pueden ser completados, programados, en progreso)
-        int toursCount = allTours.size();
-        tvToursCount.setText(String.valueOf(toursCount));
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "❌ Error: currentUserId es null o vacío al cargar estadísticas");
+            return;
+        }
         
         // Cambiar etiqueta para guía
         if (tvStatLabel1 != null) {
             tvStatLabel1.setText("Tours\nGuiados");
         }
         
-        // Valoración: usar el rating del guía desde PreferencesManager
-        float guideRating = prefsManager.getGuideRating();
-        if (guideRating > 0) {
-            tvRating.setText(String.format("%.1f", guideRating));
-        } else {
-            // Valor por defecto si no hay rating
-            tvRating.setText("4.8");
-        }
+        // Cargar número de tours guiados
+        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Reservation> reservations = (List<Reservation>) result;
+                int toursCount = reservations.size();
+                tvToursCount.setText(String.valueOf(toursCount));
+                Log.d(TAG, "✅ Tours guiados: " + toursCount);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando tours guiados", e);
+                tvToursCount.setText("0");
+            }
+        });
+        
+        // Cargar rating del guía desde Firebase
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                User user = (User) result;
+                Float guideRating = user.getGuideRating();
+                if (guideRating != null && guideRating > 0) {
+                    tvRating.setText(String.format("%.1f", guideRating));
+                } else {
+                    tvRating.setText("0.0");
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando rating del guía", e);
+                tvRating.setText("0.0");
+            }
+        });
         
         // Miembro desde (año actual por defecto)
+        // TODO: Agregar campo createdAt en el modelo User para mostrar el año real
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
         tvMemberSince.setText(String.valueOf(currentYear));
     }
@@ -219,6 +321,12 @@ public class GuideProfileActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
 

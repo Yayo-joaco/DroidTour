@@ -12,6 +12,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +37,7 @@ public class FirestoreManager {
     private static final String COLLECTION_USER_PREFERENCES = "user_preferences";
     private static final String COLLECTION_MESSAGES = "messages";
     private static final String COLLECTION_USER_SESSIONS = "user_sessions";
+    private static final String COLLECTION_TOUR_OFFERS = "tour_offers";
 
     private FirestoreManager() {
         this.db = FirebaseFirestore.getInstance();
@@ -528,6 +530,37 @@ public class FirestoreManager {
                     callback.onFailure(e);
                 });
     }
+
+    /**
+     * Obtener reservas por guía
+     */
+    public void getReservationsByGuide(String guideId, FirestoreCallback callback) {
+        db.collection(COLLECTION_RESERVATIONS)
+                .whereEqualTo("guideId", guideId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Reservation> reservations = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : querySnapshot) {
+                        Reservation reservation = document.toObject(Reservation.class);
+                        reservations.add(reservation);
+                    }
+                    
+                    // Ordenar en el cliente por fecha (más reciente primero)
+                    reservations.sort((a, b) -> {
+                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                            return b.getCreatedAt().compareTo(a.getCreatedAt());
+                        }
+                        return 0;
+                    });
+                    
+                    Log.d(TAG, "Reservations by guide: " + reservations.size());
+                    callback.onSuccess(reservations);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error getting reservations by guide", e);
+                    callback.onFailure(e);
+                });
+    }
     
     /**
      * Obtener reservas por empresa
@@ -564,6 +597,78 @@ public class FirestoreManager {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error updating reservation", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    // ==================== OFERTAS DE TOURS ====================
+
+    /**
+     * Crear oferta de tour
+     */
+    public void createTourOffer(com.example.droidtour.models.TourOffer offer, FirestoreCallback callback) {
+        db.collection(COLLECTION_TOUR_OFFERS)
+                .add(offer.toMap())
+                .addOnSuccessListener(documentReference -> {
+                    String offerId = documentReference.getId();
+                    Log.d(TAG, "Tour offer created with ID: " + offerId);
+                    callback.onSuccess(offerId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error creating tour offer", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Obtener ofertas por guía
+     */
+    public void getOffersByGuide(String guideId, FirestoreCallback callback) {
+        db.collection(COLLECTION_TOUR_OFFERS)
+                .whereEqualTo("guideId", guideId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<com.example.droidtour.models.TourOffer> offers = new ArrayList<>();
+                    for (QueryDocumentSnapshot document : querySnapshot) {
+                        com.example.droidtour.models.TourOffer offer = document.toObject(com.example.droidtour.models.TourOffer.class);
+                        offer.setOfferId(document.getId());
+                        offers.add(offer);
+                    }
+                    
+                    // Ordenar en el cliente por fecha (más reciente primero)
+                    offers.sort((a, b) -> {
+                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                            return b.getCreatedAt().compareTo(a.getCreatedAt());
+                        }
+                        return 0;
+                    });
+                    
+                    Log.d(TAG, "Offers by guide: " + offers.size());
+                    callback.onSuccess(offers);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error getting offers by guide", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Actualizar estado de oferta
+     */
+    public void updateOfferStatus(String offerId, String status, FirestoreCallback callback) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", status);
+        updates.put("respondedAt", new java.util.Date());
+        
+        db.collection(COLLECTION_TOUR_OFFERS)
+                .document(offerId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Offer status updated successfully: " + status);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating offer status", e);
                     callback.onFailure(e);
                 });
     }
@@ -832,6 +937,40 @@ public class FirestoreManager {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error creating notification", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Actualizar una notificación
+     */
+    public void updateNotification(String notificationId, Map<String, Object> updates, FirestoreCallback callback) {
+        db.collection(COLLECTION_NOTIFICATIONS)
+                .document(notificationId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Notification updated successfully: " + notificationId);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating notification", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Eliminar una notificación
+     */
+    public void deleteNotification(String notificationId, FirestoreCallback callback) {
+        db.collection(COLLECTION_NOTIFICATIONS)
+                .document(notificationId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Notification deleted successfully: " + notificationId);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error deleting notification", e);
                     callback.onFailure(e);
                 });
     }

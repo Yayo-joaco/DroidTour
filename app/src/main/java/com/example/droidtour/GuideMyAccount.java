@@ -2,7 +2,9 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -11,20 +13,28 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.droidtour.LoginActivity;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.User;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
 public class GuideMyAccount extends AppCompatActivity {
     
+    private static final String TAG = "GuideMyAccount";
     private PreferencesManager prefsManager;
+    private FirestoreManager firestoreManager;
+    private FirebaseAuthManager authManager;
+    private String currentUserId;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Inicializar PreferencesManager
+        // Inicializar helpers
         prefsManager = new PreferencesManager(this);
+        firestoreManager = FirestoreManager.getInstance();
+        authManager = FirebaseAuthManager.getInstance(this);
         
         // Validar sesión PRIMERO
         if (!prefsManager.isLoggedIn()) {
@@ -41,25 +51,28 @@ public class GuideMyAccount extends AppCompatActivity {
             return;
         }
         
+        // Obtener ID del usuario actual
+        currentUserId = authManager.getCurrentUserId();
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = prefsManager.getUserId();
+        }
+        
         setContentView(R.layout.activity_myaccount);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        // Toolbar: permitir botón de retroceso y mostrar título de la app
+        // Toolbar
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            // Mostrar título (tomado de strings.xml) en la ActionBar
             getSupportActionBar().setDisplayShowTitleEnabled(true);
             getSupportActionBar().setTitle(getString(R.string.mi_cuenta));
         }
-        // Asegurar que el título también se establezca directamente en la toolbar (para temas donde ActionBar no lo muestre)
         toolbar.setTitle(getString(R.string.mi_cuenta));
-        // Asegurar color de título (si el tema no lo aplica)
         toolbar.setTitleTextColor(ContextCompat.getColor(this, R.color.white));
         toolbar.setNavigationOnClickListener(v -> finish());
         
-        // Cargar y mostrar datos del usuario
+        // Cargar datos desde Firebase
         loadUserData();
 
         // Encontrar las tarjetas y asignar listeners para redirecciones
@@ -110,67 +123,62 @@ public class GuideMyAccount extends AppCompatActivity {
     }
     
     private void loadUserData() {
-        // Verificar y corregir datos del guía
-        String userType = prefsManager.getUserType();
-        String userName = prefsManager.getUserName();
-        String userEmail = prefsManager.getUserEmail();
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "❌ Error: currentUserId es null o vacío");
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+            return;
+        }
         
-        // Si no está logueado o el tipo no es GUIDE, inicializar como guía
-        if (!prefsManager.isLoggedIn() || (userType != null && !userType.equals("GUIDE"))) {
-            prefsManager.saveUserData(
-                "GUIDE001", 
-                "Carlos Mendoza", 
-                "guia@tours.com", 
-                "987654321", 
-                "GUIDE"
-            );
-            prefsManager.setGuideApproved(true);
-            prefsManager.setGuideRating(4.8f);
-            userName = "Carlos Mendoza";
-            userEmail = "guia@tours.com";
-        } else {
-            // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") || 
-                userName.equals("María López") || userName.equals("Ana García Rodríguez") || 
-                userName.equals("María González"))) {
-                prefsManager.saveUserData(
-                    "GUIDE001", 
-                    "Carlos Mendoza", 
-                    "guia@tours.com", 
-                    "987654321", 
-                    "GUIDE"
-                );
-                prefsManager.setGuideApproved(true);
-                prefsManager.setGuideRating(4.8f);
-                userName = "Carlos Mendoza";
-                userEmail = "guia@tours.com";
+        Log.d(TAG, "🔄 Cargando datos del usuario: " + currentUserId);
+        
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                User user = (User) result;
+                Log.d(TAG, "✅ Datos del usuario cargados");
+                displayUserData(user);
             }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando datos del usuario", e);
+                Toast.makeText(GuideMyAccount.this, 
+                    "Error al cargar datos: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                // Usar datos de PreferencesManager como fallback
+                displayFallbackData();
+            }
+        });
+    }
+    
+    private void displayUserData(User user) {
+        TextView tvUserName = findViewById(R.id.tv_user_name);
+        TextView tvUserEmail = findViewById(R.id.tv_user_email);
+        
+        String fullName = user.getFullName() != null ? user.getFullName() : 
+                         (user.getFirstName() + " " + user.getLastName());
+        String email = user.getEmail();
+        
+        if (tvUserName != null) {
+            tvUserName.setText(fullName);
         }
         
-        // Asegurar que el email sea el correcto del guía
-        if (!userEmail.equals("guia@tours.com") && userType != null && userType.equals("GUIDE")) {
-            prefsManager.saveUserData(
-                "GUIDE001", 
-                userName, 
-                "guia@tours.com", 
-                "987654321", 
-                "GUIDE"
-            );
-            prefsManager.setGuideApproved(true);
-            prefsManager.setGuideRating(4.8f);
-            userEmail = "guia@tours.com";
+        if (tvUserEmail != null) {
+            tvUserEmail.setText(email != null ? email : "No especificado");
         }
         
-        // Actualizar los TextView del header
+        Log.d(TAG, "✅ UI actualizada con datos de Firebase");
+    }
+    
+    private void displayFallbackData() {
         TextView tvUserName = findViewById(R.id.tv_user_name);
         TextView tvUserEmail = findViewById(R.id.tv_user_email);
         
         if (tvUserName != null) {
-            tvUserName.setText(userName != null && !userName.isEmpty() ? userName : "Carlos Mendoza");
+            tvUserName.setText(prefsManager.getUserName());
         }
         
         if (tvUserEmail != null) {
-            tvUserEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "guia@tours.com");
+            tvUserEmail.setText(prefsManager.getUserEmail());
         }
     }
     

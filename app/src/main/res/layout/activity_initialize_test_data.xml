@@ -25,17 +25,31 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Esta herramienta creará datos de prueba en Firestore para la cuenta:\n\na20221957@pucp.edu.pe"
+        android:text="Esta herramienta creará datos de prueba en Firestore.\nSelecciona el tipo de datos que deseas inicializar:"
         android:textAlignment="center"
         android:layout_marginBottom="32dp"/>
 
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_initialize_data"
+        android:id="@+id/btn_initialize_client"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Inicializar Datos"
+        android:text="Inicializar Datos de Cliente"
         android:paddingHorizontal="32dp"
-        app:cornerRadius="8dp"/>
+        android:layout_marginBottom="16dp"
+        app:cornerRadius="8dp"
+        app:icon="@android:drawable/ic_menu_myplaces"
+        app:iconGravity="textStart"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_initialize_guide"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Inicializar Datos de Guía"
+        android:paddingHorizontal="32dp"
+        app:cornerRadius="8dp"
+        app:icon="@android:drawable/ic_menu_compass"
+        app:iconGravity="textStart"
+        style="@style/Widget.Material3.Button.TonalButton"/>
 
     <ProgressBar
         android:id="@+id/progress_bar"

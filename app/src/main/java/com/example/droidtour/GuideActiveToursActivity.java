@@ -2,21 +2,37 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.LoginActivity;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.Tour;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class GuideActiveToursActivity extends AppCompatActivity {
 
+    private static final String TAG = "GuideActiveTours";
     private RecyclerView rvMyTours;
     private Chip chipTodas, chipEnProgreso, chipProgramados, chipCompletados;
     private String currentFilter = "ALL";
     private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private FirestoreManager firestoreManager;
+    private FirebaseAuthManager authManager;
+    private String currentUserId;
+    private List<Reservation> allReservations = new ArrayList<>();
+    private MyToursAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +40,8 @@ public class GuideActiveToursActivity extends AppCompatActivity {
         
         // Inicializar PreferencesManager
         prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
+        firestoreManager = FirestoreManager.getInstance();
+        authManager = FirebaseAuthManager.getInstance(this);
         
         // Validar sesión PRIMERO
         if (!prefsManager.isLoggedIn()) {
@@ -40,12 +58,21 @@ public class GuideActiveToursActivity extends AppCompatActivity {
             return;
         }
         
+        // Obtener ID del usuario actual
+        currentUserId = authManager.getCurrentUserId();
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            currentUserId = prefsManager.getUserId();
+        }
+        
         setContentView(R.layout.activity_guide_active_tours);
 
         initializeViews();
         setupToolbar();
         setupRecyclerView();
         setupFilters();
+        
+        // Cargar tours del guía desde Firebase
+        loadGuideTours();
     }
 
     private void initializeViews() {
@@ -65,7 +92,54 @@ public class GuideActiveToursActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         rvMyTours.setLayoutManager(layoutManager);
-        rvMyTours.setAdapter(new MyToursAdapter(currentFilter));
+        adapter = new MyToursAdapter(new ArrayList<>());
+        rvMyTours.setAdapter(adapter);
+    }
+    
+    private void loadGuideTours() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Log.e(TAG, "❌ Error: currentUserId es null o vacío");
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        Log.d(TAG, "🔄 Cargando tours para guía: " + currentUserId);
+        
+        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                allReservations = (List<Reservation>) result;
+                Log.d(TAG, "✅ Tours cargados: " + allReservations.size());
+                filterAndUpdateList();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando tours del guía", e);
+                Toast.makeText(GuideActiveToursActivity.this, 
+                    "Error al cargar tours: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    private void filterAndUpdateList() {
+        List<Reservation> filteredReservations = new ArrayList<>();
+        
+        for (Reservation reservation : allReservations) {
+            String status = reservation.getStatus();
+            if (currentFilter.equals("ALL")) {
+                filteredReservations.add(reservation);
+            } else if (currentFilter.equals("IN_PROGRESS") && "EN_PROGRESO".equals(status)) {
+                filteredReservations.add(reservation);
+            } else if (currentFilter.equals("SCHEDULED") && ("CONFIRMADA".equals(status) || "PROGRAMADA".equals(status))) {
+                filteredReservations.add(reservation);
+            } else if (currentFilter.equals("COMPLETED") && "COMPLETADA".equals(status)) {
+                filteredReservations.add(reservation);
+            }
+        }
+        
+        adapter.updateData(filteredReservations);
+        Log.d(TAG, "📊 Tours filtrados (" + currentFilter + "): " + filteredReservations.size());
     }
 
     private void setupFilters() {
@@ -93,61 +167,22 @@ public class GuideActiveToursActivity extends AppCompatActivity {
     }
 
     private void refreshList() {
-        rvMyTours.setAdapter(new MyToursAdapter(currentFilter));
+        filterAndUpdateList();
     }
 
     // Adapter for My Tours
     private class MyToursAdapter extends RecyclerView.Adapter<MyToursAdapter.ViewHolder> {
         
-        private final String[] allTourNames = {
-                "City Tour Lima Centro Histórico",
-                "Cusco Mágico Full Day",
-                "Paracas y Huacachina"
-        };
-        private final String[] allDates = {
-                "Hoy, 15 Dic",
-                "Mañana, 16 Dic",
-                "20 Dic, 2024"
-        };
-        private final String[] allTimes = {
-                "09:00 - 13:00",
-                "08:00 - 16:00",
-                "07:00 - 19:00"
-        };
-        private final String[] allStatuses = {
-                "EN PROGRESO",
-                "PROGRAMADO",
-                "PROGRAMADO"
-        };
-        private final String[] allProgress = {
-                "Punto 2 de 4",
-                "Próximo",
-                "Próximo"
-        };
-        private final String[] allCurrentLocations = {
-                "Plaza de Armas",
-                "Por iniciar",
-                "Por iniciar"
-        };
-        private final double[] allPayments = {180.0, 250.0, 450.0};
-        private final int[] allParticipants = {6, 12, 6};
+        private List<Reservation> reservations;
         
-        private java.util.List<Integer> filteredIndices;
-        
-        MyToursAdapter(String filter) {
-            filteredIndices = new java.util.ArrayList<>();
-            for (int i = 0; i < allTourNames.length; i++) {
-                if (filter.equals("ALL")) {
-                    filteredIndices.add(i);
-                } else if (filter.equals("IN_PROGRESS") && allStatuses[i].equals("EN PROGRESO")) {
-                    filteredIndices.add(i);
-                } else if (filter.equals("SCHEDULED") && allStatuses[i].equals("PROGRAMADO")) {
-                    filteredIndices.add(i);
-                } else if (filter.equals("COMPLETED") && allStatuses[i].equals("COMPLETADO")) {
-                    filteredIndices.add(i);
-            }
+        MyToursAdapter(List<Reservation> reservations) {
+            this.reservations = reservations != null ? reservations : new ArrayList<>();
         }
-    }
+        
+        public void updateData(List<Reservation> newReservations) {
+            this.reservations = newReservations != null ? newReservations : new ArrayList<>();
+            notifyDataSetChanged();
+        }
 
     @Override
     public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
@@ -157,55 +192,79 @@ public class GuideActiveToursActivity extends AppCompatActivity {
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-            int actualIndex = filteredIndices.get(position);
+            Reservation reservation = reservations.get(position);
             
-            holder.tvTourName.setText(allTourNames[actualIndex]);
-            holder.tvTourDate.setText(allDates[actualIndex]);
-            holder.tvTourTime.setText(allTimes[actualIndex]);
-            holder.tvTourStatus.setText(allStatuses[actualIndex]);
-            holder.tvTourProgress.setText(allProgress[actualIndex]);
-            holder.tvCurrentLocation.setText(allCurrentLocations[actualIndex]);
-            holder.tvPaymentAmount.setText(String.format("S/. %.0f", allPayments[actualIndex]));
-            holder.tvParticipantsCount.setText(allParticipants[actualIndex] + " personas");
+            // Datos básicos del tour
+            holder.tvTourName.setText(reservation.getTourName() != null ? reservation.getTourName() : "Tour sin nombre");
+            holder.tvTourDate.setText(reservation.getTourDate() != null ? reservation.getTourDate() : "Fecha no disponible");
+            holder.tvTourTime.setText(reservation.getTourTime() != null ? reservation.getTourTime() : "Hora no disponible");
+            
+            // Estado del tour
+            String status = reservation.getStatus() != null ? reservation.getStatus() : "PENDIENTE";
+            holder.tvTourStatus.setText(status);
+            
+            // Progreso (por ahora simplificado)
+            if ("EN_PROGRESO".equals(status)) {
+                holder.tvTourProgress.setText("En progreso");
+                holder.tvCurrentLocation.setText("Ubicación actual");
+            } else if ("CONFIRMADA".equals(status) || "PROGRAMADA".equals(status)) {
+                holder.tvTourProgress.setText("Programado");
+                holder.tvCurrentLocation.setText("Programado");
+            } else if ("COMPLETADA".equals(status)) {
+                holder.tvTourProgress.setText("Completado");
+                holder.tvCurrentLocation.setText("Finalizado");
+            } else {
+                holder.tvTourProgress.setText("Pendiente");
+                holder.tvCurrentLocation.setText("N/A");
+            }
+            
+            // Pago y participantes
+            double totalPrice = reservation.getTotalPrice() != null ? reservation.getTotalPrice() : 0.0;
+            int numberOfPeople = reservation.getNumberOfPeople() != null ? reservation.getNumberOfPeople() : 0;
+            holder.tvPaymentAmount.setText(String.format("S/. %.2f", totalPrice));
+            holder.tvParticipantsCount.setText(numberOfPeople + " persona" + (numberOfPeople != 1 ? "s" : ""));
 
             // Show/hide buttons based on tour status
-            boolean isInProgress = allStatuses[actualIndex].equals("EN PROGRESO");
+            boolean isInProgress = "EN_PROGRESO".equals(status);
             holder.fabScanQR.setVisibility(isInProgress ? android.view.View.VISIBLE : android.view.View.GONE);
             holder.btnRegisterLocation.setVisibility(isInProgress ? android.view.View.VISIBLE : android.view.View.GONE);
 
-            // Handle button clicks - Ver Mapa abre vista simplificada
+            // Handle button clicks
             holder.btnViewMap.setOnClickListener(v -> {
                 android.widget.Toast.makeText(GuideActiveToursActivity.this, 
-                    "Ver Mapa: " + allTourNames[actualIndex], 
+                    "Ver Mapa: " + reservation.getTourName(), 
                     android.widget.Toast.LENGTH_SHORT).show();
                 // TODO: Abrir vista de mapa simplificada
             });
 
             holder.btnRegisterLocation.setOnClickListener(v -> {
                 Intent intent = new Intent(GuideActiveToursActivity.this, LocationTrackingActivity.class);
-                intent.putExtra("tour_name", allTourNames[actualIndex]);
+                intent.putExtra("tour_name", reservation.getTourName());
+                intent.putExtra("reservation_id", reservation.getReservationId());
                 intent.putExtra("register_mode", true);
                 startActivity(intent);
             });
 
             holder.fabScanQR.setOnClickListener(v -> {
                 Intent intent = new Intent(GuideActiveToursActivity.this, QRScannerActivity.class);
-                intent.putExtra("tour_name", allTourNames[actualIndex]);
+                intent.putExtra("tour_name", reservation.getTourName());
+                intent.putExtra("reservation_id", reservation.getReservationId());
                 startActivity(intent);
             });
 
             // Make the whole item clickable for details
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(GuideActiveToursActivity.this, GuideActiveTourDetailActivity.class);
-                intent.putExtra("tour_name", allTourNames[actualIndex]);
-                intent.putExtra("payment", allPayments[actualIndex]);
+                intent.putExtra("tour_name", reservation.getTourName());
+                intent.putExtra("reservation_id", reservation.getReservationId());
+                intent.putExtra("payment", totalPrice);
                 startActivity(intent);
         });
     }
 
     @Override
     public int getItemCount() {
-            return filteredIndices.size();
+            return reservations.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {

@@ -17,7 +17,10 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.models.Notification;
 import com.example.droidtour.utils.NotificationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -32,10 +35,21 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private MaterialCardView cardActiveTour, cardQRScanner, cardLocationTracking;
     private TextView tvViewAllOffers, tvViewAllTours;
     
+    // Dashboard Stats TextViews
+    private TextView tvGuideStatus, tvGuideRating, tvMonthlyEarnings, tvCompletedTours;
+    private TextView tvActiveTourName, tvActiveTourProgress;
+    private MaterialButton btnContinueTour;
+    
     // Storage y Notificaciones
     private DatabaseHelper dbHelper;
     private PrefsManager prefsManager;
     private NotificationHelper notificationHelper;
+    
+    // Firebase
+    private FirestoreManager firestoreManager;
+    private FirebaseAuthManager authManager;
+    private String currentUserId;
+    private com.example.droidtour.models.Reservation activeTourReservation;
     
     // Toolbar menu elements
     private FrameLayout notificationActionLayout, avatarActionLayout;
@@ -53,9 +67,20 @@ public class TourGuideMainActivity extends AppCompatActivity {
         prefsManager = new PrefsManager(this);
         notificationHelper = new NotificationHelper(this);
         
+        // Inicializar Firebase
+        firestoreManager = FirestoreManager.getInstance();
+        authManager = FirebaseAuthManager.getInstance(this);
+        currentUserId = authManager.getCurrentUserId();
+        
+        // Fallback a PreferencesManager
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            // Usar el userId guardado en PreferencesManager si existe
+            com.example.droidtour.utils.PreferencesManager utilsPrefs = 
+                new com.example.droidtour.utils.PreferencesManager(this);
+            currentUserId = utilsPrefs.getUserId();
+        }
+        
         initializeViews();
-        // Corregir datos del usuario PRIMERO (sin actualizar vistas aún)
-        correctUserData();
         setupToolbar();
         setupNavigationDrawer();
         setupRecyclerViews();
@@ -64,8 +89,14 @@ public class TourGuideMainActivity extends AppCompatActivity {
         // Cargar datos del usuario y actualizar vistas
         loadUserData();
         
-        // Simular carga de datos de ejemplo (solo primera vez)
-        loadSampleDataIfNeeded();
+        // Cargar notificaciones desde Firebase
+        loadNotificationsCount();
+        
+        // Cargar estadísticas del guía desde Firebase
+        loadGuideStats();
+        
+        // Cargar tour activo
+        loadActiveTour();
     }
     
     @Override
@@ -73,6 +104,8 @@ public class TourGuideMainActivity extends AppCompatActivity {
         super.onResume();
         // ✅ RECARGAR DASHBOARD CADA VEZ QUE REGRESAS
         setupRecyclerViews();
+        // Recargar contador de notificaciones
+        loadNotificationsCount();
     }
 
     private void initializeViews() {
@@ -84,6 +117,17 @@ public class TourGuideMainActivity extends AppCompatActivity {
         cardLocationTracking = findViewById(R.id.card_location_tracking);
         tvViewAllOffers = findViewById(R.id.tv_view_all_offers);
         tvViewAllTours = findViewById(R.id.tv_view_all_tours);
+        
+        // Dashboard Stats
+        tvGuideStatus = findViewById(R.id.tv_guide_status);
+        tvGuideRating = findViewById(R.id.tv_guide_rating);
+        tvMonthlyEarnings = findViewById(R.id.tv_monthly_earnings);
+        tvCompletedTours = findViewById(R.id.tv_completed_tours);
+        
+        // Active Tour elements
+        tvActiveTourName = findViewById(R.id.tv_active_tour_name);
+        tvActiveTourProgress = findViewById(R.id.tv_active_tour_progress);
+        btnContinueTour = findViewById(R.id.btn_continue_tour);
     }
     
     @Override
@@ -97,7 +141,8 @@ public class TourGuideMainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_notifications) {
-            Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, GuideNotificationsActivity.class);
+            startActivity(intent);
             return true;
         } else if (id == R.id.action_profile) {
             // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
@@ -115,8 +160,10 @@ public class TourGuideMainActivity extends AppCompatActivity {
             if (notificationActionLayout != null) {
                 tvNotificationBadge = notificationActionLayout.findViewById(R.id.tv_notification_badge);
                 updateNotificationBadge();
-                notificationActionLayout.setOnClickListener(v ->
-                        Toast.makeText(this, "Notificaciones - Por implementar", Toast.LENGTH_SHORT).show());
+                notificationActionLayout.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, GuideNotificationsActivity.class);
+                    startActivity(intent);
+                });
             }
         }
 
@@ -163,26 +210,13 @@ public class TourGuideMainActivity extends AppCompatActivity {
             TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
             if (tvUserNameHeader != null) {
                 String userType = prefsManager.obtenerTipoUsuario();
+                // Cargar nombre del usuario actual desde PreferencesManager
                 String userName = prefsManager.obtenerUsuario();
-
-                // Asegurar que el guía tenga el nombre correcto
-                if (userType != null && userType.equals("GUIDE")) {
-                    if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") ||
-                        userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-                        prefsManager.guardarUsuario(
-                            "GUIDE001",
-                            "Carlos Mendoza",
-                            "guia@tours.com",
-                            "GUIDE"
-                        );
-                        userName = "Carlos Mendoza";
-                    }
-                }
                 
                 if (userName != null && !userName.isEmpty()) {
                     tvUserNameHeader.setText(userName);
                 } else {
-                    tvUserNameHeader.setText("Carlos Mendoza");
+                    tvUserNameHeader.setText("Usuario");
                 }
             }
         }
@@ -200,6 +234,9 @@ public class TourGuideMainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, LocationTrackingActivity.class));
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, GuideProfileActivity.class));
+            } else if (id == R.id.nav_init_test_data) {
+                // Abrir actividad de inicialización de datos
+                startActivity(new Intent(this, com.example.droidtour.firebase.InitializeTestDataActivity.class));
             } else if (id == R.id.nav_logout) {
                 // Handle logout - limpiar sesión correctamente
                 prefsManager.cerrarSesion();
@@ -219,32 +256,91 @@ public class TourGuideMainActivity extends AppCompatActivity {
     }
 
     private void setupRecyclerViews() {
-        // ✅ CARGAR OFERTAS PENDIENTES DE LA BD
-        List<DatabaseHelper.Offer> pendingOffers = new java.util.ArrayList<>();
-        for (DatabaseHelper.Offer offer : dbHelper.getAllOffers()) {
-            if (offer.getStatus().equals("PENDIENTE")) {
-                pendingOffers.add(offer);
-            }
-        }
-        
-        // ✅ CARGAR TOURS PROGRAMADOS DE LA BD
-        List<DatabaseHelper.Tour> upcomingTours = new java.util.ArrayList<>();
-        for (DatabaseHelper.Tour tour : dbHelper.getAllTours()) {
-            if (tour.getStatus().equals("PROGRAMADO")) {
-                upcomingTours.add(tour);
-            }
-        }
-        
-        // Pending Offers RecyclerView (Horizontal)
+        // Configurar layout managers
         LinearLayoutManager offersLayoutManager = new LinearLayoutManager(
                 this, LinearLayoutManager.HORIZONTAL, false);
         rvPendingOffers.setLayoutManager(offersLayoutManager);
-        rvPendingOffers.setAdapter(new PendingOffersAdapter(pendingOffers, this::onOfferClick));
-
-        // Upcoming Tours RecyclerView (Vertical)
+        
         LinearLayoutManager toursLayoutManager = new LinearLayoutManager(this);
         rvUpcomingTours.setLayoutManager(toursLayoutManager);
-        rvUpcomingTours.setAdapter(new UpcomingToursAdapter(upcomingTours, this::onTourClick));
+        
+        // Cargar datos desde Firebase
+        loadPendingOffersFromFirebase();
+        loadUpcomingToursFromFirebase();
+    }
+    
+    /**
+     * Cargar ofertas pendientes desde Firebase
+     */
+    private void loadPendingOffersFromFirebase() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
+            return;
+        }
+        
+        firestoreManager.getOffersByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<com.example.droidtour.models.TourOffer> allOffers = 
+                    (List<com.example.droidtour.models.TourOffer>) result;
+                
+                // Filtrar solo ofertas pendientes
+                List<com.example.droidtour.models.TourOffer> pendingOffers = new java.util.ArrayList<>();
+                for (com.example.droidtour.models.TourOffer offer : allOffers) {
+                    if ("PENDIENTE".equals(offer.getStatus())) {
+                        pendingOffers.add(offer);
+                    }
+                }
+                
+                // Actualizar adapter
+                rvPendingOffers.setAdapter(new PendingOffersAdapterFirebase(pendingOffers, TourGuideMainActivity.this::onOfferClick));
+                android.util.Log.d("TourGuideMain", "✅ Ofertas pendientes cargadas: " + pendingOffers.size());
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "❌ Error cargando ofertas", e);
+                Toast.makeText(TourGuideMainActivity.this, 
+                    "Error al cargar ofertas", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    /**
+     * Cargar tours programados desde Firebase
+     */
+    private void loadUpcomingToursFromFirebase() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
+            return;
+        }
+        
+        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<com.example.droidtour.models.Reservation> allReservations = 
+                    (List<com.example.droidtour.models.Reservation>) result;
+                
+                // Filtrar solo reservas programadas/confirmadas
+                List<com.example.droidtour.models.Reservation> upcomingTours = new java.util.ArrayList<>();
+                for (com.example.droidtour.models.Reservation reservation : allReservations) {
+                    if ("CONFIRMADA".equals(reservation.getStatus()) || "PROGRAMADA".equals(reservation.getStatus())) {
+                        upcomingTours.add(reservation);
+                    }
+                }
+                
+                // Actualizar adapter
+                rvUpcomingTours.setAdapter(new UpcomingToursAdapterFirebase(upcomingTours, TourGuideMainActivity.this::onTourClick));
+                android.util.Log.d("TourGuideMain", "✅ Tours programados cargados: " + upcomingTours.size());
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "❌ Error cargando tours", e);
+                Toast.makeText(TourGuideMainActivity.this, 
+                    "Error al cargar tours programados", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setupClickListeners() {
@@ -453,52 +549,58 @@ public class TourGuideMainActivity extends AppCompatActivity {
         void onClick(int position);
     }
     
-    // ==================== STORAGE LOCAL ====================
-    
-    private void correctUserData() {
-        // Verificar y corregir datos del guía (sin actualizar vistas)
-        String userType = prefsManager.obtenerTipoUsuario();
-        String userName = prefsManager.obtenerUsuario();
-
-        // Si no está logueado o el tipo no es GUIDE, inicializar como guía
-        if (!prefsManager.sesionActiva() || (userType != null && !userType.equals("GUIDE"))) {
-            prefsManager.guardarUsuario(
-                "GUIDE001",
-                "Carlos Mendoza",
-                "guia@tours.com",
-                "GUIDE"
-            );
-        } else {
-            // Si está logueado pero el nombre no es correcto, corregirlo
-            if (!userName.equals("Carlos Mendoza") && (userName.equals("Gabrielle Ivonne") ||
-                userName.equals("María López") || userName.equals("Ana García Rodríguez"))) {
-                prefsManager.guardarUsuario(
-                    "GUIDE001",
-                    "Carlos Mendoza",
-                    "guia@tours.com",
-                    "GUIDE"
-                );
-            }
-        }
+    private interface OnTourClickListener {
+        void onClick(int position);
     }
     
+    // ==================== STORAGE LOCAL ====================
+    
     private void loadUserData() {
-        // Actualizar nombre en el header del drawer
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        if (navigationView != null) {
-            View headerView = navigationView.getHeaderView(0);
-            if (headerView != null) {
-                TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
-                if (tvUserNameHeader != null) {
-                    String userName = prefsManager.obtenerUsuario();
-                    if (userName != null && !userName.isEmpty()) {
-                        tvUserNameHeader.setText(userName);
-                    } else {
-                        tvUserNameHeader.setText("Carlos Mendoza");
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
+            return;
+        }
+        
+        // Cargar datos reales del usuario desde Firebase
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                
+                // Actualizar nombre en el header del drawer
+                NavigationView navigationView = findViewById(R.id.nav_view);
+                if (navigationView != null) {
+                    View headerView = navigationView.getHeaderView(0);
+                    if (headerView != null) {
+                        TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+                        if (tvUserNameHeader != null) {
+                            String fullName = user.getFullName() != null ? user.getFullName() : 
+                                            (user.getFirstName() + " " + user.getLastName());
+                            tvUserNameHeader.setText(fullName);
+                        }
+                    }
+                }
+                
+                android.util.Log.d("TourGuideMain", "✅ Nombre del drawer actualizado desde Firebase");
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "❌ Error cargando usuario para drawer", e);
+                // Fallback a PreferencesManager
+                NavigationView navigationView = findViewById(R.id.nav_view);
+                if (navigationView != null) {
+                    View headerView = navigationView.getHeaderView(0);
+                    if (headerView != null) {
+                        TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+                        if (tvUserNameHeader != null) {
+                            String userName = prefsManager.obtenerUsuario();
+                            tvUserNameHeader.setText(userName != null && !userName.isEmpty() ? userName : "Usuario");
+                        }
                     }
                 }
             }
-        }
+        });
     }
     
     private void loadSampleDataIfNeeded() {
@@ -554,6 +656,30 @@ public class TourGuideMainActivity extends AppCompatActivity {
     
     // ==================== NOTIFICACIONES ====================
     
+    /**
+     * Cargar contador de notificaciones no leídas desde Firebase
+     */
+    private void loadNotificationsCount() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            return;
+        }
+        
+        firestoreManager.getUnreadNotifications(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Notification> unreadNotifications = (List<Notification>) result;
+                notificationCount = unreadNotifications.size();
+                updateNotificationBadge();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "Error cargando notificaciones", e);
+                // No mostrar error al usuario, solo log
+            }
+        });
+    }
+    
     private void testNotifications() {
         // Método de prueba para enviar notificaciones de ejemplo
         notificationHelper.sendNewOfferNotification(
@@ -561,5 +687,324 @@ public class TourGuideMainActivity extends AppCompatActivity {
             "Coastal Adventures", 
             350.0
         );
+    }
+    
+    // ==================== ESTADÍSTICAS DEL GUÍA ====================
+    
+    /**
+     * Cargar estadísticas del guía desde Firebase
+     */
+    private void loadGuideStats() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
+            return;
+        }
+        
+        // 1. Cargar rating del guía
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                Float rating = user.getGuideRating();
+                
+                if (rating != null && rating > 0) {
+                    tvGuideStatus.setText("Estado: APROBADO");
+                    // El número de tours se cargará desde las reservas
+                } else {
+                    tvGuideStatus.setText("Estado: APROBADO");
+                    tvGuideRating.setText("Calificación: ⭐ 0.0 (0 tours)");
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "❌ Error cargando usuario", e);
+            }
+        });
+        
+        // 2. Cargar reservas para calcular tours completados y ganancias
+        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<com.example.droidtour.models.Reservation> allReservations = 
+                    (List<com.example.droidtour.models.Reservation>) result;
+                
+                final int[] completedCount = {0};
+                double totalEarnings = 0.0;
+                
+                for (com.example.droidtour.models.Reservation reservation : allReservations) {
+                    if ("COMPLETADA".equals(reservation.getStatus())) {
+                        completedCount[0]++;
+                        Double price = reservation.getTotalPrice();
+                        if (price != null) {
+                            totalEarnings += price;
+                        }
+                    }
+                }
+                
+                // Actualizar UI
+                tvCompletedTours.setText(completedCount[0] + " Tours");
+                tvMonthlyEarnings.setText(String.format("S/. %.0f", totalEarnings));
+                
+                // Actualizar rating con el número real de tours
+                firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                        Float rating = user.getGuideRating();
+                        if (rating != null && rating > 0) {
+                            tvGuideRating.setText(String.format("Calificación: ⭐ %.1f (%d tours)", rating, completedCount[0]));
+                        } else {
+                            tvGuideRating.setText(String.format("Calificación: ⭐ 0.0 (%d tours)", completedCount[0]));
+                        }
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        tvGuideRating.setText(String.format("Calificación: ⭐ 0.0 (%d tours)", completedCount[0]));
+                    }
+                });
+                
+                android.util.Log.d("TourGuideMain", "✅ Stats: " + completedCount[0] + " tours, S/. " + totalEarnings);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "❌ Error cargando reservas", e);
+                tvCompletedTours.setText("0 Tours");
+                tvMonthlyEarnings.setText("S/. 0");
+            }
+        });
+    }
+    
+    /**
+     * Cargar tour activo (EN_PROGRESO) desde Firebase
+     */
+    private void loadActiveTour() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            cardActiveTour.setVisibility(View.GONE);
+            return;
+        }
+        
+        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<com.example.droidtour.models.Reservation> allReservations = 
+                    (List<com.example.droidtour.models.Reservation>) result;
+                
+                // Buscar tour EN_PROGRESO
+                com.example.droidtour.models.Reservation activeTour = null;
+                for (com.example.droidtour.models.Reservation reservation : allReservations) {
+                    if ("EN_PROGRESO".equals(reservation.getStatus())) {
+                        activeTour = reservation;
+                        break;
+                    }
+                }
+                
+                final com.example.droidtour.models.Reservation finalActiveTour = activeTour;
+                
+                if (finalActiveTour != null) {
+                    activeTourReservation = finalActiveTour;
+                    cardActiveTour.setVisibility(View.VISIBLE);
+                    tvActiveTourName.setText(finalActiveTour.getTourName());
+                    tvActiveTourProgress.setText("📍 Punto 2 de 4 • Plaza de Armas"); // TODO: Dinámico
+                    
+                    btnContinueTour.setOnClickListener(v -> {
+                        // Ir a LocationTrackingActivity con el tour activo
+                        Intent intent = new Intent(TourGuideMainActivity.this, LocationTrackingActivity.class);
+                        intent.putExtra("reservation_id", finalActiveTour.getReservationId());
+                        intent.putExtra("tour_name", finalActiveTour.getTourName());
+                        startActivity(intent);
+                    });
+                    
+                    // Configurar botones de acciones rápidas
+                    cardQRScanner.setOnClickListener(v -> {
+                        Intent intent = new Intent(TourGuideMainActivity.this, QRScannerActivity.class);
+                        intent.putExtra("reservation_id", finalActiveTour.getReservationId());
+                        startActivity(intent);
+                    });
+                    
+                    cardLocationTracking.setOnClickListener(v -> {
+                        Intent intent = new Intent(TourGuideMainActivity.this, LocationTrackingActivity.class);
+                        intent.putExtra("reservation_id", finalActiveTour.getReservationId());
+                        intent.putExtra("tour_name", finalActiveTour.getTourName());
+                        startActivity(intent);
+                    });
+                    
+                    android.util.Log.d("TourGuideMain", "✅ Tour activo encontrado: " + finalActiveTour.getTourName());
+                } else {
+                    // No hay tour activo, ocultar card
+                    cardActiveTour.setVisibility(View.GONE);
+                    android.util.Log.d("TourGuideMain", "ℹ️ No hay tour activo");
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "❌ Error cargando tour activo", e);
+                cardActiveTour.setVisibility(View.GONE);
+            }
+        });
+    }
+    
+    // ==================== ADAPTERS FIREBASE ====================
+    
+    /**
+     * Adapter para ofertas pendientes usando Firebase
+     */
+    private class PendingOffersAdapterFirebase extends RecyclerView.Adapter<PendingOffersAdapterFirebase.ViewHolder> {
+        
+        private final OnOfferClickListener listener;
+        private final List<com.example.droidtour.models.TourOffer> offers;
+
+        PendingOffersAdapterFirebase(List<com.example.droidtour.models.TourOffer> offers, OnOfferClickListener listener) {
+            this.offers = offers;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
+            View view = getLayoutInflater().inflate(R.layout.item_pending_offer, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            com.example.droidtour.models.TourOffer offer = offers.get(position);
+            
+            holder.tvTourName.setText(offer.getTourName() != null ? offer.getTourName() : "Tour");
+            holder.tvCompanyName.setText(offer.getCompanyName() != null ? offer.getCompanyName() : "Empresa");
+            holder.tvTourDate.setText(offer.getTourDate() != null ? offer.getTourDate() : "Fecha");
+            holder.tvTourTime.setText(offer.getTourTime() != null ? offer.getTourTime() : "Hora");
+            holder.tvPaymentAmount.setText(String.format("S/. %.0f", offer.getPaymentAmount() != null ? offer.getPaymentAmount() : 0.0));
+            holder.tvParticipants.setText((offer.getNumberOfParticipants() != null ? offer.getNumberOfParticipants() : 0) + " personas");
+
+            holder.btnAccept.setOnClickListener(v -> {
+                // Aceptar oferta directamente desde el dashboard
+                if (offer.getOfferId() != null) {
+                    firestoreManager.updateOfferStatus(offer.getOfferId(), "ACEPTADA", 
+                        new FirestoreManager.FirestoreCallback() {
+                            @Override
+                            public void onSuccess(Object result) {
+                                Toast.makeText(TourGuideMainActivity.this, 
+                                    "✅ Oferta aceptada: " + offer.getTourName(), 
+                                    Toast.LENGTH_LONG).show();
+                                // Recargar ofertas
+                                loadPendingOffersFromFirebase();
+                            }
+                            
+                            @Override
+                            public void onFailure(Exception e) {
+                                Toast.makeText(TourGuideMainActivity.this, 
+                                    "Error al aceptar oferta: " + e.getMessage(), 
+                                    Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                }
+            });
+
+            holder.btnReject.setOnClickListener(v -> {
+                // Rechazar oferta directamente desde el dashboard
+                if (offer.getOfferId() != null) {
+                    firestoreManager.updateOfferStatus(offer.getOfferId(), "RECHAZADA", 
+                        new FirestoreManager.FirestoreCallback() {
+                            @Override
+                            public void onSuccess(Object result) {
+                                Toast.makeText(TourGuideMainActivity.this, 
+                                    "Oferta rechazada", 
+                                    Toast.LENGTH_SHORT).show();
+                                // Recargar ofertas
+                                loadPendingOffersFromFirebase();
+                            }
+                            
+                            @Override
+                            public void onFailure(Exception e) {
+                                Toast.makeText(TourGuideMainActivity.this, 
+                                    "Error al rechazar oferta: " + e.getMessage(), 
+                                    Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                }
+            });
+
+            holder.itemView.setOnClickListener(v -> listener.onClick(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return offers.size();
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvTourName, tvCompanyName, tvTourDate, tvTourTime, tvPaymentAmount, tvParticipants;
+            MaterialButton btnAccept, btnReject;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                tvTourName = itemView.findViewById(R.id.tv_tour_name);
+                tvCompanyName = itemView.findViewById(R.id.tv_company_name);
+                tvTourDate = itemView.findViewById(R.id.tv_tour_date);
+                tvTourTime = itemView.findViewById(R.id.tv_tour_time);
+                tvPaymentAmount = itemView.findViewById(R.id.tv_payment_amount);
+                tvParticipants = itemView.findViewById(R.id.tv_participants);
+                btnAccept = itemView.findViewById(R.id.btn_accept);
+                btnReject = itemView.findViewById(R.id.btn_reject);
+            }
+        }
+    }
+    
+    /**
+     * Adapter para tours programados usando Firebase
+     */
+    private class UpcomingToursAdapterFirebase extends RecyclerView.Adapter<UpcomingToursAdapterFirebase.ViewHolder> {
+        
+        private final OnTourClickListener listener;
+        private final List<com.example.droidtour.models.Reservation> tours;
+
+        UpcomingToursAdapterFirebase(List<com.example.droidtour.models.Reservation> tours, OnTourClickListener listener) {
+            this.tours = tours;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
+            View view = getLayoutInflater().inflate(R.layout.item_upcoming_tour, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            com.example.droidtour.models.Reservation tour = tours.get(position);
+            
+            holder.tvTourName.setText(tour.getTourName() != null ? tour.getTourName() : "Tour");
+            holder.tvCompanyName.setText(tour.getCompanyName() != null ? tour.getCompanyName() : "Empresa");
+            holder.tvTourDate.setText(tour.getTourDate() != null ? tour.getTourDate() : "Fecha");
+            holder.tvTourTime.setText(tour.getTourTime() != null ? tour.getTourTime() : "Hora");
+            holder.tvGroupSize.setText((tour.getNumberOfPeople() != null ? tour.getNumberOfPeople() : 0) + " personas");
+            holder.tvStatus.setText(tour.getStatus() != null ? tour.getStatus() : "PENDIENTE");
+
+            holder.itemView.setOnClickListener(v -> listener.onClick(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return tours.size();
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvTourName, tvCompanyName, tvTourDate, tvTourTime, tvGroupSize, tvStatus;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                tvTourName = itemView.findViewById(R.id.tv_tour_name);
+                tvCompanyName = itemView.findViewById(R.id.tv_company_name);
+                tvTourDate = itemView.findViewById(R.id.tv_tour_date);
+                tvTourTime = itemView.findViewById(R.id.tv_tour_time);
+                tvGroupSize = itemView.findViewById(R.id.tv_participants); // ✅ ID correcto del layout
+                tvStatus = itemView.findViewById(R.id.tv_status);
+            }
+        }
     }
 }

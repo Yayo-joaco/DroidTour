@@ -272,6 +272,11 @@
             android:parentActivityName=".TourGuideMainActivity" />
 
         <activity
+            android:name=".GuideNotificationsActivity"
+            android:exported="false"
+            android:parentActivityName=".TourGuideMainActivity" />
+
+        <activity
             android:name=".GuideActiveTourDetailActivity"
             android:exported="false"
             android:parentActivityName=".GuideActiveToursActivity" />
@@ -317,7 +322,7 @@
             android:parentActivityName=".TourAdminMainActivity" />
 
         <activity
-            android:name=".TourOfferDetailActivity"
+            android:name=".TourOfferDetailsActivity"
             android:exported="false"
             android:parentActivityName=".TourOffersActivity" />
 

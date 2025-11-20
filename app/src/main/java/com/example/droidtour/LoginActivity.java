@@ -1,6 +1,7 @@
 package com.example.droidtour;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -190,6 +191,17 @@ public class LoginActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
+                        // Revisar si la cuenta está desactivada por admin o tiene status no activo
+                        Boolean isActiveField = documentSnapshot.getBoolean("isActive");
+                        String statusField = documentSnapshot.getString("status");
+
+                        if ((isActiveField != null && !isActiveField) ||
+                                (statusField != null && ("inactive".equalsIgnoreCase(statusField) || "suspended".equalsIgnoreCase(statusField)))) {
+                            // For safety, sign out and redirect to disabled screen
+                            redirectToUserDisabled(uid, "Tu cuenta ha sido desactivada. Contacta con soporte.");
+                            return;
+                        }
+
                         // Extraer datos completos del usuario
                         String fullName = documentSnapshot.getString("fullName");
                         String displayName = fullName != null ? fullName : 
@@ -201,7 +213,7 @@ public class LoginActivity extends AppCompatActivity {
                         if (phoneNumber == null || phoneNumber.isEmpty()) {
                             phoneNumber = documentSnapshot.getString("phone"); // Fallback a "phone"
                         }
-                        
+
                         // Guardar datos COMPLETOS en PreferencesManager
                         Log.d(TAG, "[SAVE] GUARDANDO EN PreferencesManager:");
                         Log.d(TAG, "   - UID: " + uid);
@@ -209,7 +221,7 @@ public class LoginActivity extends AppCompatActivity {
                         Log.d(TAG, "   - Email: " + userEmail);
                         Log.d(TAG, "   - Phone: " + phoneNumber);
                         Log.d(TAG, "   - UserType: " + userType);
-                        
+
                         prefsManager.saveUserData(
                             uid, 
                             displayName != null ? displayName : user.getDisplayName(),
@@ -315,56 +327,82 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void checkGuideApprovalStatus(String userId) {
-        FirebaseFirestore.getInstance().collection("user_roles")
-                .document(userId)
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful() && task.getResult().exists()) {
-                        DocumentSnapshot doc = task.getResult();
+        // Primero revisar si el usuario está activo en users collection
+        FirebaseFirestore.getInstance().collection("users").document(userId).get()
+                .addOnCompleteListener(userTask -> {
+                    if (userTask.isSuccessful() && userTask.getResult() != null && userTask.getResult().exists()) {
+                        DocumentSnapshot userDoc = userTask.getResult();
+                        Boolean isActiveField = userDoc.getBoolean("isActive");
+                        String statusField = userDoc.getString("status");
 
-                        // Verificar si existe el campo 'guide'
-                        if (doc.contains("guide")) {
-                            Map<String, Object> guideData = (Map<String, Object>) doc.get("guide");
-                            if (guideData != null) {
-                                String status = (String) guideData.get("status");
-
-                                if ("active".equals(status)) {
-                                    // Guía aprobado - redirigir al dashboard
-                                    redirigirSegunRol();
-                                    finish();
-                                } else {
-                                    // Guía no aprobado - redirigir a pantalla de espera
-                                    redirectToApprovalPending();
-                                }
-                            } else {
-                                // No hay datos de guía - redirigir a pantalla de espera
-                                redirectToApprovalPending();
-                            }
-                        } else {
-                            // No existe el campo guide - redirigir a pantalla de espera
-                            redirectToApprovalPending();
+                        if ((isActiveField != null && !isActiveField) ||
+                                (statusField != null && ("inactive".equalsIgnoreCase(statusField) || "suspended".equalsIgnoreCase(statusField)))) {
+                            redirectToUserDisabled(userId, "Tu cuenta ha sido desactivada. Contacta con soporte.");
+                            return;
                         }
+
+                        // Si está activo, proceder a revisar user_roles como antes
+                        FirebaseFirestore.getInstance().collection("user_roles")
+                                .document(userId)
+                                .get()
+                                .addOnCompleteListener(task -> {
+                                    if (task.isSuccessful() && task.getResult().exists()) {
+                                        DocumentSnapshot doc = task.getResult();
+
+                                        // Verificar si existe el campo 'guide'
+                                        if (doc.contains("guide")) {
+                                            Map<String, Object> guideData = (Map<String, Object>) doc.get("guide");
+                                            if (guideData != null) {
+                                                String status = (String) guideData.get("status");
+
+                                                if ("active".equals(status)) {
+                                                    // Guía aprobado - redirigir al dashboard
+                                                    redirigirSegunRol();
+                                                    finish();
+                                                } else {
+                                                    // Guía no aprobado - redirigir a pantalla de espera
+                                                    redirectToApprovalPending();
+                                                }
+                                            } else {
+                                                // No hay datos de guía - redirigir a pantalla de espera
+                                                redirectToApprovalPending();
+                                            }
+                                        } else {
+                                            // No existe el campo guide - redirigir a pantalla de espera
+                                            redirectToApprovalPending();
+                                        }
+                                    } else {
+                                        // Error al obtener datos - redirigir a pantalla de espera por seguridad
+                                        redirectToApprovalPending();
+                                    }
+                                });
+
                     } else {
-                        // Error al obtener datos - redirigir a pantalla de espera por seguridad
+                        // No se pudo leer user doc; por seguridad, redirigir a aprobación pendiente
                         redirectToApprovalPending();
                     }
                 });
     }
 
-    private void checkUserApprovalStatus() {
-        String userType = prefsManager.getUserType();
-        String userId = prefsManager.getUserId();
-
-        if ("GUIDE".equals(userType) && !userId.isEmpty()) {
-            checkGuideApprovalStatus(userId);
-        } else {
-            redirigirSegunRol();
-            finish();
-        }
-    }
-
     private void redirectToApprovalPending() {
         Intent intent = new Intent(this, GuideApprovalPendingActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    /**
+     * Redirige a la pantalla que indica que la cuenta está desactivada por el administrador.
+     */
+    private void redirectToUserDisabled(String userId, String reason) {
+        // Sign out current firebase user for safety
+        try {
+            if (mAuth != null) mAuth.signOut();
+        } catch (Exception ignored) {}
+
+        Intent intent = new Intent(this, UserDisabledActivity.class);
+        intent.putExtra("userId", userId);
+        intent.putExtra("reason", reason);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();

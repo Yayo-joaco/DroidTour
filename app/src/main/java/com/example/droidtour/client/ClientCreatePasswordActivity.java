@@ -134,6 +134,8 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
 
     private void registerUser() {
         btnSiguiente.setEnabled(false);
+        btnSiguiente.setText("Creando cuenta..."); // Feedback visual
+
         String password = etPassword.getText().toString().trim();
 
         // 1. CREAR USUARIO EN FIREBASE AUTH
@@ -148,10 +150,32 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
                             handleRegistrationError("Error al obtener usuario");
                         }
                     } else {
-                        handleRegistrationError(task.getException() != null ?
-                                task.getException().getMessage() : "Error en el registro");
+                        // MEJOR MANEJO DE ERRORES ESPECÍFICOS
+                        String errorMessage = "Error en el registro";
+                        if (task.getException() != null) {
+                            String exceptionMessage = task.getException().getMessage();
+                            if (exceptionMessage.contains("email address is already")) {
+                                errorMessage = "Este correo electrónico ya está registrado";
+                            } else if (exceptionMessage.contains("network error") || exceptionMessage.contains("INTERNET")) {
+                                errorMessage = "Error de conexión. Verifica tu internet";
+                            } else {
+                                errorMessage = exceptionMessage;
+                            }
+                        }
+                        handleRegistrationError(errorMessage);
                     }
                 });
+    }
+
+    private void handleRegistrationError(String errorMessage) {
+        btnSiguiente.setEnabled(true);
+        btnSiguiente.setText("Siguiente"); // Restaurar texto
+
+        // Mostrar error en el TextView en lugar de solo Toast
+        tvPasswordError.setText(errorMessage);
+        tvPasswordError.setVisibility(TextView.VISIBLE);
+
+        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
     }
 
     private void saveUserToFirestore(FirebaseUser user) {
@@ -237,8 +261,4 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
         finish();
     }
 
-    private void handleRegistrationError(String errorMessage) {
-        btnSiguiente.setEnabled(true);
-        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
-    }
 }

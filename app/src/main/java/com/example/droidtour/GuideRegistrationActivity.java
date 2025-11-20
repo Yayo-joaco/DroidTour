@@ -6,19 +6,26 @@ import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.material.button.MaterialButton;
+
+import com.example.droidtour.client.ClientRegistrationPhotoActivity;
 import com.google.android.material.textfield.TextInputEditText;
+import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.managers.FileManager;
+import org.json.JSONObject;
+import org.json.JSONException;
+import com.google.android.material.button.MaterialButton;
 import com.hbb20.CountryCodePicker;
+
 import java.util.Calendar;
 
 public class GuideRegistrationActivity extends AppCompatActivity {
 
     private TextInputEditText etNombres, etApellidos, etNumeroDocumento,
             etFechaNacimiento, etCorreo;
-    private AutoCompleteTextView etDocumento;  // Cambiado a AutoCompleteTextView
+    private AutoCompleteTextView etDocumento;
     private TextInputEditText etTelefono;
     private MaterialButton btnSiguiente;
     private CountryCodePicker ccp;
@@ -27,11 +34,35 @@ public class GuideRegistrationActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide_registration);
-
+        //getWindow().setStatusBarColor(ContextCompat.getColor("#FF6200EE"));
         initializeViews();
+
+        // Manejar datos de Google si vienen en el intent
+        handleGoogleUserData();
+
         setupDocumentTypeSpinner();
         setupCountryCodePicker();
         setupClickListeners();
+    }
+
+    // Nuevo: rellenar campos si venimos desde Google Sign-In
+    private void handleGoogleUserData() {
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.getBoolean("googleUser", false)) {
+            String userEmail = extras.getString("userEmail", "");
+            String userName = extras.getString("userName", "");
+
+            if (userEmail != null && !userEmail.isEmpty()) {
+                etCorreo.setText(userEmail);
+                etCorreo.setEnabled(false); // hacerlo de solo lectura
+            }
+
+            if (userName != null && !userName.isEmpty()) {
+                String[] parts = userName.split(" ", 2);
+                if (parts.length >= 1) etNombres.setText(parts[0]);
+                if (parts.length == 2) etApellidos.setText(parts[1]);
+            }
+        }
     }
 
     private void initializeViews() {
@@ -168,6 +199,17 @@ public class GuideRegistrationActivity extends AppCompatActivity {
         intent.putExtra("numeroDocumento", numeroDocumento);
         intent.putExtra("fechaNacimiento", fechaNacimiento);
         intent.putExtra("telefono", fullPhoneNumber);
+
+        // NUEVO: Pasar también los datos de Google si existen
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.getBoolean("googleUser", false)) {
+            intent.putExtra("googleUser", true);
+            intent.putExtra("userType", extras.getString("userType", ""));
+            intent.putExtra("userEmail", extras.getString("userEmail", ""));
+            intent.putExtra("userName", extras.getString("userName", ""));
+            intent.putExtra("userPhoto", extras.getString("userPhoto", "")); // ← ESTA ES LA CLAVE
+        }
+
         startActivity(intent);
     }
 

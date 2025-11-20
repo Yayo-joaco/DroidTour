@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">DroidTour</string>
-    
+
     <!-- Login/Register -->
     <string name="welcome">Bienvenido a DroidTour</string>
     <string name="login">Iniciar Sesión</string>
@@ -81,12 +81,12 @@
     <string name="checkout_alerts">Alertas Check-out</string>
     <string name="customer_chat">Chat Clientes</string>
     <string name="settings">Configuración</string>
-    <string name="saltar"><u>Saltar>></u></string>
+    <string name="saltar">Saltar&gt;&gt;</string>
     <string name="mensaje1">¡Bienvenido a DroidTour!</string>
     <string name="mensaje2">Reserva y gestiona tus tours de manera rápida y segura</string>
     <string name="mensaje3">¡Encuentra el tour perfecto para ti!</string>
     <string name="mensaje4">Animate a conocer el mundo, así como  puedes guiar a otros a conocerlo!</string>
-    <string name="DroidTour" />
+    <string name="app_title">DroidTour</string>
 
     <!-- Added for superadmin users layout -->
     <string name="todos">Todos</string>
@@ -115,4 +115,17 @@
     <string name="my_reservations_desc">Mis reservas</string>
     <string name="my_chats_label">Mis Chats</string>
     <string name="my_chats_desc">Mis chats</string>
+
+    <!-- Notifications screen strings -->
+    <string name="mark_all_read">Marcar todo como leído</string>
+    <string name="tab_all">Todas</string>
+    <string name="tab_unread">Sin leer</string>
+    <string name="tab_important">Importantes</string>
+    <string name="no_notifications">No tienes notificaciones</string>
+    <string name="empty_notifications_text">Cuando recibas notificaciones\naparecerán aquí</string>
+    <string name="loading_notifications">Cargando notificaciones...</string>
+    <!-- Notification item menu -->
+    <string name="menu_mark_read">Marcar como leído</string>
+    <string name="menu_delete">Eliminar</string>
+
 </resources>

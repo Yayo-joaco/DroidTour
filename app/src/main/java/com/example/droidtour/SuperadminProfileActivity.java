@@ -1,5 +1,6 @@
 package com.example.droidtour;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
@@ -8,6 +9,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import com.example.droidtour.LoginActivity;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -25,10 +27,26 @@ public class SuperadminProfileActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_myprofile);
-
-        // Inicializar helpers
+        
+        // Inicializar PreferencesManager PRIMERO
         prefsManager = new PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea SUPERADMIN o ADMIN
+        String userType = prefsManager.getUserType();
+        if (userType == null || (!userType.equals("SUPERADMIN") && !userType.equals("ADMIN"))) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        setContentView(R.layout.activity_myprofile);
 
         setupToolbar();
         initializeViews();
@@ -70,25 +88,8 @@ public class SuperadminProfileActivity extends AppCompatActivity {
     }
 
     private void loadUserData() {
-        if (!prefsManager.isLoggedIn()) {
-            Toast.makeText(this, "No hay sesión activa", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
-        }
-
-        // Verificar que el usuario sea un superadministrador
+        // La validación de sesión ya se hizo en onCreate, aquí solo cargamos datos
         String userType = prefsManager.getUserType();
-        if (userType == null || (!userType.equals("SUPERADMIN") && !userType.equals("ADMIN"))) {
-            // Si no es superadministrador, inicializar datos del superadministrador
-            prefsManager.saveUserData(
-                "SUPERADMIN001", 
-                "Gabrielle Ivonne", 
-                "superadmin@droidtour.com", 
-                "999888777", 
-                "SUPERADMIN"
-            );
-            userType = "SUPERADMIN";
-        }
 
         // Cargar datos del usuario (superadministrador)
         String userName = prefsManager.getUserName();
@@ -172,6 +173,12 @@ public class SuperadminProfileActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
 

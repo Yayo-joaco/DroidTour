@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    id 'com.google.gms.google-services'
 }
 
 android {
@@ -10,7 +9,7 @@ android {
     defaultConfig {
         applicationId "com.example.droidtour"
         minSdk 31
-        targetSdk 31
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
@@ -52,24 +51,15 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'de.hdodenhof:circleimageview:3.1.0'
 
-    // Firebase BoM (Bill of Materials) - gestiona versiones de Firebase automáticamente
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    
-    // Firebase Authentication
-    implementation 'com.google.firebase:firebase-auth'
-    
-    // Firebase Firestore Database
+
+    implementation platform('com.google.firebase:firebase-bom:31.4.0')
     implementation 'com.google.firebase:firebase-firestore'
-    
-    // Firebase Storage
     implementation 'com.google.firebase:firebase-storage'
-    
-    // Firebase Analytics (opcional pero recomendado)
-    implementation 'com.google.firebase:firebase-analytics'
-    
-    // Google Play Services Auth (para autenticación con Google)
+    implementation 'com.google.firebase:firebase-auth'
+
+    // Google Sign-In
     implementation 'com.google.android.gms:play-services-auth:20.7.0'
 
 }
 
-
+apply plugin: 'com.google.gms.google-services'

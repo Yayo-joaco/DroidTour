@@ -52,6 +52,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
+import com.example.droidtour.LoginActivity;
 import com.example.droidtour.utils.PreferencesManager;
 
 import java.io.File;
@@ -91,6 +92,25 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea SUPERADMIN o ADMIN
+        String userType = prefsManager.getUserType();
+        if (userType == null || (!userType.equals("SUPERADMIN") && !userType.equals("ADMIN"))) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_superadmin_main);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
@@ -99,9 +119,6 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
-        // Inicializar PreferencesManager
-        prefsManager = new PreferencesManager(this);
         
         initViews();
         setupDrawer();
@@ -202,10 +219,10 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     private void loadUserDataInDrawer() {
         // Actualizar nombre de usuario en el header del drawer
         View headerView = navigationView.getHeaderView(0);
-        if (headerView != null && prefsManager != null && prefsManager.isLoggedIn()) {
+        if (headerView != null && prefsManager != null && prefsManager.sesionActiva()) {
             TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
             if (tvUserNameHeader != null) {
-                String userName = prefsManager.getUserName();
+                String userName = prefsManager.obtenerUsuario();
                 if (userName != null && !userName.isEmpty()) {
                     tvUserNameHeader.setText(userName);
                 } else {
@@ -569,8 +586,17 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         } else if (id == R.id.nav_profile) {
             startActivity(new Intent(this, SuperadminProfileActivity.class));
         } else if (id == R.id.nav_logout) {
-            Toast.makeText(this, "Cerrando sesión...", Toast.LENGTH_SHORT).show();
+            //Se limpian los datos de seión
+            prefsManager.cerrarSesion();
+
+            //Limpiar el stack de activities de Login
+            Intent intent= new Intent(this,LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+
             finish();
+
+            Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
         }
 
         drawerLayout.closeDrawers();
@@ -584,5 +610,11 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         } else {
             super.onBackPressed();
         }
+    }
+    
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }

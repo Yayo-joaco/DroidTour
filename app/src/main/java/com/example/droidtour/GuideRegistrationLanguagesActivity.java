@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -16,8 +17,11 @@ import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
 
@@ -32,12 +36,19 @@ public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
     private List<Language> filteredLanguages = new ArrayList<>();
     private List<Language> selectedLanguages = new ArrayList<>();
 
+    // Variables para datos del usuario
+    private boolean isGoogleUser = false;
+    private String userEmail, userName, userPhoto, userType;
+    private String nombres, apellidos, tipoDocumento, numeroDocumento, fechaNacimiento, telefono;
+    private String photoUri;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_guide_registration_languages);
 
         initViews();
+        loadUserData();
         setupLanguages();
         setupRecyclerView();
         setupSearchFilter();
@@ -51,6 +62,24 @@ public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
         rvLanguages = findViewById(R.id.rvLanguages);
         btnSiguiente = findViewById(R.id.btnSiguiente);
         tvRegresar = findViewById(R.id.tvRegresar);
+    }
+
+    private void loadUserData() {
+        Intent intent = getIntent();
+        isGoogleUser = intent.getBooleanExtra("googleUser", false);
+        userType = intent.getStringExtra("userType");
+        userEmail = intent.getStringExtra("userEmail");
+        userName = intent.getStringExtra("userName");
+        userPhoto = intent.getStringExtra("userPhoto");
+
+        // Datos del formulario
+        nombres = intent.getStringExtra("nombres");
+        apellidos = intent.getStringExtra("apellidos");
+        tipoDocumento = intent.getStringExtra("tipoDocumento");
+        numeroDocumento = intent.getStringExtra("numeroDocumento");
+        fechaNacimiento = intent.getStringExtra("fechaNacimiento");
+        telefono = intent.getStringExtra("telefono");
+        photoUri = intent.getStringExtra("photoUri");
     }
 
     private void setupLanguages() {
@@ -142,7 +171,7 @@ public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
         Chip chip = new Chip(this);
         chip.setText(language.getFlagEmoji() + " " + language.getName());
         chip.setCloseIconVisible(true);
-        chip.setTag(language.getCode()); // Para identificarlo después
+        chip.setTag(language.getCode());
 
         chip.setOnCloseIconClickListener(new View.OnClickListener() {
             @Override
@@ -184,21 +213,116 @@ public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
         btnSiguiente.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Navegar a la pantalla de creación de contraseña
-                Intent intent = new Intent(GuideRegistrationLanguagesActivity.this, GuideCreatePasswordActivity.class);
-                /*// Si quieres pasar los idiomas seleccionados:
-                ArrayList<String> idiomasSeleccionados = new ArrayList<>();
-                for (Language lang : selectedLanguages) {
-                    idiomasSeleccionados.add(lang.getCode());
-                }
-                intent.putStringArrayListExtra("idiomas", idiomasSeleccionados);
+                if (isGoogleUser) {
+                    completeGoogleRegistration();
+                } else {
+                    // Para registro normal, ir a crear contraseña
+                    Intent intent = new Intent(GuideRegistrationLanguagesActivity.this, GuideCreatePasswordActivity.class);
 
-                 */
-                startActivity(intent);
+                    // Pasar datos del formulario
+                    intent.putExtra("nombres", nombres);
+                    intent.putExtra("apellidos", apellidos);
+                    intent.putExtra("correo", userEmail);
+                    intent.putExtra("tipoDocumento", tipoDocumento);
+                    intent.putExtra("numeroDocumento", numeroDocumento);
+                    intent.putExtra("fechaNacimiento", fechaNacimiento);
+                    intent.putExtra("telefono", telefono);
+
+                    // Pasar idiomas seleccionados
+                    ArrayList<String> idiomasSeleccionados = new ArrayList<>();
+                    for (Language lang : selectedLanguages) {
+                        idiomasSeleccionados.add(lang.getCode());
+                    }
+                    intent.putStringArrayListExtra("idiomas", idiomasSeleccionados);
+
+                    startActivity(intent);
+                }
             }
         });
     }
+
+    private void completeGoogleRegistration() {
+        btnSiguiente.setEnabled(false);
+        Toast.makeText(this, "Completando registro...", Toast.LENGTH_SHORT).show();
+
+        // Obtener el usuario actual de Firebase Auth
+        com.google.firebase.auth.FirebaseUser firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+
+        if (firebaseUser != null) {
+            // Preparar lista de idiomas
+            List<String> languagesList = new ArrayList<>();
+            for (Language lang : selectedLanguages) {
+                languagesList.add(lang.getCode());
+            }
+
+            // Combinar nombre completo
+            String fullName = (nombres != null && apellidos != null) ?
+                    nombres + " " + apellidos : userName;
+
+            // Preparar datos adicionales del formulario
+            Map<String, Object> additionalData = new HashMap<>();
+            additionalData.put("firstName", nombres);
+            additionalData.put("lastName", apellidos);
+            additionalData.put("fullName", fullName);
+            additionalData.put("documentType", tipoDocumento);
+            additionalData.put("documentNumber", numeroDocumento);
+            additionalData.put("birthDate", fechaNacimiento);
+            additionalData.put("phone", telefono);
+            additionalData.put("profileCompleted", true);
+            additionalData.put("profileCompletedAt", new java.util.Date());
+
+            // Determinar qué foto usar
+            String finalPhotoUrl;
+            if (photoUri != null && !photoUri.isEmpty()) {
+                // Si el usuario cambió la foto, usar la URI local
+                finalPhotoUrl = photoUri;
+                additionalData.put("customPhoto", true);
+            } else {
+                finalPhotoUrl = userPhoto;
+                additionalData.put("customPhoto", false);
+            }
+
+            // Guardar en Firestore CON idiomas
+            com.example.droidtour.utils.FirebaseUtils.saveGoogleGuideToFirestore(
+                    firebaseUser,
+                    "GUIDE",
+                    additionalData,
+                    languagesList
+            );
+
+            // Guardar en PreferencesManager para la sesión actual
+            saveToPreferencesManager(firebaseUser.getUid(), fullName, firebaseUser.getEmail(), telefono, "GUIDE");
+
+            Toast.makeText(this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+
+            // Redirigir a la pantalla de espera de aprobación
+            redirectToApprovalPending();
+
+        } else {
+            btnSiguiente.setEnabled(true);
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void saveToPreferencesManager(String userId, String fullName, String email, String phone, String userType) {
+        com.example.droidtour.utils.PreferencesManager prefsManager =
+                new com.example.droidtour.utils.PreferencesManager(this);
+
+        prefsManager.saveUserData(userId, fullName, email, phone, userType);
+        prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+        prefsManager.marcarPrimeraVezCompletada();
+    }
+
+    private void redirectToApprovalPending() {
+        // Crear una actividad temporal para mostrar el mensaje de aprobación pendiente
+        Intent intent = new Intent(this, GuideApprovalPendingActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
 }
+
+// Las clases Language y LanguageAdapter se mantienen igual...
 
 // Clase Language
 class Language {

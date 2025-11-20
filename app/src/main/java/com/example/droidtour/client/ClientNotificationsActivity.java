@@ -1,258 +1,181 @@
 package com.example.droidtour.client;
 
-import android.content.Intent;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
-import androidx.annotation.NonNull;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.droidtour.R;
-import com.example.droidtour.firebase.FirebaseAuthManager;
-import com.example.droidtour.firebase.FirestoreManager;
-import com.example.droidtour.models.Notification;
+
 import com.google.android.material.appbar.MaterialToolbar;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import com.google.android.material.tabs.TabLayout;
+import com.example.droidtour.R;
 
 public class ClientNotificationsActivity extends AppCompatActivity {
 
+    private MaterialToolbar toolbar;
+    private TabLayout tabLayout;
     private RecyclerView rvNotifications;
-    private FirebaseAuthManager authManager;
-    private FirestoreManager firestoreManager;
-    private String currentUserId;
-    private NotificationsAdapter adapter;
-    private List<Notification> notificationsList = new ArrayList<>();
+    private ClientNotificationsAdapter notificationsAdapter;
+    private ImageView ivMarkAllRead;
+    private LinearLayout emptyState, loadingState;
+    private com.example.droidtour.utils.PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_client_notifications);
-
-        authManager = FirebaseAuthManager.getInstance(this);
-        firestoreManager = FirestoreManager.getInstance();
-        currentUserId = authManager.getCurrentUserId();
         
-        // 🔥 TEMPORAL: Para testing sin login
-        if (currentUserId == null) {
-            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
-            android.widget.Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", android.widget.Toast.LENGTH_SHORT).show();
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
         }
+        
+        // Validar que el usuario sea CLIENT
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("CLIENT")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        setContentView(R.layout.activity_notifications);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        setupToolbar();
         initializeViews();
-        loadNotificationsFromFirebase();
-    }
+        setupToolbar();
+        setupTabs();
+        setupRecyclerView();
+        setupClickListeners();
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Actualizar badge cuando se regresa
-        updateBadgeInParent();
-    }
-
-    private void setupToolbar() {
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Notificaciones");
-        }
+        // Simulate loading
+        showLoading();
+        loadNotifications();
     }
 
     private void initializeViews() {
+        toolbar = findViewById(R.id.toolbar);
+        tabLayout = findViewById(R.id.tab_layout);
         rvNotifications = findViewById(R.id.rv_notifications);
-        rvNotifications.setLayoutManager(new LinearLayoutManager(this));
+        ivMarkAllRead = findViewById(R.id.iv_mark_all_read);
+        emptyState = findViewById(R.id.empty_state);
+        loadingState = findViewById(R.id.loading_state);
     }
 
-    private void loadNotificationsFromFirebase() {
-        firestoreManager.getNotificationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                notificationsList.clear();
-                notificationsList.addAll((List<Notification>) result);
-                adapter = new NotificationsAdapter(notificationsList);
-                rvNotifications.setAdapter(adapter);
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                android.widget.Toast.makeText(ClientNotificationsActivity.this, "Error cargando notificaciones", android.widget.Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private String getRelativeTime(long timestamp) {
-        long now = System.currentTimeMillis();
-        long diff = now - timestamp;
-        
-        long minutes = diff / (1000 * 60);
-        long hours = diff / (1000 * 60 * 60);
-        long days = diff / (1000 * 60 * 60 * 24);
-        
-        if (minutes < 60) {
-            return "Hace " + minutes + (minutes == 1 ? " minuto" : " minutos");
-        } else if (hours < 24) {
-            return "Hace " + hours + (hours == 1 ? " hora" : " horas");
-        } else {
-            return "Hace " + days + (days == 1 ? " día" : " días");
+    private void setupToolbar() {
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
     }
 
-    private void markAllAsRead() {
-        // NO marcar todas como vistas automáticamente
-        // Solo se marcarán cuando el usuario las vea
-        // dbHelper.markAllNotificationsAsRead();
-        // Actualizar badge en la actividad padre
-        updateBadgeInParent();
+    private void setupTabs() {
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                filterNotifications(tab.getPosition());
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
     }
 
-    private void updateBadgeInParent() {
-        // Enviar broadcast o usar resultado para actualizar badge
-        Intent resultIntent = new Intent();
-        setResult(RESULT_OK, resultIntent);
+    private void setupRecyclerView() {
+        rvNotifications.setLayoutManager(new LinearLayoutManager(this));
+        notificationsAdapter = new ClientNotificationsAdapter((position, action) -> onNotificationAction(position, action));
+        rvNotifications.setAdapter(notificationsAdapter);
+    }
+
+    private void setupClickListeners() {
+        ivMarkAllRead.setOnClickListener(v -> {
+            Toast.makeText(this, "Todas marcadas como leídas", Toast.LENGTH_SHORT).show();
+            notificationsAdapter.markAllAsRead();
+        });
+    }
+
+    private void filterNotifications(int tabPosition) {
+        showLoading();
+        // Simulate API call
+        rvNotifications.postDelayed(() -> {
+            hideLoading();
+            Toast.makeText(this, "Filtro: " + getFilterName(tabPosition), Toast.LENGTH_SHORT).show();
+        }, 500);
+    }
+
+    private String getFilterName(int position) {
+        switch (position) {
+            case 0: return "Todas";
+            case 1: return "Sin leer";
+            case 2: return "Importantes";
+            default: return "Todas";
+        }
+    }
+
+    private void loadNotifications() {
+        // Simulate API call
+        rvNotifications.postDelayed(() -> {
+            hideLoading();
+            // If no notifications, show empty state
+            // emptyState.setVisibility(View.VISIBLE);
+        }, 1500);
+    }
+
+    private void showLoading() {
+        loadingState.setVisibility(View.VISIBLE);
+        rvNotifications.setVisibility(View.GONE);
+        emptyState.setVisibility(View.GONE);
+    }
+
+    private void hideLoading() {
+        loadingState.setVisibility(View.GONE);
+        rvNotifications.setVisibility(View.VISIBLE);
+    }
+
+    private void onNotificationAction(int position, String action) {
+        switch (action) {
+            case "click":
+                Toast.makeText(this, "Abrir notificación " + position, Toast.LENGTH_SHORT).show();
+                notificationsAdapter.markAsRead(position);
+                break;
+            case "menu":
+                Toast.makeText(this, "Abrir menú opción para " + position, Toast.LENGTH_SHORT).show();
+                break;
+            case "delete":
+                Toast.makeText(this, "Notificación eliminada", Toast.LENGTH_SHORT).show();
+                notificationsAdapter.removeNotification(position);
+                break;
+            case "mark_read":
+                Toast.makeText(this, "Marcada como leída", Toast.LENGTH_SHORT).show();
+                notificationsAdapter.markAsRead(position);
+                break;
+        }
     }
 
     @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+    public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             onBackPressed();
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
-
-    // Adapter para notificaciones
-    private class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdapter.ViewHolder> {
-        
-        private List<Notification> notifications;
-
-        NotificationsAdapter(List<Notification> notifications) {
-            this.notifications = notifications;
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
-            View view = getLayoutInflater().inflate(R.layout.item_notification, parent, false);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Notification notification = notifications.get(position);
-            
-            holder.tvTitle.setText(notification.getTitle());
-            holder.tvMessage.setText(notification.getMessage());
-            holder.tvTime.setText(notification.getCreatedAt() != null ? getRelativeTime(notification.getCreatedAt().getTime()) : "Hace un momento");
-            
-            // Configurar icono según tipo
-            String icon = getIconForType(notification.getType());
-            holder.tvIcon.setText(icon);
-            
-            // Configurar color de fondo del icono según tipo
-            int iconBgDrawable = getIconBackgroundDrawable(notification.getType());
-            holder.viewIconBackground.setBackgroundResource(iconBgDrawable);
-            
-            // Configurar estilo según si está visto o no
-            if (!notification.getRead()) {
-                // No vista: colores más fuertes
-                holder.tvTitle.setTextColor(getColor(R.color.primary));
-                holder.tvTitle.setAlpha(1.0f);
-                holder.tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-                holder.tvMessage.setTextColor(getColor(R.color.black));
-                holder.tvMessage.setAlpha(1.0f);
-                holder.viewUnreadIndicator.setVisibility(View.VISIBLE);
-                holder.itemView.setAlpha(1.0f);
-            } else {
-                // Vista: colores más suaves
-                holder.tvTitle.setTextColor(getColor(R.color.gray));
-                holder.tvTitle.setAlpha(0.7f);
-                holder.tvTitle.setTypeface(null, android.graphics.Typeface.NORMAL);
-                holder.tvMessage.setTextColor(getColor(R.color.gray));
-                holder.tvMessage.setAlpha(0.6f);
-                holder.viewUnreadIndicator.setVisibility(View.GONE);
-                holder.itemView.setAlpha(0.85f);
-            }
-            
-            // Marcar como leída al hacer click
-            holder.itemView.setOnClickListener(v -> {
-                if (!notification.getRead()) {
-                    firestoreManager.markNotificationAsRead(notification.getNotificationId(), new FirestoreManager.FirestoreCallback() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            notification.setRead(true);
-                            notifyItemChanged(position);
-                        }
-                        @Override
-                        public void onFailure(Exception e) {}
-                    });
-                }
-            });
-        }
-
-        @Override
-        public int getItemCount() {
-            return notifications.size();
-        }
-
-        private String getIconForType(String type) {
-            if (type == null) return "🔔";
-            switch (type) {
-                case "RESERVATION_CONFIRMED":
-                    return "✅";
-                case "PAYMENT_CHARGED":
-                case "PAYMENT_CONFIRMED":
-                    return "💳";
-                case "TOUR_REMINDER":
-                case "QR_SENT":
-                    return "🎫";
-                case "TOUR_COMPLETED":
-                    return "🎉";
-                default:
-                    return "🔔";
-            }
-        }
-
-        private int getIconBackgroundDrawable(String type) {
-            if (type == null) return R.drawable.icon_background_blue;
-            switch (type) {
-                case "RESERVATION_CONFIRMED":
-                    return R.drawable.icon_background_green;
-                case "PAYMENT_CHARGED":
-                case "PAYMENT_CONFIRMED":
-                    return R.drawable.icon_background_blue;
-                case "TOUR_REMINDER":
-                case "QR_SENT":
-                    return R.drawable.icon_background_purple;
-                case "TOUR_COMPLETED":
-                    return R.drawable.icon_background_red;
-                default:
-                    return R.drawable.icon_background_blue;
-            }
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvTitle, tvMessage, tvTime, tvIcon;
-            View viewIconBackground, viewUnreadIndicator;
-
-            ViewHolder(View itemView) {
-                super(itemView);
-                tvTitle = itemView.findViewById(R.id.tv_notification_title);
-                tvMessage = itemView.findViewById(R.id.tv_notification_message);
-                tvTime = itemView.findViewById(R.id.tv_notification_time);
-                tvIcon = itemView.findViewById(R.id.tv_notification_icon);
-                viewIconBackground = itemView.findViewById(R.id.view_icon_background);
-                viewUnreadIndicator = itemView.findViewById(R.id.view_unread_indicator);
-            }
-        }
+    
+    private void redirectToLogin() {
+        android.content.Intent intent = new android.content.Intent(this, com.example.droidtour.LoginActivity.class);
+        intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
-

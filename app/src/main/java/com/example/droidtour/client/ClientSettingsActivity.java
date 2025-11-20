@@ -8,9 +8,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.R;
-import com.example.droidtour.firebase.FirebaseAuthManager;
-import com.example.droidtour.firebase.FirestoreManager;
-import com.example.droidtour.models.UserPreferences;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
@@ -19,35 +16,37 @@ public class ClientSettingsActivity extends AppCompatActivity {
     private MaterialSwitch switchPushNotifications, switchEmailNotifications;
     private View settingChangePassword, settingDeleteAccount;
     private View settingPrivacyPolicy, settingTermsConditions;
-    
-    // ✅ Firebase Managers
-    private FirebaseAuthManager authManager;
-    private FirestoreManager firestoreManager;
-    private String currentUserId;
-    private UserPreferences userPreferences;
+    private com.example.droidtour.utils.PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea CLIENT
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("CLIENT")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_client_settings);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        // ✅ Inicializar Firebase
-        authManager = FirebaseAuthManager.getInstance(this);
-        firestoreManager = FirestoreManager.getInstance();
-        
-        currentUserId = authManager.getCurrentUserId();
-        
-        // 🔥 TEMPORAL: Para testing sin login
-        if (currentUserId == null) {
-            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
-            android.widget.Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", android.widget.Toast.LENGTH_SHORT).show();
-        }
-
         setupToolbar();
         initializeViews();
-        loadSettingsFromFirebase();
         setupClickListeners();
+        loadSettings();
     }
 
     private void setupToolbar() {
@@ -69,33 +68,6 @@ public class ClientSettingsActivity extends AppCompatActivity {
         settingTermsConditions = findViewById(R.id.setting_terms_conditions);
     }
 
-    /**
-     * ✅ CARGAR CONFIGURACIONES DESDE FIREBASE
-     */
-    private void loadSettingsFromFirebase() {
-        firestoreManager.getUserPreferences(currentUserId, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                userPreferences = (UserPreferences) result;
-                displaySettings();
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                Toast.makeText(ClientSettingsActivity.this, 
-                    "Error cargando configuración", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    /**
-     * ✅ MOSTRAR CONFIGURACIONES EN UI
-     */
-    private void displaySettings() {
-        switchPushNotifications.setChecked(userPreferences.getPushNotificationsEnabled());
-        switchEmailNotifications.setChecked(userPreferences.getEmailNotificationsEnabled());
-    }
-
     private void setupClickListeners() {
         // Account settings
         settingChangePassword.setOnClickListener(v -> {
@@ -115,41 +87,22 @@ public class ClientSettingsActivity extends AppCompatActivity {
             Toast.makeText(this, "Términos y condiciones próximamente", Toast.LENGTH_SHORT).show();
         });
 
-        // ✅ Notification switches - Guardar en Firebase
+        // Notification switches
         switchPushNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (userPreferences != null) {
-                updatePreference("pushNotificationsEnabled", isChecked);
-                Toast.makeText(this, "Notificaciones push " + 
-                    (isChecked ? "activadas" : "desactivadas"), Toast.LENGTH_SHORT).show();
-            }
+            // TODO: Guardar configuración de notificaciones push
+            Toast.makeText(this, "Notificaciones push " + (isChecked ? "activadas" : "desactivadas"), Toast.LENGTH_SHORT).show();
         });
 
         switchEmailNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (userPreferences != null) {
-                updatePreference("emailNotificationsEnabled", isChecked);
-                Toast.makeText(this, "Notificaciones por email " + 
-                    (isChecked ? "activadas" : "desactivadas"), Toast.LENGTH_SHORT).show();
-            }
+            // TODO: Guardar configuración de notificaciones por email
+            Toast.makeText(this, "Notificaciones por email " + (isChecked ? "activadas" : "desactivadas"), Toast.LENGTH_SHORT).show();
         });
     }
 
-    /**
-     * ✅ ACTUALIZAR PREFERENCIA EN FIREBASE
-     */
-    private void updatePreference(String key, Object value) {
-        firestoreManager.updateUserPreferenceByUserId(currentUserId, key, value,
-            new FirestoreManager.FirestoreCallback() {
-                @Override
-                public void onSuccess(Object result) {
-                    // Preferencia actualizada exitosamente
-                }
-                
-                @Override
-                public void onFailure(Exception e) {
-                    Toast.makeText(ClientSettingsActivity.this, 
-                        "Error guardando configuración", Toast.LENGTH_SHORT).show();
-                }
-            });
+    private void loadSettings() {
+        // TODO: Cargar configuraciones guardadas del usuario
+        switchPushNotifications.setChecked(true);
+        switchEmailNotifications.setChecked(false);
     }
 
     @Override
@@ -159,6 +112,12 @@ public class ClientSettingsActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+    
+    private void redirectToLogin() {
+        android.content.Intent intent = new android.content.Intent(this, com.example.droidtour.LoginActivity.class);
+        intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }
 

@@ -20,6 +20,9 @@ import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class GuideRegistrationPhotoActivity extends AppCompatActivity {
 
     private ImageView ivProfilePhoto;
@@ -28,17 +31,23 @@ public class GuideRegistrationPhotoActivity extends AppCompatActivity {
     private FloatingActionButton fabEditPhoto;
 
     private Uri photoUri;
+    private boolean isGoogleUser = false;
+    private String userEmail, userName, userPhoto, userType;
+
+    // Datos del formulario
+    private String nombres, apellidos, tipoDocumento, numeroDocumento, fechaNacimiento, telefono, correo;
 
     private final ActivityResultLauncher<Intent> cameraLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Bundle extras = result.getData().getExtras();
-                    assert extras != null;
-                    Bitmap imageBitmap = (Bitmap) extras.get("data");
-                    Glide.with(this)
-                            .load(imageBitmap)
-                            .transform(new CircleCrop())
-                            .into(ivProfilePhoto);
+                    if (extras != null) {
+                        Bitmap imageBitmap = (Bitmap) extras.get("data");
+                        Glide.with(this)
+                                .load(imageBitmap)
+                                .transform(new CircleCrop())
+                                .into(ivProfilePhoto);
+                    }
                 }
             });
 
@@ -68,27 +77,32 @@ public class GuideRegistrationPhotoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_guide_registration_photo);
 
         initializeViews();
-        loadUserData();
+        loadFormData(); // Cargar datos del formulario
+        handleGoogleUser(); // Manejar datos de Google
         setupClickListeners();
     }
 
     private void initializeViews() {
-
         tvFullName = findViewById(R.id.tvFullName);
         tvEmail = findViewById(R.id.tvEmail);
         tvRegresar = findViewById(R.id.tvRegresar);
         btnSiguiente = findViewById(R.id.btnSiguiente);
         fabEditPhoto = findViewById(R.id.fabEditPhoto);
-        ivProfilePhoto = findViewById(R.id.ivProfilePhoto); // Inicialización agregada
+        ivProfilePhoto = findViewById(R.id.ivProfilePhoto);
     }
 
-    private void loadUserData() {
-        // Obtener datos del Intent anterior
+    private void loadFormData() {
+        // Obtener datos del formulario anterior
         Intent intent = getIntent();
-        String nombres = intent.getStringExtra("nombres");
-        String apellidos = intent.getStringExtra("apellidos");
-        String correo = intent.getStringExtra("correo");
+        nombres = intent.getStringExtra("nombres");
+        apellidos = intent.getStringExtra("apellidos");
+        correo = intent.getStringExtra("correo");
+        tipoDocumento = intent.getStringExtra("tipoDocumento");
+        numeroDocumento = intent.getStringExtra("numeroDocumento");
+        fechaNacimiento = intent.getStringExtra("fechaNacimiento");
+        telefono = intent.getStringExtra("telefono");
 
+        // Mostrar nombre y email
         if (nombres != null && apellidos != null) {
             tvFullName.setText(nombres + " " + apellidos);
         }
@@ -98,16 +112,67 @@ public class GuideRegistrationPhotoActivity extends AppCompatActivity {
         }
     }
 
+    private void handleGoogleUser() {
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.getBoolean("googleUser", false)) {
+            isGoogleUser = true;
+            userEmail = extras.getString("userEmail", "");
+            userName = extras.getString("userName", "");
+            userPhoto = extras.getString("userPhoto", "");
+            userType = extras.getString("userType", "");
+
+            // Cargar foto de Google si existe
+            if (userPhoto != null && !userPhoto.isEmpty()) {
+                Glide.with(this)
+                        .load(userPhoto)
+                        .transform(new CircleCrop())
+                        .into(ivProfilePhoto);
+            }
+        }
+    }
+
     private void setupClickListeners() {
         tvRegresar.setOnClickListener(v -> finish());
 
         fabEditPhoto.setOnClickListener(v -> showPhotoOptions());
 
         btnSiguiente.setOnClickListener(v -> {
-            // Redirigir a la pantalla de creación de contraseña
-            Intent intent = new Intent(this, GuideRegistrationLanguagesActivity.class);
-            startActivity(intent);
+            // PARA AMBOS CASOS (Google y normal) IR A LENGUAJES
+            proceedToLanguages();
         });
+    }
+
+    private void proceedToLanguages() {
+        Intent intent = new Intent(this, GuideRegistrationLanguagesActivity.class);
+
+        if (isGoogleUser) {
+            // Pasar datos de Google
+            intent.putExtra("googleUser", true);
+            intent.putExtra("userType", userType);
+            intent.putExtra("userEmail", userEmail);
+            intent.putExtra("userName", userName);
+            intent.putExtra("userPhoto", userPhoto);
+        } else {
+            // Pasar datos de registro normal
+            intent.putExtra("googleUser", false);
+            intent.putExtra("userEmail", correo);
+        }
+
+        // Pasar datos del formulario (comunes para ambos)
+        intent.putExtra("nombres", nombres);
+        intent.putExtra("apellidos", apellidos);
+        intent.putExtra("correo", correo);
+        intent.putExtra("tipoDocumento", tipoDocumento);
+        intent.putExtra("numeroDocumento", numeroDocumento);
+        intent.putExtra("fechaNacimiento", fechaNacimiento);
+        intent.putExtra("telefono", telefono);
+
+        // Pasar la foto seleccionada (si existe)
+        if (photoUri != null) {
+            intent.putExtra("photoUri", photoUri.toString());
+        }
+
+        startActivity(intent);
     }
 
     private void showPhotoOptions() {

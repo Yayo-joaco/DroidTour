@@ -6,18 +6,32 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.droidtour.client.ClientRegistrationActivity;
+import com.example.droidtour.client.ClientRegistrationPhotoActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class RoleSelectionActivity extends AppCompatActivity {
-    
+
     private MaterialCardView cardRegisterClient, cardRegisterGuide, cardRegisterAdmin;
     private MaterialToolbar toolbar;
+
+    private boolean isGoogleUser = false;
+    private String userEmail, userName, userPhoto;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_role_selection);
+
+        // Obtener datos del usuario de Google si existe
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            isGoogleUser = extras.getBoolean("googleUser", false);
+            userEmail = extras.getString("userEmail", "");
+            userName = extras.getString("userName", "");
+            userPhoto = extras.getString("userPhoto", "");
+        }
 
         initializeViews();
         setupToolbar();
@@ -33,26 +47,75 @@ public class RoleSelectionActivity extends AppCompatActivity {
 
     private void setupToolbar() {
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("Seleccionar Tipo de Usuario");
-        
-        toolbar.setNavigationOnClickListener(v -> finish());
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Seleccionar Tipo de Usuario");
+        }
+
+        // Configurar el listener de navegación CORRECTAMENTE
+        toolbar.setNavigationOnClickListener(v -> {
+            if (isGoogleUser) {
+                // Si viene de Google, cerrar sesión al regresar
+                FirebaseAuth.getInstance().signOut();
+                Toast.makeText(this, "Sesión de Google cerrada", Toast.LENGTH_SHORT).show();
+            }
+            finish();
+        });
     }
 
     private void setupClickListeners() {
         cardRegisterClient.setOnClickListener(v -> {
-            Toast.makeText(this, "Registro como Cliente", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, ClientRegistrationActivity.class));
+            if (isGoogleUser) {
+                // Registro rápido con Google como cliente
+                startGoogleRegistration("CLIENT");
+            } else {
+                startActivity(new Intent(this, ClientRegistrationActivity.class));
+            }
         });
 
         cardRegisterGuide.setOnClickListener(v -> {
-            Toast.makeText(this, "Registro como Guía de Turismo", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, GuideRegistrationActivity.class));
+            if (isGoogleUser) {
+                // Registro con Google como guía
+                startGoogleRegistration("GUIDE");
+            } else {
+                startActivity(new Intent(this, GuideRegistrationActivity.class));
+            }
         });
 
-        cardRegisterAdmin.setOnClickListener(v -> {
-            Toast.makeText(this, "Registro como Administrador de Empresa", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, AdminRegistrationActivity.class));
-        });
+        // ELIMINA ESTA PARTE - ya está configurado en setupToolbar()
+        // findViewById(R.id.toolbar).setNavigationOnClickListener(v -> {
+        //    if (isGoogleUser) {
+        //        FirebaseAuth.getInstance().signOut();
+        //    }
+        //    finish();
+        // });
+    }
+
+    private void startGoogleRegistration(String userType) {
+        Intent intent;
+        if ("CLIENT".equals(userType)) {
+            // Cambiar: ir a ClientRegistrationActivity en lugar de ClientRegistrationPhotoActivity
+            intent = new Intent(this, ClientRegistrationActivity.class);
+        } else {
+            intent = new Intent(this, GuideRegistrationActivity.class);
+        }
+
+        intent.putExtra("googleUser", true);
+        intent.putExtra("userType", userType);
+        intent.putExtra("userEmail", userEmail);
+        intent.putExtra("userName", userName);
+        intent.putExtra("userPhoto", userPhoto);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        if (isGoogleUser) {
+            FirebaseAuth.getInstance().signOut();
+            Toast.makeText(this, "Sesión de Google cerrada", Toast.LENGTH_SHORT).show();
+        }
+        finish();
+        return true;
     }
 }

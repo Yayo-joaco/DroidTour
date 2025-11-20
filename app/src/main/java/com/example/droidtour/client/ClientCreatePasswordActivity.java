@@ -1,191 +1,109 @@
 package com.example.droidtour.client;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.droidtour.R;
-import com.example.droidtour.firebase.FirebaseAuthManager;
-import com.example.droidtour.firebase.FirestoreManager;
-import com.example.droidtour.firebase.FirebaseStorageManager;
-import com.example.droidtour.models.User;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.Timestamp;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ClientCreatePasswordActivity extends AppCompatActivity {
-    
-    private FirebaseAuthManager authManager;
-    private FirestoreManager firestoreManager;
-    private FirebaseStorageManager storageManager;
-    
     private TextInputEditText etPassword, etRepeatPassword;
     private TextView tvPasswordError;
     private MaterialButton btnSiguiente;
-    
-    private String nombres, apellidos, tipoDocumento, numeroDocumento, fechaNacimiento, correo, telefono;
-    private Uri photoUri;
+
+    // Variables para datos del usuario
+    private String nombres, apellidos, correo, tipoDocumento, numeroDocumento, fechaNacimiento, telefono;
+    private String photoUri;
+
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_create_password);
-        
-        authManager = FirebaseAuthManager.getInstance(this);
-        firestoreManager = FirestoreManager.getInstance();
-        storageManager = FirebaseStorageManager.getInstance();
-        
+
+        mAuth = FirebaseAuth.getInstance();
+
+        initializeViews();
+        loadUserData();
+        setupTextWatchers();
+        setupClickListeners();
+    }
+
+    private void initializeViews() {
         etPassword = findViewById(R.id.etPassword);
         etRepeatPassword = findViewById(R.id.etRepeatPassword);
         tvPasswordError = findViewById(R.id.tvPasswordError);
         btnSiguiente = findViewById(R.id.btnSiguiente);
-        // progressBar = findViewById(R.id.progressBar); // No existe en el layout
         findViewById(R.id.tvRegresar).setOnClickListener(v -> finish());
-        
-        loadUserDataFromIntent();
+    }
 
+    private void loadUserData() {
+        Intent intent = getIntent();
+        nombres = intent.getStringExtra("nombres");
+        apellidos = intent.getStringExtra("apellidos");
+        correo = intent.getStringExtra("correo");
+        tipoDocumento = intent.getStringExtra("tipoDocumento");
+        numeroDocumento = intent.getStringExtra("numeroDocumento");
+        fechaNacimiento = intent.getStringExtra("fechaNacimiento");
+        telefono = intent.getStringExtra("telefono");
+        photoUri = intent.getStringExtra("photoUri");
+    }
+
+    private void setupTextWatchers() {
         TextWatcher watcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 validatePasswords();
             }
+
             @Override
             public void afterTextChanged(Editable s) {}
         };
+
         etPassword.addTextChangedListener(watcher);
         etRepeatPassword.addTextChangedListener(watcher);
+    }
 
-        btnSiguiente.setOnClickListener(v -> registerUser());
-    }
-    
-    private void loadUserDataFromIntent() {
-        Intent intent = getIntent();
-        nombres = intent.getStringExtra("nombres");
-        apellidos = intent.getStringExtra("apellidos");
-        tipoDocumento = intent.getStringExtra("tipoDocumento");
-        numeroDocumento = intent.getStringExtra("numeroDocumento");
-        fechaNacimiento = intent.getStringExtra("fechaNacimiento");
-        correo = intent.getStringExtra("correo");
-        telefono = intent.getStringExtra("telefono");
-        
-        String photoUriString = intent.getStringExtra("photoUri");
-        if (photoUriString != null) {
-            photoUri = Uri.parse(photoUriString);
-        }
-    }
-    
-    private void registerUser() {
-        String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
-        
-        if (getPasswordError(password, password) != null) {
-            Toast.makeText(this, "Por favor corrige los errores en la contraseña", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
-        // Mostrar progreso
-        btnSiguiente.setText("Registrando...");
-        btnSiguiente.setEnabled(false);
-        
-        // Crear objeto User primero
-        User newUser = new User(
-            "", // userId - se asignará después
-            correo,
-            nombres,
-            apellidos,
-            tipoDocumento,
-            numeroDocumento,
-            fechaNacimiento,
-            telefono,
-            "" // dirección
-        );
-        newUser.setUserType("CLIENT");
-        newUser.setActive(true);
-        
-        // Registrar en Firebase Auth Y Firestore automáticamente
-        authManager.registerWithEmail(correo, password, newUser, new FirebaseAuthManager.AuthCallback() {
-            @Override
-            public void onSuccess(com.google.firebase.auth.FirebaseUser firebaseUser) {
-                // Usuario registrado exitosamente
-                String userId = firebaseUser.getUid();
-                
-                if (photoUri != null) {
-                    uploadProfilePhoto(userId);
-                } else {
-                    completeRegistration();
-                }
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                btnSiguiente.setText("Siguiente");
-                btnSiguiente.setEnabled(true);
-                Toast.makeText(ClientCreatePasswordActivity.this, 
-                    "Error al registrar: " + e.getMessage(), Toast.LENGTH_LONG).show();
+    private void setupClickListeners() {
+        btnSiguiente.setOnClickListener(v -> {
+            if (validatePasswords()) {
+                registerUser();
             }
         });
     }
-    
-    private void uploadProfilePhoto(String userId) {
-        storageManager.uploadProfileImage(userId, photoUri, new FirebaseStorageManager.StorageCallback() {
-            @Override
-            public void onSuccess(String downloadUrl) {
-                // Actualizar URL de foto en Firestore
-                firestoreManager.updateUserPhotoUrl(userId, downloadUrl, new FirestoreManager.FirestoreCallback() {
-                    @Override
-                    public void onSuccess(Object result) {
-                        completeRegistration();
-                    }
-                    
-                    @Override
-                    public void onFailure(Exception e) {
-                        // Foto no se pudo actualizar, pero usuario ya está registrado
-                        completeRegistration();
-                    }
-                });
-            }
-            
-            @Override
-            public void onProgress(int progress) {
-                // Progreso de subida
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                // Foto no se pudo subir, pero usuario ya está registrado
-                completeRegistration();
-            }
-        });
-    }
-    
-    private void completeRegistration() {
-        Toast.makeText(this, "¡Registro exitoso! Bienvenido", Toast.LENGTH_SHORT).show();
-        
-        // Redirigir a ClientMainActivity
-        Intent intent = new Intent(this, ClientMainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
-        finish();
-    }
 
-    private void validatePasswords() {
+    private boolean validatePasswords() {
         String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
         String repeat = etRepeatPassword.getText() != null ? etRepeatPassword.getText().toString() : "";
         String error = getPasswordError(password, repeat);
+
         if (error == null) {
             tvPasswordError.setVisibility(TextView.GONE);
             btnSiguiente.setEnabled(true);
+            return true;
         } else {
             tvPasswordError.setText(error);
             tvPasswordError.setVisibility(TextView.VISIBLE);
             btnSiguiente.setEnabled(false);
+            return false;
         }
     }
 
@@ -213,4 +131,134 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
         }
         return null;
     }
+
+    private void registerUser() {
+        btnSiguiente.setEnabled(false);
+        btnSiguiente.setText("Creando cuenta..."); // Feedback visual
+
+        String password = etPassword.getText().toString().trim();
+
+        // 1. CREAR USUARIO EN FIREBASE AUTH
+        mAuth.createUserWithEmailAndPassword(correo, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // 2. USUARIO CREADO EN AUTH - GUARDAR EN FIRESTORE
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        if (user != null) {
+                            saveUserToFirestore(user);
+                        } else {
+                            handleRegistrationError("Error al obtener usuario");
+                        }
+                    } else {
+                        // MEJOR MANEJO DE ERRORES ESPECÍFICOS
+                        String errorMessage = "Error en el registro";
+                        if (task.getException() != null) {
+                            String exceptionMessage = task.getException().getMessage();
+                            if (exceptionMessage.contains("email address is already")) {
+                                errorMessage = "Este correo electrónico ya está registrado";
+                            } else if (exceptionMessage.contains("network error") || exceptionMessage.contains("INTERNET")) {
+                                errorMessage = "Error de conexión. Verifica tu internet";
+                            } else {
+                                errorMessage = exceptionMessage;
+                            }
+                        }
+                        handleRegistrationError(errorMessage);
+                    }
+                });
+    }
+
+    private void handleRegistrationError(String errorMessage) {
+        btnSiguiente.setEnabled(true);
+        btnSiguiente.setText("Siguiente"); // Restaurar texto
+
+        // Mostrar error en el TextView en lugar de solo Toast
+        tvPasswordError.setText(errorMessage);
+        tvPasswordError.setVisibility(TextView.VISIBLE);
+
+        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+    }
+
+    private void saveUserToFirestore(FirebaseUser user) {
+        String userId = user.getUid();
+        String fullName = nombres + " " + apellidos;
+
+        // 3. PREPARAR DATOS PARA FIRESTORE
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("uid", userId);
+        userData.put("email", correo);
+        userData.put("firstName", nombres);
+        userData.put("lastName", apellidos);
+        userData.put("fullName", fullName);
+        userData.put("documentType", tipoDocumento);
+        userData.put("documentNumber", numeroDocumento);
+        userData.put("birthDate", fechaNacimiento);
+        userData.put("phone", telefono);
+        userData.put("userType", "CLIENT");
+        userData.put("provider", "email");
+        userData.put("status", "active");
+        userData.put("createdAt", new java.util.Date());
+        userData.put("profileCompleted", true);
+        userData.put("profileCompletedAt", new java.util.Date());
+
+        // Agregar foto si existe
+        if (photoUri != null && !photoUri.isEmpty()) {
+            userData.put("photoURL", photoUri);
+            userData.put("customPhoto", true);
+        }
+
+        // 4. GUARDAR EN COLECCIÓN "users"
+        FirebaseFirestore.getInstance().collection("users")
+                .document(userId)
+                .set(userData)
+                .addOnSuccessListener(aVoid -> {
+                    // 5. GUARDAR ROL DEL USUARIO (CLIENTE ACTIVO DIRECTAMENTE)
+                    saveUserRole(userId);
+                })
+                .addOnFailureListener(e -> {
+                    handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                });
+    }
+
+    private void saveUserRole(String userId) {
+        Map<String, Object> roleData = new HashMap<>();
+        roleData.put("status", "active");
+        roleData.put("activatedAt", new java.util.Date());
+        roleData.put("updatedAt", new java.util.Date());
+
+        Map<String, Object> roleUpdate = new HashMap<>();
+        roleUpdate.put("client", roleData);
+
+        FirebaseFirestore.getInstance().collection("user_roles")
+                .document(userId)
+                .set(roleUpdate)
+                .addOnSuccessListener(aVoid -> {
+                    // 6. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
+                    saveToPreferencesManager(userId);
+
+                    Toast.makeText(this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+
+                    // 7. REDIRIGIR AL DASHBOARD DEL CLIENTE
+                    redirectToMainActivity();
+                })
+                .addOnFailureListener(e -> {
+                    handleRegistrationError("Error al guardar rol: " + e.getMessage());
+                });
+    }
+
+    private void saveToPreferencesManager(String userId) {
+        PreferencesManager prefsManager = new PreferencesManager(this);
+
+        String fullName = nombres + " " + apellidos;
+        prefsManager.saveUserData(userId, fullName, correo, telefono, "CLIENT");
+        prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+        prefsManager.marcarPrimeraVezCompletada();
+    }
+
+    private void redirectToMainActivity() {
+        Intent intent = new Intent(this, ClientMainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
 }

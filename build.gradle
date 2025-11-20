@@ -5,10 +5,10 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.google.gms:google-services:4.4.0'
+        classpath 'com.google.gms:google-services:4.4.4'
     }
 }
 
 plugins {
-alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.application) apply false
 }

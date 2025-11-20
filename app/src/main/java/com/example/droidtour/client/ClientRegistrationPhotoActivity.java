@@ -21,6 +21,9 @@ import com.example.droidtour.R;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class ClientRegistrationPhotoActivity extends AppCompatActivity {
 
     private ImageView ivProfilePhoto;
@@ -29,17 +32,20 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
     private FloatingActionButton fabEditPhoto;
 
     private Uri photoUri;
+    private boolean isGoogleUser = false;
+    private String userEmail, userName, userPhoto, userType;
 
     private final ActivityResultLauncher<Intent> cameraLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Bundle extras = result.getData().getExtras();
-                    assert extras != null;
-                    Bitmap imageBitmap = (Bitmap) extras.get("data");
-                    Glide.with(this)
-                        .load(imageBitmap)
-                        .transform(new CircleCrop())
-                        .into(ivProfilePhoto);
+                    if (extras != null) {
+                        Bitmap imageBitmap = (Bitmap) extras.get("data");
+                        Glide.with(this)
+                                .load(imageBitmap)
+                                .transform(new CircleCrop())
+                                .into(ivProfilePhoto);
+                    }
                 }
             });
 
@@ -48,9 +54,9 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     photoUri = result.getData().getData();
                     Glide.with(this)
-                        .load(photoUri)
-                        .transform(new CircleCrop())
-                        .into(ivProfilePhoto);
+                            .load(photoUri)
+                            .transform(new CircleCrop())
+                            .into(ivProfilePhoto);
                 }
             });
 
@@ -69,33 +75,84 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_client_registration_photo);
 
         initializeViews();
-        loadUserData();
+        loadUserData();     // ← LUEGO cargar datos normales (solo si no hay Google)
+        handleGoogleUser(); // ← PRIMERO manejar datos de Google
         setupClickListeners();
     }
 
     private void initializeViews() {
-
         tvFullName = findViewById(R.id.tvFullName);
         tvEmail = findViewById(R.id.tvEmail);
         tvRegresar = findViewById(R.id.tvRegresar);
         btnSiguiente = findViewById(R.id.btnSiguiente);
         fabEditPhoto = findViewById(R.id.fabEditPhoto);
-        ivProfilePhoto = findViewById(R.id.ivProfilePhoto); // Inicialización agregada
+        ivProfilePhoto = findViewById(R.id.ivProfilePhoto);
     }
 
     private void loadUserData() {
-        // Obtener datos del Intent anterior
-        Intent intent = getIntent();
-        String nombres = intent.getStringExtra("nombres");
-        String apellidos = intent.getStringExtra("apellidos");
-        String correo = intent.getStringExtra("correo");
+        // Solo cargar datos normales si NO es usuario de Google
+        if (!isGoogleUser) {
+            // Obtener datos del Intent anterior
+            Intent intent = getIntent();
+            String nombres = intent.getStringExtra("nombres");
+            String apellidos = intent.getStringExtra("apellidos");
+            String correo = intent.getStringExtra("correo");
 
-        if (nombres != null && apellidos != null) {
-            tvFullName.setText(nombres + " " + apellidos);
+            if (nombres != null && apellidos != null) {
+                tvFullName.setText(nombres + " " + apellidos);
+            }
+
+            if (correo != null) {
+                tvEmail.setText(correo);
+            }
         }
+    }
 
-        if (correo != null) {
-            tvEmail.setText(correo);
+    private void handleGoogleUser() {
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.getBoolean("googleUser", false)) {
+            isGoogleUser = true;
+            userEmail = extras.getString("userEmail", "");
+            userName = extras.getString("userName", "");
+            userPhoto = extras.getString("userPhoto", "");
+            userType = extras.getString("userType", "");
+
+            // DEBUG: Verificar qué datos estamos recibiendo
+            android.util.Log.d("GooglePhoto", "Datos recibidos - userPhoto: " + userPhoto + ", userName: " + userName + ", userEmail: " + userEmail);
+
+            // PRIMERO: Usar datos del formulario (nombres y apellidos)
+            String nombres = getIntent().getStringExtra("nombres");
+            String apellidos = getIntent().getStringExtra("apellidos");
+            if (nombres != null && apellidos != null && !nombres.isEmpty() && !apellidos.isEmpty()) {
+                tvFullName.setText(nombres + " " + apellidos);
+            }
+            // SEGUNDO: Si no hay datos del formulario, usar los de Google
+            else if (!userName.isEmpty()) {
+                tvFullName.setText(userName);
+            }
+
+            // PRIMERO: Usar correo del formulario
+            String correoFormulario = getIntent().getStringExtra("correo");
+            if (correoFormulario != null && !correoFormulario.isEmpty()) {
+                tvEmail.setText(correoFormulario);
+            }
+            // SEGUNDO: Si no hay correo del formulario, usar el de Google
+            else if (!userEmail.isEmpty()) {
+                tvEmail.setText(userEmail);
+            }
+
+            // Cargar foto de Google si existe (aquí sí priorizamos Google)
+            if (userPhoto != null && !userPhoto.isEmpty()) {
+                android.util.Log.d("GooglePhoto", "Cargando foto de Google: " + userPhoto);
+                Glide.with(this)
+                        .load(userPhoto)
+                        .transform(new CircleCrop())
+                        .into(ivProfilePhoto);
+            } else {
+                android.util.Log.d("GooglePhoto", "No hay URL de foto de Google o está vacía");
+            }
+        } else {
+            android.util.Log.d("GooglePhoto", "No es usuario de Google");
         }
     }
 
@@ -105,25 +162,132 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
         fabEditPhoto.setOnClickListener(v -> showPhotoOptions());
 
         btnSiguiente.setOnClickListener(v -> {
-            Intent prevIntent = getIntent();
-            Intent intent = new Intent(this, ClientCreatePasswordActivity.class);
-            
-            // Pasar todos los datos del usuario
-            intent.putExtra("nombres", prevIntent.getStringExtra("nombres"));
-            intent.putExtra("apellidos", prevIntent.getStringExtra("apellidos"));
-            intent.putExtra("tipoDocumento", prevIntent.getStringExtra("tipoDocumento"));
-            intent.putExtra("numeroDocumento", prevIntent.getStringExtra("numeroDocumento"));
-            intent.putExtra("fechaNacimiento", prevIntent.getStringExtra("fechaNacimiento"));
-            intent.putExtra("correo", prevIntent.getStringExtra("correo"));
-            intent.putExtra("telefono", prevIntent.getStringExtra("telefono"));
-            
-            // Pasar URI de la foto si existe
-            if (photoUri != null) {
-                intent.putExtra("photoUri", photoUri.toString());
+            if (isGoogleUser) {
+                // Mostrar diálogo para confirmar si usar la foto de Google o cambiarla
+                String[] options = {"Usar foto actual", "Cambiar foto", "Cancelar"};
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Foto de perfil");
+                builder.setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            // Usar la foto actual (Google o ya seleccionada) y completar registro
+                            completeGoogleRegistration();
+                            break;
+                        case 1:
+                            // Cambiar foto
+                            showPhotoOptions();
+                            break;
+                        case 2:
+                        default:
+                            dialog.dismiss();
+                            break;
+                    }
+                });
+                builder.show();
+            } else {
+                // Para registro normal, ir a crear contraseña
+                Intent intent = new Intent(this, ClientCreatePasswordActivity.class);
+
+                // Pasar datos del formulario anterior
+                Intent previousIntent = getIntent();
+                intent.putExtra("nombres", previousIntent.getStringExtra("nombres"));
+                intent.putExtra("apellidos", previousIntent.getStringExtra("apellidos"));
+                intent.putExtra("correo", previousIntent.getStringExtra("correo"));
+                intent.putExtra("tipoDocumento", previousIntent.getStringExtra("tipoDocumento"));
+                intent.putExtra("numeroDocumento", previousIntent.getStringExtra("numeroDocumento"));
+                intent.putExtra("fechaNacimiento", previousIntent.getStringExtra("fechaNacimiento"));
+                intent.putExtra("telefono", previousIntent.getStringExtra("telefono"));
+
+                // Pasar la foto si fue seleccionada
+                if (photoUri != null) {
+                    intent.putExtra("photoUri", photoUri.toString());
+                }
+
+                startActivity(intent);
             }
-            
-            startActivity(intent);
         });
+    }
+
+    private void completeGoogleRegistration() {
+        // Mostrar progreso
+        btnSiguiente.setEnabled(false);
+        Toast.makeText(this, "Completando registro...", Toast.LENGTH_SHORT).show();
+
+        // Obtener datos del formulario
+        Intent previousIntent = getIntent();
+        String nombres = previousIntent.getStringExtra("nombres");
+        String apellidos = previousIntent.getStringExtra("apellidos");
+        String tipoDocumento = previousIntent.getStringExtra("tipoDocumento");
+        String numeroDocumento = previousIntent.getStringExtra("numeroDocumento");
+        String fechaNacimiento = previousIntent.getStringExtra("fechaNacimiento");
+        String telefono = previousIntent.getStringExtra("telefono");
+
+        // Combinar nombre completo
+        String fullName = (nombres != null && apellidos != null) ?
+                nombres + " " + apellidos : userName;
+
+        // Obtener el usuario actual de Firebase Auth
+        com.google.firebase.auth.FirebaseUser firebaseUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+
+        if (firebaseUser != null) {
+            // Preparar datos adicionales del formulario
+            Map<String, Object> additionalData = new HashMap<>();
+            additionalData.put("firstName", nombres);
+            additionalData.put("lastName", apellidos);
+            additionalData.put("fullName", fullName);
+            additionalData.put("documentType", tipoDocumento);
+            additionalData.put("documentNumber", numeroDocumento);
+            additionalData.put("birthDate", fechaNacimiento);
+            additionalData.put("phone", telefono);
+            additionalData.put("profileCompleted", true);
+            additionalData.put("profileCompletedAt", new java.util.Date());
+
+            // Determinar qué foto usar
+            String finalPhotoUrl;
+            if (photoUri != null) {
+                // Si el usuario cambió la foto, usar la URI local
+                finalPhotoUrl = photoUri.toString();
+                additionalData.put("customPhoto", true);
+            } else {
+                finalPhotoUrl = userPhoto;
+                additionalData.put("customPhoto", false);
+            }
+
+            // Guardar en Firestore
+            com.example.droidtour.utils.FirebaseUtils.saveGoogleUserToFirestore(
+                    firebaseUser,
+                    "CLIENT", // Siempre será CLIENT en este flujo
+                    additionalData
+            );
+
+            // Guardar en PreferencesManager para la sesión actual
+            saveToPreferencesManager(firebaseUser.getUid(), fullName, firebaseUser.getEmail(), telefono, "CLIENT");
+
+            Toast.makeText(this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+
+            // Redirigir al dashboard del cliente
+            redirectToMainActivity();
+
+        } else {
+            btnSiguiente.setEnabled(true);
+            Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void saveToPreferencesManager(String userId, String fullName, String email, String phone, String userType) {
+        com.example.droidtour.utils.PreferencesManager prefsManager =
+                new com.example.droidtour.utils.PreferencesManager(this);
+
+        prefsManager.saveUserData(userId, fullName, email, phone, userType);
+        prefsManager.guardarUltimoLogin(System.currentTimeMillis());
+        prefsManager.marcarPrimeraVezCompletada();
+    }
+
+    private void redirectToMainActivity() {
+        Intent intent = new Intent(this, com.example.droidtour.client.ClientMainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void showPhotoOptions() {
@@ -168,4 +332,7 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         galleryLauncher.launch(pickPhotoIntent);
     }
+
+
+
 }

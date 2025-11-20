@@ -14,10 +14,30 @@ public class GuideManagementActivity extends AppCompatActivity {
     private TabLayout tabLayout;
     private ViewPager2 viewPager;
     private GuideManagementPagerAdapter pagerAdapter;
+    private com.example.droidtour.utils.PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea ADMIN
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("ADMIN")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_guide_management);
         
         setupToolbar();
@@ -89,5 +109,11 @@ public class GuideManagementActivity extends AppCompatActivity {
         public int getItemCount() {
             return 3;
         }
+    }
+    
+    private void redirectToLogin() {
+        android.content.Intent intent = new android.content.Intent(this, com.example.droidtour.LoginActivity.class);
+        intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
     }
 }

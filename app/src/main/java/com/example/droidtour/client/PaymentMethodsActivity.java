@@ -11,14 +11,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.droidtour.R;
-import com.example.droidtour.firebase.FirebaseAuthManager;
-import com.example.droidtour.firebase.FirestoreManager;
-import com.example.droidtour.models.PaymentMethod;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
-import java.util.ArrayList;
-import java.util.List;
 
 public class PaymentMethodsActivity extends AppCompatActivity {
 
@@ -26,32 +21,37 @@ public class PaymentMethodsActivity extends AppCompatActivity {
     private PaymentMethodsAdapter paymentMethodsAdapter;
     private MaterialCardView cardAddNew;
     private TextView tvCardsCount;
-    
-    private FirebaseAuthManager authManager;
-    private FirestoreManager firestoreManager;
-    private String currentUserId;
-    private List<PaymentMethod> paymentMethodsList = new ArrayList<>();
+    private com.example.droidtour.utils.PreferencesManager prefsManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar PreferencesManager PRIMERO
+        prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
+        
+        // Validar sesión PRIMERO
+        if (!prefsManager.isLoggedIn()) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        // Validar que el usuario sea CLIENT
+        String userType = prefsManager.getUserType();
+        if (userType == null || !userType.equals("CLIENT")) {
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
         setContentView(R.layout.activity_payment_methods);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
-        authManager = FirebaseAuthManager.getInstance(this);
-        firestoreManager = FirestoreManager.getInstance();
-        currentUserId = authManager.getCurrentUserId();
-        
-        // 🔥 TEMPORAL: Para testing sin login
-        if (currentUserId == null) {
-            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
-            Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", Toast.LENGTH_SHORT).show();
-        }
-
         setupToolbar();
         initializeViews();
+        setupHeaderData();
         setupRecyclerView();
-        loadPaymentMethodsFromFirebase();
         setupClickListeners();
     }
 
@@ -70,70 +70,33 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         tvCardsCount = findViewById(R.id.tv_cards_count);
     }
 
-    private void setupRecyclerView() {
-        rvPaymentMethods.setLayoutManager(new LinearLayoutManager(this));
-        paymentMethodsAdapter = new PaymentMethodsAdapter(paymentMethodsList, this::onPaymentMethodAction);
-        rvPaymentMethods.setAdapter(paymentMethodsAdapter);
+    private void setupHeaderData() {
+        tvCardsCount.setText("2");
     }
 
-    private void loadPaymentMethodsFromFirebase() {
-        firestoreManager.getPaymentMethodsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                paymentMethodsList.clear();
-                paymentMethodsList.addAll((List<PaymentMethod>) result);
-                paymentMethodsAdapter.notifyDataSetChanged();
-                tvCardsCount.setText(String.valueOf(paymentMethodsList.size()));
-                
-                if (paymentMethodsList.isEmpty()) {
-                    Toast.makeText(PaymentMethodsActivity.this, "No hay tarjetas registradas", Toast.LENGTH_SHORT).show();
-                }
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                Toast.makeText(PaymentMethodsActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                android.util.Log.e("PaymentMethods", "Error cargando tarjetas", e);
-            }
-        });
+    private void setupRecyclerView() {
+        rvPaymentMethods.setLayoutManager(new LinearLayoutManager(this));
+        paymentMethodsAdapter = new PaymentMethodsAdapter(this::onPaymentMethodAction);
+        rvPaymentMethods.setAdapter(paymentMethodsAdapter);
     }
 
     private void setupClickListeners() {
         cardAddNew.setOnClickListener(v -> {
-            Toast.makeText(this, "Agregar nueva tarjeta próximamente", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Agregar nueva tarjeta", Toast.LENGTH_SHORT).show();
+            // In real app: startActivity(new Intent(this, AddPaymentMethodActivity.class));
         });
     }
 
-    private void onPaymentMethodAction(PaymentMethod card, String action) {
+    private void onPaymentMethodAction(int position, String action) {
         switch (action) {
             case "set_default":
-                firestoreManager.setDefaultPaymentMethod(currentUserId, card.getPaymentMethodId(), new FirestoreManager.FirestoreCallback() {
-                    @Override
-                    public void onSuccess(Object result) {
-                        Toast.makeText(PaymentMethodsActivity.this, "Tarjeta establecida como principal", Toast.LENGTH_SHORT).show();
-                        loadPaymentMethodsFromFirebase();
-                    }
-                    @Override
-                    public void onFailure(Exception e) {
-                        Toast.makeText(PaymentMethodsActivity.this, "Error", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                Toast.makeText(this, "Tarjeta establecida como principal", Toast.LENGTH_SHORT).show();
                 break;
             case "edit":
-                Toast.makeText(this, "Editar tarjeta próximamente", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Editar tarjeta", Toast.LENGTH_SHORT).show();
                 break;
             case "delete":
-                firestoreManager.deletePaymentMethod(card.getPaymentMethodId(), new FirestoreManager.FirestoreCallback() {
-                    @Override
-                    public void onSuccess(Object result) {
-                        Toast.makeText(PaymentMethodsActivity.this, "Tarjeta eliminada", Toast.LENGTH_SHORT).show();
-                        loadPaymentMethodsFromFirebase();
-                    }
-                    @Override
-                    public void onFailure(Exception e) {
-                        Toast.makeText(PaymentMethodsActivity.this, "Error eliminando", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                Toast.makeText(this, "Tarjeta eliminada", Toast.LENGTH_SHORT).show();
                 break;
         }
     }
@@ -146,16 +109,20 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+    
+    private void redirectToLogin() {
+        android.content.Intent intent = new android.content.Intent(this, com.example.droidtour.LoginActivity.class);
+        intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+    }
 }
 
 // Adaptador para métodos de pago
 class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.ViewHolder> {
-    interface OnPaymentMethodAction { void onAction(PaymentMethod card, String action); }
-    private final List<PaymentMethod> paymentMethods;
+    interface OnPaymentMethodAction { void onAction(int position, String action); }
     private final OnPaymentMethodAction onPaymentMethodAction;
 
-    PaymentMethodsAdapter(List<PaymentMethod> paymentMethods, OnPaymentMethodAction listener) {
-        this.paymentMethods = paymentMethods;
+    PaymentMethodsAdapter(OnPaymentMethodAction listener) {
         this.onPaymentMethodAction = listener;
     }
 
@@ -168,8 +135,6 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        PaymentMethod card = paymentMethods.get(position);
-        
         android.widget.ImageView ivCardType = holder.itemView.findViewById(R.id.iv_card_type);
         TextView cardNumber = holder.itemView.findViewById(R.id.tv_card_number);
         TextView cardHolder = holder.itemView.findViewById(R.id.tv_card_holder);
@@ -181,21 +146,38 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
         MaterialButton btnEditCard = holder.itemView.findViewById(R.id.btn_edit_card);
         MaterialButton btnDeleteCard = holder.itemView.findViewById(R.id.btn_delete_card);
 
-        cardNumber.setText(card.getCardNumber());
-        cardHolder.setText(card.getCardHolderName());
-        expiryDate.setText(card.getExpiryMonth() + "/" + card.getExpiryYear());
-        lastUsed.setText("Última vez: " + (card.getCreatedAt() != null ? new java.text.SimpleDateFormat("dd MMM, yyyy").format(card.getCreatedAt()) : "N/A"));
-        totalSpent.setText("S/. 0");
+        String[] cardTypes = {"Visa", "Mastercard", "American Express"};
+        String[] cardNumbers = {"**** **** **** 1234", "**** **** **** 5678", "**** **** **** 9012"};
+        String[] expiryDates = {"12/26", "08/25", "03/27"};
+        String[] lastUsedDates = {"10 Dic, 2024", "05 Dic, 2024", "28 Nov, 2024"};
+        String[] totalAmounts = {"S/. 425", "S/. 255", "S/. 180"};
 
-        int brandRes = R.drawable.ic_visa_logo;
-        if (card.getCardType().contains("MASTERCARD")) {
+        int index = position % cardTypes.length;
+
+        cardNumber.setText(cardNumbers[index]);
+        cardHolder.setText("ANA GARCIA PEREZ");
+        expiryDate.setText(expiryDates[index]);
+        lastUsed.setText("Última vez: " + lastUsedDates[index]);
+        totalSpent.setText(totalAmounts[index]);
+
+        // Asignar icono de marca según el tipo de tarjeta
+        // La variable `cardTypes[index]` contiene el nombre del tipo (p.ej. "Visa", "Mastercard", "American Express").
+        // Aquí mapeamos explícitamente esos nombres a los drawables existentes (más seguro y eficiente que getIdentifier).
+        String type = cardTypes[index].toLowerCase();
+        int brandRes = R.drawable.ic_visa_logo; // fallback
+        if (type.contains("visa")) {
+            brandRes = R.drawable.ic_visa_logo;
+        } else if (type.contains("master")) {
+            // Usar el drawable vectorial que tenemos: ic_mastercard_logo.xml
             brandRes = R.drawable.ic_mastercard_logo;
-        } else if (card.getCardType().contains("AMEX")) {
+        } else if (type.contains("american") || type.contains("amex")) {
+            // American Express -> ic_amex_logo.xml
             brandRes = R.drawable.ic_amex_logo;
         }
         if (ivCardType != null) ivCardType.setImageResource(brandRes);
 
-        if (card.getDefault()) {
+        // Show default badge only for first card
+        if (position == 0) {
             defaultBadge.setVisibility(android.view.View.VISIBLE);
             btnSetDefault.setVisibility(android.view.View.GONE);
         } else {
@@ -203,13 +185,13 @@ class PaymentMethodsAdapter extends RecyclerView.Adapter<PaymentMethodsAdapter.V
             btnSetDefault.setVisibility(android.view.View.VISIBLE);
         }
 
-        btnSetDefault.setOnClickListener(v -> onPaymentMethodAction.onAction(card, "set_default"));
-        btnEditCard.setOnClickListener(v -> onPaymentMethodAction.onAction(card, "edit"));
-        btnDeleteCard.setOnClickListener(v -> onPaymentMethodAction.onAction(card, "delete"));
+        btnSetDefault.setOnClickListener(v -> onPaymentMethodAction.onAction(position, "set_default"));
+        btnEditCard.setOnClickListener(v -> onPaymentMethodAction.onAction(position, "edit"));
+        btnDeleteCard.setOnClickListener(v -> onPaymentMethodAction.onAction(position, "delete"));
     }
 
     @Override
-    public int getItemCount() { return paymentMethods.size(); }
+    public int getItemCount() { return 3; }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         ViewHolder(android.view.View v) { super(v); }

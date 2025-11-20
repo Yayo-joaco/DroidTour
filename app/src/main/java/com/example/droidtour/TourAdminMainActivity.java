@@ -10,29 +10,47 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import android.widget.TextView;
+import android.widget.Toast;
+import com.example.droidtour.managers.PrefsManager;
+import com.example.droidtour.managers.FileManager;
 
 public class TourAdminMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
-    
+
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle toggle;
-    private TextView tvPendingAlertsCount, tvActiveChatCount;
+    private TextView tvWelcomeAdmin, tvCompanyName, tvPendingAlertsCount, tvActiveChatCount;
+    private TextView tvAdminNameHeader, tvCompanyNameHeader;
+    private MaterialCardView cardAlerts, cardCustomerChat, cardReports;
+    private MaterialCardView cardCompanyInfo, cardCreateTour, cardCreateService;
+    private MaterialCardView cardGuideManagement, cardGuideTracking;
+
+    // Storage
+    private PrefsManager prefsManager;
+    private FileManager fileManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tour_admin_main);
-        
+
+        // Inicializar storage
+        prefsManager = new PrefsManager(this);
+        fileManager = new FileManager(this);
+
+        initViews();
         setupToolbar();
         setupDrawer();
         setupCardClickListeners();
-        setupFab();
+        loadUserData();
+        loadNavHeaderData();
         initializeNotificationCounters();
-        loadDashboardData();
         
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawer_layout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -40,7 +58,29 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
             return insets;
         });
     }
-    
+
+    private void initViews() {
+        tvWelcomeAdmin = findViewById(R.id.tv_welcome_admin);
+        tvCompanyName = findViewById(R.id.tv_company_name);
+        tvPendingAlertsCount = findViewById(R.id.tv_pending_alerts_count);
+
+        // Primera fila - Quick Actions
+        cardAlerts = findViewById(R.id.card_alerts);
+        cardCustomerChat = findViewById(R.id.card_customer_chat);
+        cardReports = findViewById(R.id.card_reports);
+
+        // Gestión de Empresa
+        cardCompanyInfo = findViewById(R.id.card_company_info);
+
+        // Gestión de Tours
+        cardCreateTour = findViewById(R.id.card_create_tour);
+        cardCreateService = findViewById(R.id.card_create_service);
+
+        // Gestión de Guías
+        cardGuideManagement = findViewById(R.id.card_guide_management);
+        cardGuideTracking = findViewById(R.id.card_guide_tracking);
+    }
+
     private void setupToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -59,61 +99,90 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     }
     
     private void setupCardClickListeners() {
-        // Company Info Card
-        MaterialCardView companyInfoCard = findViewById(R.id.card_company_info);
-        companyInfoCard.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, CompanyInfoActivity.class);
-            startActivity(intent);
-        });
-        
-        // Service Management Card
-        MaterialCardView serviceManagementCard = findViewById(R.id.card_service_management);
-        serviceManagementCard.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, CreateServiceActivity.class);
-            startActivity(intent);
-        });
-        
-        // Tour Management Card
-        MaterialCardView tourManagementCard = findViewById(R.id.card_tour_management);
-        tourManagementCard.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, CreateTourActivity.class);
-            startActivity(intent);
-        });
-        
-        // Guide Management Card
-        MaterialCardView guideManagementCard = findViewById(R.id.card_guide_management);
-        guideManagementCard.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, GuideManagementActivity.class);
-            startActivity(intent);
-        });
-        
-        // Guide Tracking Card
-        MaterialCardView guideTrackingCard = findViewById(R.id.card_guide_tracking);
-        guideTrackingCard.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, GuideTrackingActivity.class);
-            startActivity(intent);
-        });
-        
-        // Checkout Alerts Card
-        MaterialCardView checkoutAlertsCard = findViewById(R.id.card_checkout_alerts);
-        checkoutAlertsCard.setOnClickListener(v -> {
+        // Primera fila - Quick Actions
+        cardAlerts.setOnClickListener(v -> {
             Intent intent = new Intent(TourAdminMainActivity.this, CheckoutAlertsActivity.class);
             startActivity(intent);
         });
-        
-        // Sales Reports Card
-        MaterialCardView salesReportsCard = findViewById(R.id.card_sales_reports);
-        salesReportsCard.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, SalesReportsActivity.class);
-            startActivity(intent);
-        });
-        
-        // Customer Chat Card
-        MaterialCardView customerChatCard = findViewById(R.id.card_customer_chat);
-        customerChatCard.setOnClickListener(v -> {
+
+        cardCustomerChat.setOnClickListener(v -> {
             Intent intent = new Intent(TourAdminMainActivity.this, AdminChatListActivity.class);
             startActivity(intent);
         });
+
+        cardReports.setOnClickListener(v -> {
+            Intent intent = new Intent(TourAdminMainActivity.this, SalesReportsActivity.class);
+            startActivity(intent);
+        });
+
+        // Gestión de Empresa
+        cardCompanyInfo.setOnClickListener(v -> {
+            Intent intent = new Intent(TourAdminMainActivity.this, CompanyInfoActivity.class);
+            startActivity(intent);
+        });
+
+        // Gestión de Tours
+        cardCreateTour.setOnClickListener(v -> {
+            Intent intent = new Intent(TourAdminMainActivity.this, CreateTourActivity.class);
+            startActivity(intent);
+        });
+
+        cardCreateService.setOnClickListener(v -> {
+            Intent intent = new Intent(TourAdminMainActivity.this, CreateServiceActivity.class);
+            startActivity(intent);
+        });
+
+        // Gestión de Guías
+        cardGuideManagement.setOnClickListener(v -> {
+            Intent intent = new Intent(TourAdminMainActivity.this, GuideManagementActivity.class);
+            startActivity(intent);
+        });
+
+        cardGuideTracking.setOnClickListener(v -> {
+            Intent intent = new Intent(TourAdminMainActivity.this, GuideTrackingActivity.class);
+            startActivity(intent);
+        });
+    }
+
+
+
+    private void loadUserData() {
+        // Obtener datos del usuario desde PrefsManager
+        String userName = prefsManager.obtenerUsuario();
+        String userType = prefsManager.obtenerTipoUsuario();
+
+        if (userName != null && !userName.isEmpty()) {
+            // Extraer solo el primer nombre si hay varios nombres
+            String firstName = userName.split(" ")[0];
+            tvWelcomeAdmin.setText("¡Hola, " + firstName + "!");
+        } else {
+            tvWelcomeAdmin.setText("¡Hola, Admin!");
+        }
+
+        // Mostrar nombre de empresa (por ahora genérico)
+        tvCompanyName.setText("Empresa de Tours");
+    }
+
+    private void loadNavHeaderData() {
+        // Obtener el header del NavigationView
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        View headerView = navigationView.getHeaderView(0);
+
+        if (headerView != null) {
+            tvAdminNameHeader = headerView.findViewById(R.id.tv_admin_name_header);
+            tvCompanyNameHeader = headerView.findViewById(R.id.tv_company_name_header);
+
+            // Cargar datos del usuario
+            String userName = prefsManager.obtenerUsuario();
+            if (userName != null && !userName.isEmpty()) {
+                tvAdminNameHeader.setText(userName);
+            } else {
+                tvAdminNameHeader.setText("Admin Usuario");
+            }
+
+            // Mostrar nombre de empresa
+            tvCompanyNameHeader.setText("Empresa de Tours");
+        }
     }
     
     private void setupFab() {
@@ -149,11 +218,17 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         } else if (id == R.id.nav_customer_chat) {
             startActivity(new Intent(this, AdminChatListActivity.class));
         } else if (id == R.id.nav_logout) {
-            // Implementar logout
-            Intent intent = new Intent(this, MainActivity.class);
+            //Se limpian los datos de seión
+            prefsManager.cerrarSesion();
+
+            //Limpiar el stack de activities de Login
+            Intent intent= new Intent(this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
+
             finish();
+
+            Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
         }
         
         drawerLayout.closeDrawers();
@@ -186,6 +261,28 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         }
     }
     
+    /**
+     * Realizar logout completo
+     */
+    private void performLogout() {
+        // 1. Limpiar SharedPreferences
+        prefsManager.cerrarSesion();
+
+        // 2. Limpiar archivos de datos de usuario
+        if (fileManager != null) {
+            fileManager.limpiarDatosUsuario();
+        }
+
+        // 3. Mostrar mensaje de confirmación
+        Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
+
+        // 4. Redirigir al LoginActivity
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();

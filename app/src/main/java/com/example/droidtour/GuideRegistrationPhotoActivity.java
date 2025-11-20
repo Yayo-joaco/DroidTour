@@ -19,6 +19,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.example.droidtour.utils.NavigationUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -132,7 +133,7 @@ public class GuideRegistrationPhotoActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        tvRegresar.setOnClickListener(v -> finish());
+        tvRegresar.setOnClickListener(v -> handleBackNavigation());
 
         fabEditPhoto.setOnClickListener(v -> showPhotoOptions());
 
@@ -140,6 +141,19 @@ public class GuideRegistrationPhotoActivity extends AppCompatActivity {
             // PARA AMBOS CASOS (Google y normal) IR A LENGUAJES
             proceedToLanguages();
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        handleBackNavigation();
+    }
+
+    private void handleBackNavigation() {
+        if (isGoogleUser) {
+            NavigationUtils.navigateBackToLogin(this, true);
+        } else {
+            finish();
+        }
     }
 
     private void proceedToLanguages() {

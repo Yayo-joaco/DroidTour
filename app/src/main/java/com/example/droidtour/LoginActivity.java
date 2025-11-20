@@ -113,8 +113,14 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void signInWithGoogle() {
-        Intent signInIntent = googleSignInClient.getSignInIntent();
-        startActivityForResult(signInIntent, RC_SIGN_IN);
+        btnGoogleSignIn.setEnabled(false);
+
+        // Forzar selector de cuenta: cerrar la sesión actual del cliente antes de iniciar el flujo
+        googleSignInClient.signOut().addOnCompleteListener(task -> {
+            Intent signInIntent = googleSignInClient.getSignInIntent();
+            startActivityForResult(signInIntent, RC_SIGN_IN);
+            btnGoogleSignIn.setEnabled(true);
+        });
     }
 
     @Override

@@ -12,6 +12,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.droidtour.utils.NavigationUtils;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.chip.Chip;
@@ -201,12 +202,7 @@ public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
     }
 
     private void setupBackButton() {
-        tvRegresar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish();
-            }
-        });
+        tvRegresar.setOnClickListener(v -> handleBackNavigation());
     }
 
     private void setupNextButton() {
@@ -239,6 +235,19 @@ public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        handleBackNavigation();
+    }
+
+    private void handleBackNavigation() {
+        if (isGoogleUser) {
+            NavigationUtils.navigateBackToLogin(this, true);
+        } else {
+            finish();
+        }
     }
 
     private void completeGoogleRegistration() {

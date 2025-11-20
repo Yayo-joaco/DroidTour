@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.droidtour.client.ClientRegistrationActivity;
 import com.example.droidtour.client.ClientRegistrationPhotoActivity;
+import com.example.droidtour.utils.NavigationUtils;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -53,14 +54,7 @@ public class RoleSelectionActivity extends AppCompatActivity {
         }
 
         // Configurar el listener de navegación CORRECTAMENTE
-        toolbar.setNavigationOnClickListener(v -> {
-            if (isGoogleUser) {
-                // Si viene de Google, cerrar sesión al regresar
-                FirebaseAuth.getInstance().signOut();
-                Toast.makeText(this, "Sesión de Google cerrada", Toast.LENGTH_SHORT).show();
-            }
-            finish();
-        });
+        toolbar.setNavigationOnClickListener(v -> handleBackNavigation());
     }
 
     private void setupClickListeners() {
@@ -111,11 +105,21 @@ public class RoleSelectionActivity extends AppCompatActivity {
 
     @Override
     public boolean onSupportNavigateUp() {
-        if (isGoogleUser) {
-            FirebaseAuth.getInstance().signOut();
-            Toast.makeText(this, "Sesión de Google cerrada", Toast.LENGTH_SHORT).show();
-        }
-        finish();
+        handleBackNavigation();
         return true;
+    }
+
+    @Override
+    public void onBackPressed() {
+        handleBackNavigation();
+    }
+
+    private void handleBackNavigation() {
+        if (isGoogleUser) {
+            Toast.makeText(this, "Sesión de Google cerrada", Toast.LENGTH_SHORT).show();
+            NavigationUtils.navigateBackToLogin(this, true);
+        } else {
+            finish();
+        }
     }
 }

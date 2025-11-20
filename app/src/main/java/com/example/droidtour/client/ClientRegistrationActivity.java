@@ -10,6 +10,7 @@ import android.widget.AutoCompleteTextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.droidtour.R;
+import com.example.droidtour.utils.NavigationUtils;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.hbb20.CountryCodePicker;
@@ -26,6 +27,7 @@ public class ClientRegistrationActivity extends AppCompatActivity {
     private TextInputEditText etTelefono;
     private MaterialButton btnSiguiente;
     private CountryCodePicker ccp;
+    private boolean isGoogleUserFlow = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +51,7 @@ public class ClientRegistrationActivity extends AppCompatActivity {
     private void handleGoogleUserData() {
         Bundle extras = getIntent().getExtras();
         if (extras != null && extras.getBoolean("googleUser", false)) {
+            isGoogleUserFlow = true;
             String userEmail = extras.getString("userEmail", "");
             String userName = extras.getString("userName", "");
 
@@ -75,7 +78,7 @@ public class ClientRegistrationActivity extends AppCompatActivity {
         etTelefono = findViewById(R.id.etTelefono);
         btnSiguiente = findViewById(R.id.btnSiguiente);
         ccp = findViewById(R.id.ccp);
-        findViewById(R.id.tvRegresar).setOnClickListener(v -> finish());
+        findViewById(R.id.tvRegresar).setOnClickListener(v -> handleBackNavigation());
     }
 
 
@@ -220,5 +223,18 @@ public class ClientRegistrationActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        handleBackNavigation();
+    }
+
+    private void handleBackNavigation() {
+        if (isGoogleUserFlow) {
+            NavigationUtils.navigateBackToLogin(this, true);
+        } else {
+            finish();
+        }
     }
 }

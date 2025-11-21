@@ -111,7 +111,7 @@
             app:elevation="4dp"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="16dp"
-            app:icon="@android:drawable/ic_media_play"
+            app:icon="@drawable/ic_chevron_right"
             app:iconGravity="end"
             app:iconTint="#2196F3"
             app:layout_constraintTop_toBottomOf="@id/mensaje2"

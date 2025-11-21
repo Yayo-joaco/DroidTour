@@ -5,88 +5,119 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#C9D3D2">
+    android:background="#C9D3D2"
+    android:padding="24dp">
 
-
-    <ImageView
-        android:id="@+id/imageninit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/welcome_ubi"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/mensaje1"
-        app:layout_constraintVertical_bias="0.172" />
-
+    <!-- Botón Saltar - Posición fija arriba derecha -->
     <TextView
         android:id="@+id/saltar"
-        android:layout_width="93dp"
-        android:layout_height="40dp"
-        android:layout_alignParentTop="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:fontFamily="@font/bricolage_grotesque"
         android:text="@string/saltar"
         android:textAlignment="center"
         android:textAllCaps="false"
         android:textColor="#FE003B95"
-        android:textSize="15sp"
-        app:layout_constraintBottom_toTopOf="@+id/mensaje1"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.949"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
-
-    <TextView
-        android:id="@+id/mensaje1"
-        android:layout_width="328dp"
-        android:layout_height="81dp"
-        android:fontFamily="@font/bricolage_grotesque"
-        android:gravity="center"
-        android:text="@string/mensaje3"
-        android:textAlignment="center"
-        android:textColor="#FE003B95"
-        android:textSize="27sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.495"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.096" />
-
-    <TextView
-        android:id="@+id/mensaje2"
-        android:layout_width="347dp"
-        android:layout_height="98dp"
-        android:fontFamily="@font/bricolage_grotesque"
-        android:gravity="center"
-        android:text="@string/mensaje4"
-        android:textAlignment="center"
-        android:textColor="#FE003B95"
-        android:textSize="25sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/imageninit"
-        app:layout_constraintVertical_bias="0.339" />
-
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="49dp"
-        android:text="Siguiente"
         android:textSize="16sp"
-        android:textColor="@color/white"
-        android:backgroundTint="@color/dark_gray"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:textStyle="bold"
+        android:padding="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.869"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Contenedor principal centrado -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/saltar"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/mensaje2"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="5dp">
+
+        <!-- Mensaje 1 - Título principal -->
+        <TextView
+            android:id="@+id/mensaje1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/bricolage_grotesque"
+            android:gravity="center"
+            android:text="@string/mensaje3"
+            android:textAlignment="center"
+            android:textColor="#FE003B95"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginHorizontal="16dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/imageninit"
+            app:layout_constraintVertical_chainStyle="packed" />
+
+        <!-- Imagen principal -->
+        <ImageView
+            android:id="@+id/imageninit"
+            android:layout_width="300dp"
+            android:layout_height="262dp"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="32dp"
+            android:contentDescription="Imagen de ubicación"
+            android:scaleType="centerInside"
+            android:src="@drawable/welcome_ubi"
+            app:layout_constraintBottom_toTopOf="@id/mensaje2"
+            app:layout_constraintDimensionRatio="H,1:1.5"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHeight_max="350dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/mensaje1"
+            app:layout_constraintWidth_max="300dp" />
+
+        <!-- Mensaje 2 - Descripción -->
+        <TextView
+            android:id="@+id/mensaje2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/bricolage_grotesque"
+            android:gravity="center"
+            android:text="@string/mensaje4"
+            android:textAlignment="center"
+            android:textColor="#FE003B95"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="32dp"
+            app:layout_constraintTop_toBottomOf="@id/imageninit"
+            app:layout_constraintBottom_toTopOf="@id/button2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Botón siguiente -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/button2"
+            style="@style/Widget.Material3.Button.ElevatedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Siguiente"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/white"
+            android:paddingHorizontal="32dp"
+            android:paddingVertical="12dp"
+            android:backgroundTint="@color/dark_gray"
+            app:cornerRadius="24dp"
+            app:elevation="4dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"
+            app:icon="@drawable/ic_chevron_right"
+            app:iconGravity="end"
+            app:iconTint="@color/white"
+            app:layout_constraintTop_toBottomOf="@id/mensaje2"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

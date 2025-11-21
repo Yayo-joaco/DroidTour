@@ -188,7 +188,19 @@
             android:name=".client.ClientProfileActivity"
             android:exported="false"
             android:parentActivityName=".client.ClientMainActivity" />
-        
+
+        <activity
+            android:name=".client.ClientEditProfileActivity"
+            android:theme="@style/Theme.DroidTour"
+            android:parentActivityName=".client.ClientProfileActivity"
+            android:exported="false">
+
+            <!-- Opcional: Configurar la relación padre-hijo para la navegación -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".client.ClientProfileActivity" />
+        </activity>
+
         <activity
             android:name=".client.ClientSettingsActivity"
             android:exported="false"

@@ -85,7 +85,6 @@ public class SuperadminProfileActivity extends AppCompatActivity {
         tvUserName = findViewById(R.id.tv_user_name);
         tvUserEmail = findViewById(R.id.tv_user_email);
         tvUserRole = findViewById(R.id.tv_user_role);
-        btnEditPhoto = findViewById(R.id.btn_edit_photo_small);
         ivProfilePhoto = findViewById(R.id.profile_image);
         
         // Información personal

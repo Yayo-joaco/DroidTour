@@ -260,6 +260,15 @@ public class PreferencesManager {
         editor.remove(clave);
         editor.apply();
     }
+
+    public void saveUserPhone(String phone) {
+        editor.putString(KEY_USER_PHONE, phone);
+        editor.apply();
+    }
+
+    public void guardarTelefono(String telefono) {
+        saveUserPhone(telefono);
+    }
     
     public boolean existeClave(String clave) {
         return prefs.contains(clave);

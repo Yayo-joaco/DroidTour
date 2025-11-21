@@ -70,7 +70,7 @@ public class ClientProfileActivity extends AppCompatActivity {
         tvUserName = findViewById(R.id.tv_user_name);
         tvUserEmail = findViewById(R.id.tv_user_email);
         tvUserRole = findViewById(R.id.tv_user_role);
-        btnEditPhoto = findViewById(R.id.btn_edit_photo_small);
+
 
         // Información personal - NUEVOS CAMPOS
         tvFirstName = findViewById(R.id.tv_first_name);
@@ -286,10 +286,15 @@ public class ClientProfileActivity extends AppCompatActivity {
             });
         }
 
-        // FAB editar
+        // FAB editar - NUEVO: Abrir ClientEditProfileActivity
         if (fabEdit != null) {
             fabEdit.setOnClickListener(v -> {
-                Toast.makeText(this, "Edición de perfil próximamente", Toast.LENGTH_SHORT).show();
+                // CAMBIAR ESTO:
+                // Toast.makeText(this, "Edición de perfil próximamente", Toast.LENGTH_SHORT).show();
+
+                // POR ESTO:
+                Intent editIntent = new Intent(ClientProfileActivity.this, ClientEditProfileActivity.class);
+                startActivityForResult(editIntent, 1); // Usar startActivityForResult para recibir actualizaciones
             });
         }
     }

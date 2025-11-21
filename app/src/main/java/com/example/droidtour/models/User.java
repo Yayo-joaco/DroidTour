@@ -211,10 +211,11 @@ public class User {
         this.documentNumber = documentNumber;
     }
 
+    @PropertyName("birthDate")
     public String getDateOfBirth() {
         return dateOfBirth;
     }
-
+    @PropertyName("birthDate")
     public void setDateOfBirth(String dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
     }

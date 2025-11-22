@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -234,6 +235,20 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Asegurar que "Inicio" esté seleccionado cuando la activity sea visible
+        try {
+            if (navigationView != null) {
+                navigationView.setCheckedItem(R.id.nav_dashboard);
+                MenuItem dashboardItem = navigationView.getMenu().findItem(R.id.nav_dashboard);
+                if (dashboardItem != null) dashboardItem.setChecked(true);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     private void setupToolbarAndDrawer() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -247,20 +262,57 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         drawerToggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
         
+        // Marcar "Inicio" (dashboard) como seleccionado para esta activity
+        try {
+            navigationView.setCheckedItem(R.id.nav_dashboard);
+            MenuItem dashboardItem = navigationView.getMenu().findItem(R.id.nav_dashboard);
+            if (dashboardItem != null) dashboardItem.setChecked(true);
+        } catch (Exception ignored) {
+            // Si por alguna razón el menú aún no está inflado o el id no existe, ignorar sin romper la app
+        }
+
         // Actualizar nombre de usuario en el header del drawer
         View headerView = navigationView.getHeaderView(0);
         if (headerView != null) {
             TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
             if (tvUserNameHeader != null) {
                 String userName = prefsManager.obtenerUsuario();
-                
                 if (userName != null && !userName.isEmpty()) {
-                    tvUserNameHeader.setText(userName);
+                    // Mostrar nombre + apellido (dos primeros tokens) si están disponibles
+                    String displayName = userName.trim();
+                    String[] parts = displayName.split("\\s+");
+                    if (parts.length >= 2) {
+                        displayName = parts[0] + " " + parts[1];
+                    } else if (parts.length == 1) {
+                        displayName = parts[0];
+                    }
+                    tvUserNameHeader.setText(displayName);
                 } else {
                     tvUserNameHeader.setText("Usuario");
                 }
             }
         }
+
+        // Asegurar que el icono de hamburguesa sea blanco (tint)
+        int whiteColor = ContextCompat.getColor(this, R.color.white);
+        try {
+            // Tint al navigation icon del toolbar si existe
+            if (toolbar.getNavigationIcon() != null) {
+                android.graphics.drawable.Drawable nav = toolbar.getNavigationIcon();
+                nav = DrawableCompat.wrap(nav);
+                DrawableCompat.setTint(nav, whiteColor);
+                toolbar.setNavigationIcon(nav);
+            }
+        } catch (Exception ignored) { }
+
+        try {
+            // Si el ActionBarDrawerToggle creó un DrawerArrowDrawable, forzar su color
+            if (drawerToggle != null && drawerToggle.getDrawerArrowDrawable() != null) {
+                drawerToggle.getDrawerArrowDrawable().setColor(whiteColor);
+                // sincronizar estado por si acaso
+                drawerToggle.syncState();
+            }
+        } catch (Exception ignored) { }
     }
 
     private void setupClickListeners() {
@@ -425,7 +477,15 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             if (headerView != null) {
                 TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
                 if (tvUserNameHeader != null && userName != null && !userName.isEmpty()) {
-                    tvUserNameHeader.setText(userName);
+                    // Mostrar nombre + apellido (dos primeros tokens) en el header
+                    String displayName = userName.trim();
+                    String[] parts = displayName.split("\\s+");
+                    if (parts.length >= 2) {
+                        displayName = parts[0] + " " + parts[1];
+                    } else if (parts.length == 1) {
+                        displayName = parts[0];
+                    }
+                    tvUserNameHeader.setText(displayName);
                 }
             }
         }

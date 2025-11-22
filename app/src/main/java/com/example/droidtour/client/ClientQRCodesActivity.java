@@ -9,6 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.R;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -54,6 +55,7 @@ public class ClientQRCodesActivity extends AppCompatActivity {
         }
         
         setContentView(R.layout.activity_client_qr_codes);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
         

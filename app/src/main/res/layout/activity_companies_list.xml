@@ -36,29 +36,43 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Search -->
+            <!-- Search Card - Diseño Simplificado con Iconos Integrados -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_search"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
-                android:layout_marginTop="12dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp">
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="3dp"
+                app:cardBackgroundColor="@color/white">
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Buscar empresa o destino"
+                    android:hint="Buscar empresa o destino..."
                     app:startIconDrawable="@android:drawable/ic_menu_search"
+                    app:startIconTint="@color/gray"
+                    app:endIconMode="clear_text"
+                    app:endIconTint="@color/gray"
+                    app:boxBackgroundMode="none"
+                    app:boxBackgroundColor="@android:color/transparent"
+                    app:hintTextColor="@color/gray"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:padding="8dp">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_search"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:imeOptions="actionSearch" />
+                        android:imeOptions="actionSearch"
+                        android:maxLines="1"
+                        android:background="@android:color/transparent"
+                        android:textColor="@color/black"
+                        android:textColorHint="@color/gray"
+                        android:textSize="16sp" />
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -71,8 +85,17 @@
                 android:orientation="vertical"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:paddingVertical="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Filtrar por:"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
 
                 <com.google.android.material.chip.ChipGroup
                     android:id="@+id/chip_group_filter"
@@ -100,6 +123,7 @@
                         android:layout_height="wrap_content"
                         android:text="Mejor Valoradas"
                         android:checkable="true"
+
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
@@ -109,6 +133,7 @@
                         android:layout_height="wrap_content"
                         android:text="Más Tours"
                         android:checkable="true"
+
                         app:checkedIconVisible="true" />
 
                     <com.google.android.material.chip.Chip
@@ -129,6 +154,7 @@
                 android:id="@+id/rv_companies"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
                 android:paddingBottom="16dp"
@@ -139,4 +165,3 @@
     </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>
-

@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.adapters.UsersAdapter;
 import com.example.droidtour.models.User;
+import com.example.droidtour.ui.UserProfileBottomSheet;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -30,7 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SuperadminUsersActivity extends AppCompatActivity implements UsersAdapter.OnUserClickListener {
+public class SuperadminUsersActivity extends AppCompatActivity implements UsersAdapter.OnUserClickListener, UserProfileBottomSheet.OnUserProfileActionListener {
 
     private static final String TAG = "SuperadminUsersAct";
 
@@ -309,8 +310,35 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     // Implementación de los listeners del adapter
     @Override
     public void onUserClick(User user) {
-        Toast.makeText(this, "Ver perfil: " + user.getFullName(), Toast.LENGTH_SHORT).show();
-        // TODO: Implementar vista de perfil
+        // Mostrar bottom sheet con los datos del usuario
+        long createdAtMillis = -1;
+        if (user.getCreatedAt() != null) createdAtMillis = user.getCreatedAt().getTime();
+
+        UserProfileBottomSheet sheet = UserProfileBottomSheet.newInstance(
+                user.getUserId() != null ? user.getUserId() : "",
+                user.getFullName(),
+                user.getEmail(),
+                user.getPhoneNumber(),
+                user.getProfileImageUrl(),
+                user.getUserType(),
+                createdAtMillis,
+                user.getStatus()
+        );
+
+        sheet.show(getSupportFragmentManager(), "user_profile_sheet");
+    }
+
+    @Override
+    public void onEditUser(String userId) {
+        // Lanzar actividad de edición o mostrar formulario
+        Toast.makeText(this, "Abrir edición para " + userId, Toast.LENGTH_SHORT).show();
+        // TODO: implementar navegación a la pantalla de edición
+    }
+
+    @Override
+    public void onSendMessageToUser(String userId) {
+        Toast.makeText(this, "Enviar mensaje a " + userId, Toast.LENGTH_SHORT).show();
+        // TODO: implementar chat/mensaje
     }
 
     @Override
@@ -494,4 +522,3 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         finish();
     }
 }
-

@@ -71,7 +71,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="Nombre del titular"
-                app:startIconDrawable="@drawable/ic_person"
+                app:startIconDrawable="@drawable/ic_user_form"
                 app:startIconTint="@color/primary">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -90,7 +90,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="Número de tarjeta"
-                app:startIconDrawable="@drawable/ic_payment"
+                app:startIconDrawable="@drawable/ic_card_form"
                 app:startIconTint="@color/primary">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -186,7 +186,7 @@
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:src="@drawable/ic_info"
+                        android:src="@drawable/ic_password"
                         app:tint="#F57C00" />
 
                     <TextView
@@ -194,7 +194,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="12dp"
-                        android:text="🔒 Tus datos están protegidos y encriptados"
+                        android:text="Tus datos están protegidos y encriptados"
                         android:textSize="12sp"
                         android:textColor="#F57C00" />
                 </LinearLayout>

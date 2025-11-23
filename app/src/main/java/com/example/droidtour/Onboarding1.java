@@ -8,6 +8,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.example.droidtour.superadmin.SuperadminMainActivity;
 import com.example.droidtour.utils.PreferencesManager;
 
 public class Onboarding1 extends AppCompatActivity {

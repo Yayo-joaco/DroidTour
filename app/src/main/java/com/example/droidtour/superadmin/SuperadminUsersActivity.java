@@ -1,4 +1,4 @@
-package com.example.droidtour;
+package com.example.droidtour.superadmin;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,12 +16,14 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.droidtour.LoginActivity;
+import com.example.droidtour.R;
 import com.example.droidtour.adapters.UsersAdapter;
 import com.example.droidtour.models.User;
 import com.example.droidtour.ui.UserProfileBottomSheet;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.tabs.TabLayout;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.SetOptions;

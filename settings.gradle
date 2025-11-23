@@ -10,6 +10,10 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    plugins {
+        // Secrets Gradle Plugin para gestionar claves en equipos y CI
+        id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1"
+    }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

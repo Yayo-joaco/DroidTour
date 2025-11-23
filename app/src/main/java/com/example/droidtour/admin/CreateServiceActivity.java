@@ -1,10 +1,13 @@
-package com.example.droidtour;
+package com.example.droidtour.admin;
 
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.CheckBox;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import com.example.droidtour.R;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
@@ -41,6 +44,7 @@ public class CreateServiceActivity extends AppCompatActivity {
         }
         
         setContentView(R.layout.activity_create_service);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
         
         setupToolbar();
         initializeViews();

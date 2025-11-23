@@ -27,6 +27,10 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/maps_api_key" />
+
         <!-- Google Sign-In Activity -->
         <activity
             android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity"
@@ -51,7 +55,7 @@
         <!-- <activity android:name=".MainActivity" android:exported="true"/> -->
 
         <activity
-            android:name=".SuperadminMainActivity"
+            android:name=".superadmin.SuperadminMainActivity"
             android:exported="false" />
 
         <activity
@@ -73,38 +77,38 @@
             android:parentActivityName=".client.ClientMainActivity" />
 
         <activity
-            android:name=".SuperadminUsersActivity"
+            android:name=".superadmin.SuperadminUsersActivity"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
-            android:name=".SuperadminReportsActivity"
+            android:name=".superadmin.SuperadminReportsActivity"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
-            android:name=".SuperadminLogsActivity"
+            android:name=".superadmin.SuperadminLogsActivity"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
-            android:name=".SuperadminProfileActivity"
+            android:name=".superadmin.SuperadminProfileActivity"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <!-- Tour Admin Activities -->
         <activity
-            android:name=".CompanyInfoActivity"
+            android:name=".admin.CompanyInfoActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
 
         <activity
-            android:name=".CreateServiceActivity"
+            android:name=".admin.CreateServiceActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
 
         <activity
-            android:name=".CreateTourActivity"
+            android:name=".admin.CreateTourActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
 
@@ -223,9 +227,9 @@
             android:parentActivityName=".TourGuideMainActivity" />
 
         <activity
-            android:name=".SuperadminMyAccount"
+            android:name=".superadmin.SuperadminMyAccount"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
             android:name=".TourRatingActivity"

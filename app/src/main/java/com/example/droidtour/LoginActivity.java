@@ -1,7 +1,6 @@
 package com.example.droidtour;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -9,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientMainActivity;
+import com.example.droidtour.superadmin.SuperadminMainActivity;
 import com.example.droidtour.utils.PreferencesManager;
 import com.example.droidtour.models.UserSession;
 import com.example.droidtour.firebase.FirestoreManager;

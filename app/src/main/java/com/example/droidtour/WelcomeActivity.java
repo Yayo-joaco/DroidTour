@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientMainActivity;
+import com.example.droidtour.superadmin.SuperadminMainActivity;
 import com.example.droidtour.utils.PreferencesManager;
 
 public class WelcomeActivity extends AppCompatActivity {

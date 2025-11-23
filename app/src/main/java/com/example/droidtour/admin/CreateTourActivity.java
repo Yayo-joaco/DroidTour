@@ -1,17 +1,21 @@
-package com.example.droidtour;
+package com.example.droidtour.admin;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.droidtour.R;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.chip.Chip;
-import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -19,11 +23,13 @@ import java.util.List;
 
 public class CreateTourActivity extends AppCompatActivity {
     
+    private static final String TAG = "CreateTourActivity";
+
     private TextInputEditText etTourName, etTourDescription, etTourPrice, etTourDuration;
     private TextInputEditText etStartDate, etEndDate;
-    private MaterialButton btnAddLocation, btnCancel, btnSave;
+    private MaterialButton btnAddLocation;
+    private ExtendedFloatingActionButton btnSave;
     private RecyclerView rvLocations;
-    private ChipGroup chipGroupLanguages;
     private CheckBox cbBreakfast, cbLunch, cbDinner, cbTransport;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
     
@@ -52,6 +58,7 @@ public class CreateTourActivity extends AppCompatActivity {
         }
         
         setContentView(R.layout.activity_create_tour);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
         
         setupToolbar();
         initializeViews();
@@ -63,7 +70,9 @@ public class CreateTourActivity extends AppCompatActivity {
     private void setupToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
     }
     
     private void initializeViews() {
@@ -75,12 +84,10 @@ public class CreateTourActivity extends AppCompatActivity {
         etEndDate = findViewById(R.id.et_end_date);
         
         btnAddLocation = findViewById(R.id.btn_add_location);
-        btnCancel = findViewById(R.id.btn_cancel);
         btnSave = findViewById(R.id.btn_save_tour);
         
         rvLocations = findViewById(R.id.rv_locations);
-        chipGroupLanguages = findViewById(R.id.chip_group_languages);
-        
+
         cbBreakfast = findViewById(R.id.cb_breakfast);
         cbLunch = findViewById(R.id.cb_lunch);
         cbDinner = findViewById(R.id.cb_dinner);
@@ -88,49 +95,65 @@ public class CreateTourActivity extends AppCompatActivity {
     }
     
     private void setupClickListeners() {
-        etStartDate.setOnClickListener(v -> showDatePicker(etStartDate));
-        etEndDate.setOnClickListener(v -> showDatePicker(etEndDate));
-        
-        btnAddLocation.setOnClickListener(v -> {
-            Toast.makeText(this, "Abrir mapa para agregar ubicación", Toast.LENGTH_SHORT).show();
-            // TODO: Implementar selección de ubicación en mapa
-        });
-        
-        btnCancel.setOnClickListener(v -> finish());
-        
-        btnSave.setOnClickListener(v -> {
-            if (validateInputs()) {
-                saveTour();
-            }
-        });
+        if (etStartDate != null) etStartDate.setOnClickListener(v -> showDatePicker(etStartDate));
+        else Log.w(TAG, "etStartDate es null");
+
+        if (etEndDate != null) etEndDate.setOnClickListener(v -> showDatePicker(etEndDate));
+        else Log.w(TAG, "etEndDate es null");
+
+        if (btnAddLocation != null) {
+            btnAddLocation.setOnClickListener(v -> {
+                Toast.makeText(this, "Abrir mapa para agregar ubicación", Toast.LENGTH_SHORT).show();
+                // TODO: Implementar selección de ubicación en mapa
+            });
+        } else {
+            Log.w(TAG, "btnAddLocation es null");
+        }
+
+        if (btnSave != null) {
+            btnSave.setOnClickListener(v -> {
+                if (validateInputs()) {
+                    saveTour();
+                }
+            });
+        } else {
+            Log.w(TAG, "btnSave es null");
+        }
     }
     
     private void setupRecyclerView() {
-        rvLocations.setLayoutManager(new LinearLayoutManager(this));
+        if (rvLocations != null) {
+            rvLocations.setLayoutManager(new LinearLayoutManager(this));
+        } else {
+            Log.w(TAG, "rvLocations es null");
+        }
         // TODO: Configurar adapter para lista de ubicaciones
     }
     
     private void setupLanguageChips() {
-        Chip chipSpanish = findViewById(R.id.chip_spanish);
-        Chip chipEnglish = findViewById(R.id.chip_english);
-        Chip chipFrench = findViewById(R.id.chip_french);
-        Chip chipGerman = findViewById(R.id.chip_german);
-        
-        chipSpanish.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            updateLanguageSelection("Español", isChecked);
-        });
-        
-        chipEnglish.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            updateLanguageSelection("Inglés", isChecked);
-        });
-        
-        chipFrench.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            updateLanguageSelection("Francés", isChecked);
-        });
-        
-        chipGerman.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            updateLanguageSelection("Alemán", isChecked);
-        });
+        // El layout actual usa MaterialCheckBox con ids cb_spanish, cb_english, cb_french, cb_portuguese
+        CompoundButton cbSpanish = findViewById(R.id.cb_spanish);
+        CompoundButton cbEnglish = findViewById(R.id.cb_english);
+        CompoundButton cbFrench = findViewById(R.id.cb_french);
+        CompoundButton cbPortuguese = findViewById(R.id.cb_portuguese);
+
+        if (cbSpanish != null) {
+            cbSpanish.setOnCheckedChangeListener((buttonView, isChecked) -> updateLanguageSelection("Español", isChecked));
+            // Si está marcado por defecto, agregar a la lista
+            if (cbSpanish.isChecked() && !selectedLanguages.contains("Español")) selectedLanguages.add("Español");
+        }
+
+        if (cbEnglish != null) {
+            cbEnglish.setOnCheckedChangeListener((buttonView, isChecked) -> updateLanguageSelection("Inglés", isChecked));
+        }
+
+        if (cbFrench != null) {
+            cbFrench.setOnCheckedChangeListener((buttonView, isChecked) -> updateLanguageSelection("Francés", isChecked));
+        }
+
+        if (cbPortuguese != null) {
+            cbPortuguese.setOnCheckedChangeListener((buttonView, isChecked) -> updateLanguageSelection("Portugués", isChecked));
+        }
     }
     
     private void updateLanguageSelection(String language, boolean isSelected) {
@@ -153,7 +176,11 @@ public class CreateTourActivity extends AppCompatActivity {
             this,
             (view, selectedYear, selectedMonth, selectedDay) -> {
                 String date = selectedDay + "/" + (selectedMonth + 1) + "/" + selectedYear;
-                editText.setText(date);
+                if (editText != null) {
+                    editText.setText(date);
+                } else {
+                    Log.w(TAG, "editText pasado a showDatePicker es null");
+                }
             },
             year, month, day
         );
@@ -162,33 +189,33 @@ public class CreateTourActivity extends AppCompatActivity {
     }
     
     private boolean validateInputs() {
-        if (etTourName.getText().toString().trim().isEmpty()) {
-            etTourName.setError("Ingrese el nombre del tour");
+        if (etTourName == null || etTourName.getText() == null || etTourName.getText().toString().trim().isEmpty()) {
+            if (etTourName != null) etTourName.setError("Ingrese el nombre del tour");
             return false;
         }
         
-        if (etTourDescription.getText().toString().trim().isEmpty()) {
-            etTourDescription.setError("Ingrese la descripción");
+        if (etTourDescription == null || etTourDescription.getText() == null || etTourDescription.getText().toString().trim().isEmpty()) {
+            if (etTourDescription != null) etTourDescription.setError("Ingrese la descripción");
             return false;
         }
         
-        if (etTourPrice.getText().toString().trim().isEmpty()) {
-            etTourPrice.setError("Ingrese el precio");
+        if (etTourPrice == null || etTourPrice.getText() == null || etTourPrice.getText().toString().trim().isEmpty()) {
+            if (etTourPrice != null) etTourPrice.setError("Ingrese el precio");
             return false;
         }
         
-        if (etTourDuration.getText().toString().trim().isEmpty()) {
-            etTourDuration.setError("Ingrese la duración");
+        if (etTourDuration == null || etTourDuration.getText() == null || etTourDuration.getText().toString().trim().isEmpty()) {
+            if (etTourDuration != null) etTourDuration.setError("Ingrese la duración");
             return false;
         }
         
-        if (etStartDate.getText().toString().trim().isEmpty()) {
-            etStartDate.setError("Seleccione fecha de inicio");
+        if (etStartDate == null || etStartDate.getText() == null || etStartDate.getText().toString().trim().isEmpty()) {
+            if (etStartDate != null) etStartDate.setError("Seleccione fecha de inicio");
             return false;
         }
         
-        if (etEndDate.getText().toString().trim().isEmpty()) {
-            etEndDate.setError("Seleccione fecha de fin");
+        if (etEndDate == null || etEndDate.getText() == null || etEndDate.getText().toString().trim().isEmpty()) {
+            if (etEndDate != null) etEndDate.setError("Seleccione fecha de fin");
             return false;
         }
         

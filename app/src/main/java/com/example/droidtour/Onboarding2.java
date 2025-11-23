@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientMainActivity;
+import com.example.droidtour.superadmin.SuperadminLogsActivity;
 import com.example.droidtour.utils.PreferencesManager;
 
 public class Onboarding2 extends AppCompatActivity {

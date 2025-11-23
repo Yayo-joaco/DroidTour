@@ -1,4 +1,4 @@
-package com.example.droidtour;
+package com.example.droidtour.superadmin;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -17,6 +17,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.LoginActivity;
+import com.example.droidtour.R;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.firestore.DocumentSnapshot;

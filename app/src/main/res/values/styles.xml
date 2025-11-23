@@ -46,4 +46,9 @@
         <!-- No fijamos color aquí: el TabLayout usa app:tabTextColor y app:tabSelectedTextColor -->
     </style>
 
+    <style name="RatingBar" parent="Widget.AppCompat.RatingBar">
+        <item name="colorAccent">@color/orange</item>
+        <item name="colorControlNormal">@color/light_gray</item>
+    </style>
+
 </resources>

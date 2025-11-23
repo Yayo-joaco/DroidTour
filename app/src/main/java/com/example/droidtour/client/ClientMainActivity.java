@@ -617,7 +617,7 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
 
         tourName.setText(tour.getName());
         companyName.setText(tour.getCompanyName());
-        rating.setText("⭐ " + tour.getAverageRating());
+        rating.setText("" + tour.getAverageRating());
         price.setText("S/. " + String.format("%.0f", tour.getPricePerPerson()));
 
         if (tourImage != null) {

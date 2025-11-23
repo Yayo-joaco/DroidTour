@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="120dp"
+    android:viewportWidth="200"
+    android:viewportHeight="120">
+
+    <!-- Fondo -->
+    <path
+        android:fillColor="@color/light_gray"
+        android:pathData="M0,0h200v120h-200z" />
+
+    <!-- Icono de montaña/senderismo -->
+    <group>
+        <path
+            android:fillColor="@color/gray"
+            android:pathData="M60,80 L80,60 L100,70 L120,50 L140,80 L60,80 Z" />
+        <path
+            android:fillColor="@color/white"
+            android:pathData="M85,65 L95,55 L105,65 L95,75 Z" />
+    </group>
+
+    <!-- Texto placeholder -->
+    <path
+        android:fillColor="@color/gray"
+        android:pathData="M50,40 L150,40 L150,45 L50,45 Z" />
+    <path
+        android:fillColor="@color/gray"
+        android:pathData="M60,50 L140,50 L140,55 L60,55 Z" />
+
+</vector>

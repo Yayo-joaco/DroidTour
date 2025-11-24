@@ -1,55 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_tour"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp"
+    android:layout_marginHorizontal="4dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="3dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#E0E0E0"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:background="@color/white">
 
-        <!-- Tour Image -->
+        <!-- Imagen del Tour con Badges -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="160dp">
+            android:layout_height="200dp">
 
             <ImageView
                 android:id="@+id/iv_tour_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:background="@color/light_gray" />
+                android:background="#F5F5F5"
+                android:contentDescription="Imagen del tour"
+                tools:src="@drawable/map_placeholder" />
 
-            <!-- Availability Badge -->
-            <TextView
-                android:id="@+id/tv_availability"
+            <!-- Overlay gradient para mejor legibilidad de badges -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:background="@drawable/bottom_gradient" />
+
+            <!-- Badge de Disponibilidad -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_availability"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="DISPONIBLE"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:textColor="@color/white"
-                android:background="@drawable/bg_status_confirmed"
-                android:padding="4dp"
-                android:layout_margin="8dp"
-                android:layout_gravity="top|end" />
+                android:layout_gravity="top|start"
+                android:layout_margin="12dp"
+                app:cardCornerRadius="6dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#4CAF50">
+
+                <TextView
+                    android:id="@+id/tv_availability"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DISPONIBLE"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="5dp"
+                    tools:text="DISPONIBLE" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Badge de Descuento (opcional) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_discount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="12dp"
+                android:visibility="gone"
+                app:cardCornerRadius="6dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#FF5722"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tv_discount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-20%"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="5dp"
+                    tools:text="-20%" />
+            </com.google.android.material.card.MaterialCardView>
 
         </FrameLayout>
 
-        <!-- Tour Content -->
+        <!-- Contenido del Tour -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Tour Title and Rating -->
+            <!-- Título y Rating -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -63,54 +114,95 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="City Tour Lima Centro Histórico"
-                    android:textSize="16sp"
+                    android:textSize="17sp"
                     android:textStyle="bold"
-                    android:textColor="@color/black"
+                    android:textColor="#2C2C2C"
                     android:maxLines="2"
-                    android:ellipsize="end" />
+                    android:ellipsize="end"
+                    android:lineSpacingExtra="2dp"
+                    tools:text="City Tour Lima Centro Histórico" />
 
-                <TextView
-                    android:id="@+id/tv_rating"
+                <!-- Rating Badge -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="⭐ 4.9"
-                    android:textSize="12sp"
-                    android:textColor="@color/orange"
-                    android:layout_marginStart="8dp" />
+                    android:layout_marginStart="8dp"
+                    app:cardCornerRadius="6dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="#FFF3E0">
 
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="4dp">
+
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:src="@drawable/ic_star"
+                            android:tint="#FF9800"
+                            android:contentDescription="Rating" />
+
+                        <TextView
+                            android:id="@+id/tv_rating"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="4.9"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="#FF9800"
+                            android:layout_marginStart="3dp"
+                            tools:text="4.9" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
-            <!-- Tour Description -->
+            <!-- Descripción -->
             <TextView
                 android:id="@+id/tv_tour_description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Descubre la historia y cultura de Lima visitando sus principales atractivos del centro histórico."
                 android:textSize="14sp"
-                android:textColor="@color/gray"
-                android:layout_marginBottom="12dp"
+                android:textColor="#757575"
+                android:lineSpacingExtra="2dp"
+                android:layout_marginBottom="16dp"
                 android:maxLines="2"
-                android:ellipsize="end" />
+                android:ellipsize="end"
+                tools:text="Descubre la historia y cultura de Lima visitando sus principales atractivos del centro histórico." />
 
-            <!-- Tour Details -->
+            <!-- Divisor -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEEEEE"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Detalles del Tour en Grid -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:layout_marginBottom="16dp">
 
+                <!-- Duración -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:gravity="center">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="⏱️ Duración"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray" />
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_time"
+                        android:tint="@color/primary"
+                        android:contentDescription="Duración" />
 
                     <TextView
                         android:id="@+id/tv_duration"
@@ -119,23 +211,40 @@
                         android:text="4 horas"
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:layout_marginTop="2dp" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                        android:textColor="#2C2C2C"
+                        android:layout_marginTop="6dp"
+                        tools:text="4 horas" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="👥 Grupo"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray" />
+                        android:text="Duración"
+                        android:textSize="11sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <!-- Divisor vertical -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="#EEEEEE"
+                    android:layout_marginHorizontal="12dp" />
+
+                <!-- Grupo -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_people_24"
+                        android:tint="@color/primary"
+                        android:contentDescription="Grupo" />
 
                     <TextView
                         android:id="@+id/tv_group_size"
@@ -144,23 +253,40 @@
                         android:text="Max 12"
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:layout_marginTop="2dp" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                        android:textColor="#2C2C2C"
+                        android:layout_marginTop="6dp"
+                        tools:text="Max 12" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🗣️ Idiomas"
-                        android:textSize="12sp"
-                        android:textColor="@color/gray" />
+                        android:text="Personas"
+                        android:textSize="11sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <!-- Divisor vertical -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="#EEEEEE"
+                    android:layout_marginHorizontal="12dp" />
+
+                <!-- Idiomas -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_language"
+                        android:tint="@color/primary"
+                        android:contentDescription="Idiomas" />
 
                     <TextView
                         android:id="@+id/tv_languages"
@@ -169,59 +295,124 @@
                         android:text="ES, EN"
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:textColor="@color/black"
+                        android:textColor="#2C2C2C"
+                        android:layout_marginTop="6dp"
+                        tools:text="ES, EN" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Idiomas"
+                        android:textSize="11sp"
+                        android:textColor="#9E9E9E"
                         android:layout_marginTop="2dp" />
-
                 </LinearLayout>
-
             </LinearLayout>
 
-            <!-- Services Included -->
+            <!-- Divisor -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEEEEE"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Servicios Incluidos -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Incluye:"
-                android:textSize="12sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
                 android:textColor="@color/primary"
-                android:layout_marginBottom="6dp" />
+                android:layout_marginBottom="8dp" />
 
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/chip_group_services"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="16dp"
+                app:singleLine="false"
+                app:chipSpacingHorizontal="6dp"
+                app:chipSpacingVertical="4dp">
 
                 <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_lunch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🍽️ Almuerzo"
-                    android:textSize="10sp"
-                    android:enabled="false" />
+                    android:text="Almuerzo"
+                    android:textSize="11sp"
+                    style="@style/Widget.MaterialComponents.Chip.Action"
+                    app:chipBackgroundColor="#FFF3E0"
+                    app:chipStrokeWidth="0dp"
+                    android:textColor="#F57C00"
+                    app:chipMinHeight="28dp"
+
+                    app:chipIconTint="#F57C00"
+                    app:chipIconSize="14dp"
+                    tools:text="Almuerzo" />
 
                 <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_transport"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🚌 Transporte"
-                    android:textSize="10sp"
-                    android:enabled="false" />
+                    android:text="Transporte"
+                    android:textSize="11sp"
+                    style="@style/Widget.MaterialComponents.Chip.Action"
+                    app:chipBackgroundColor="#E3F2FD"
+                    app:chipStrokeWidth="0dp"
+                    android:textColor="#1976D2"
+                    app:chipMinHeight="28dp"
+                    app:chipIconTint="#1976D2"
+                    app:chipIconSize="14dp"
+                    tools:text="Transporte" />
 
                 <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_guide"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="📸 Guía"
-                    android:textSize="10sp"
-                    android:enabled="false" />
+                    android:text="Guía profesional"
+                    android:textSize="11sp"
+                    style="@style/Widget.MaterialComponents.Chip.Action"
+                    app:chipBackgroundColor="#E8F5E9"
+                    app:chipStrokeWidth="0dp"
+                    android:textColor="#388E3C"
+                    app:chipMinHeight="28dp"
 
+                    app:chipIconTint="#388E3C"
+                    app:chipIconSize="14dp"
+                    tools:text="Guía profesional" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_tickets"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Entradas"
+                    android:textSize="11sp"
+                    style="@style/Widget.MaterialComponents.Chip.Action"
+                    app:chipBackgroundColor="#F3E5F5"
+                    app:chipStrokeWidth="0dp"
+                    android:textColor="#7B1FA2"
+                    app:chipMinHeight="28dp"
+                    app:chipIconTint="#7B1FA2"
+                    app:chipIconSize="14dp"
+                    tools:text="Entradas" />
             </com.google.android.material.chip.ChipGroup>
 
-            <!-- Price and Action -->
+            <!-- Divisor -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEEEEE"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Precio y Botón de Reserva -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
+                <!-- Precio -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -231,34 +422,72 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Precio por persona"
+                        android:text="Desde"
                         android:textSize="12sp"
-                        android:textColor="@color/gray" />
+                        android:textColor="#9E9E9E" />
 
-                    <TextView
-                        android:id="@+id/tv_price"
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="S/. 85.00"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/green"
+                        android:orientation="horizontal"
+                        android:gravity="start"
+                        android:layout_marginTop="2dp">
+
+                        <TextView
+                            android:id="@+id/tv_price"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="S/. 85"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:textColor="#4CAF50"
+                            tools:text="S/. 85" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=".00"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="#4CAF50"
+                            android:layout_marginStart="1dp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="por persona"
+                        android:textSize="11sp"
+                        android:textColor="#9E9E9E"
                         android:layout_marginTop="2dp" />
 
+                    <!-- Precio anterior (tachado, opcional) -->
+                    <TextView
+                        android:id="@+id/tv_original_price"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="S/. 100.00"
+                        android:textSize="12sp"
+                        android:textColor="#9E9E9E"
+                        android:visibility="gone"
+                        android:layout_marginTop="2dp"
+                        tools:visibility="visible"
+                        tools:text="S/. 100.00" />
                 </LinearLayout>
 
+                <!-- Botón de Reserva -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_reserve"
+                    style="@style/Widget.Material3.Button"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Reservar"
-                    android:textSize="14sp" />
-
+                    android:layout_height="52dp"
+                    android:text="Más Detalles"
+                    android:textSize="15sp"
+                    android:paddingHorizontal="24dp"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="@color/primary" />
             </LinearLayout>
-
         </LinearLayout>
-
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>
-

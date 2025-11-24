@@ -45,7 +45,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private RecyclerView rvFeaturedTours, rvPopularCompanies;
     private MaterialCardView cardExploreTours, cardMyReservations, cardChats;
     private TextView tvWelcomeMessage, tvActiveReservations;
-    
+
     // Firebase
     private com.example.droidtour.firebase.FirebaseAuthManager authManager;
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
@@ -363,14 +363,14 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
                 featuredTours.addAll((List<com.example.droidtour.models.Tour>) result);
                 rvFeaturedTours.getAdapter().notifyDataSetChanged();
             }
-            
+
             @Override
             public void onFailure(Exception e) {
                 Toast.makeText(ClientMainActivity.this, "Error cargando tours", Toast.LENGTH_SHORT).show();
             }
         });
     }
-    
+
     private void loadPopularCompaniesFromFirebase() {
         firestoreManager.getCompanies(new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override

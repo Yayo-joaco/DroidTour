@@ -39,6 +39,12 @@
 
     </style>
 
+    <!-- Estilo para ocultar el título expandido (texto transparente) -->
+    <style name="CollapsingExpandedTitle" parent="TextAppearance.AppCompat.Title">
+        <item name="android:textColor">@android:color/transparent</item>
+        <item name="android:textSize">0sp</item>
+    </style>
+
     <!-- Estilo para las pestañas de TabLayout -->
     <style name="TabTextStyle" parent="TextAppearance.MaterialComponents.Body1">
         <item name="android:textSize">14sp</item>

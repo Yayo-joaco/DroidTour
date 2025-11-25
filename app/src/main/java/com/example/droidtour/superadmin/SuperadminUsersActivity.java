@@ -24,6 +24,8 @@ import com.example.droidtour.models.User;
 import com.example.droidtour.ui.UserProfileBottomSheet;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.SetOptions;
@@ -42,6 +44,8 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     private TabLayout tabUserTypes;
     private com.google.android.material.textfield.TextInputEditText etSearch;
     private View layoutEmptyState;
+    private SwipeRefreshLayout swipeRefresh;
+    private CircularProgressIndicator loadingIndicator;
 
     private UsersAdapter usersAdapter;
     private List<User> userList;
@@ -91,6 +95,7 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         setupRecyclerView();
 
         // Cargar usuarios
+        showLoading();
         loadUsersFromFirestore();
 
         // Configurar listeners
@@ -102,8 +107,16 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         tabUserTypes = findViewById(R.id.tab_user_types);
         etSearch = findViewById(R.id.et_search);
         layoutEmptyState = findViewById(R.id.layout_empty_state);
+        swipeRefresh = findViewById(R.id.swipe_refresh);
+        loadingIndicator = findViewById(R.id.loading_indicator);
 
         userList = new ArrayList<>();
+
+        // Configurar comportamiento del SwipeRefreshLayout
+        swipeRefresh.setOnRefreshListener(() -> {
+            // Cuando el usuario hace pull-to-refresh, recargar usuarios
+            loadUsersFromFirestore();
+        });
     }
 
     private void setupRecyclerView() {
@@ -144,6 +157,16 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         });
     }
 
+    private void showLoading() {
+        if (loadingIndicator != null) loadingIndicator.setVisibility(View.VISIBLE);
+        if (swipeRefresh != null) swipeRefresh.setRefreshing(false);
+    }
+
+    private void hideLoading() {
+        if (loadingIndicator != null) loadingIndicator.setVisibility(View.GONE);
+        if (swipeRefresh != null) swipeRefresh.setRefreshing(false);
+    }
+
     private String getFilterTypeForTab(int position) {
         switch (position) {
             case 0: return "ALL";
@@ -155,148 +178,155 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     }
 
     private void loadUsersFromFirestore() {
-        db.collection("users")
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        userList.clear();
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            // Intentamos mapear al modelo User, pero normalizamos campos legacy/alternativos
-                            User user = document.toObject(User.class);
+        // Asegurarse que se ve el indicador de carga cuando se inicia una recarga manual
+        if (!swipeRefresh.isRefreshing()) showLoading();
 
-                            // Always ensure user is not null
-                            if (user == null) {
-                                user = new User();
-                            }
+         db.collection("users")
+                 .get()
+                 .addOnCompleteListener(task -> {
+                     if (task.isSuccessful()) {
+                         userList.clear();
+                         for (QueryDocumentSnapshot document : task.getResult()) {
+                             // Intentamos mapear al modelo User, pero normalizamos campos legacy/alternativos
+                             User user = document.toObject(User.class);
 
-                            // Document ID -> userId si falta
-                            if (user.getUserId() == null || user.getUserId().isEmpty()) {
-                                user.setUserId(document.getId());
-                            }
+                             // Always ensure user is not null
+                             if (user == null) {
+                                 user = new User();
+                             }
 
-                            Map<String, Object> data = document.getData();
+                             // Document ID -> userId si falta
+                             if (user.getUserId() == null || user.getUserId().isEmpty()) {
+                                 user.setUserId(document.getId());
+                             }
 
-                            // Email fallback
-                            if (user.getEmail() == null || user.getEmail().isEmpty()) {
-                                Object e = data.get("email");
-                                if (e != null) user.setEmail(String.valueOf(e));
-                            }
+                             Map<String, Object> data = document.getData();
 
-                            // Full name: prefer fullName, luego displayName (legacy), luego firstName+lastName
-                            if (user.getFullName() == null || user.getFullName().isEmpty()) {
-                                Object dn = data.get("displayName");
-                                if (dn != null) {
-                                    user.setFullName(String.valueOf(dn));
-                                } else if (user.getFirstName() != null || user.getLastName() != null) {
-                                    String fn = (user.getFirstName() != null ? user.getFirstName() : "");
-                                    String ln = (user.getLastName() != null ? user.getLastName() : "");
-                                    String combined = (fn + " " + ln).trim();
-                                    if (!combined.isEmpty()) user.setFullName(combined);
-                                }
-                            }
+                             // Email fallback
+                             if (user.getEmail() == null || user.getEmail().isEmpty()) {
+                                 Object e = data.get("email");
+                                 if (e != null) user.setEmail(String.valueOf(e));
+                             }
 
-                            // Profile image: try profileImageUrl, photoURL (legacy), photoUrl
-                            if (user.getProfileImageUrl() == null || user.getProfileImageUrl().isEmpty()) {
-                                Object p1 = data.get("profileImageUrl");
-                                Object p2 = data.get("photoURL");
-                                Object p3 = data.get("photoUrl");
-                                if (p1 != null) user.setProfileImageUrl(String.valueOf(p1));
-                                else if (p2 != null) user.setProfileImageUrl(String.valueOf(p2));
-                                else if (p3 != null) user.setProfileImageUrl(String.valueOf(p3));
-                            }
+                             // Full name: prefer fullName, luego displayName (legacy), luego firstName+lastName
+                             if (user.getFullName() == null || user.getFullName().isEmpty()) {
+                                 Object dn = data.get("displayName");
+                                 if (dn != null) {
+                                     user.setFullName(String.valueOf(dn));
+                                 } else if (user.getFirstName() != null || user.getLastName() != null) {
+                                     String fn = (user.getFirstName() != null ? user.getFirstName() : "");
+                                     String ln = (user.getLastName() != null ? user.getLastName() : "");
+                                     String combined = (fn + " " + ln).trim();
+                                     if (!combined.isEmpty()) user.setFullName(combined);
+                                 }
+                             }
 
-                            // userType fallback
-                            if (user.getUserType() == null || user.getUserType().isEmpty()) {
-                                Object ut = data.get("userType");
-                                if (ut != null) user.setUserType(String.valueOf(ut));
-                            }
+                             // Profile image: try profileImageUrl, photoURL (legacy), photoUrl
+                             if (user.getProfileImageUrl() == null || user.getProfileImageUrl().isEmpty()) {
+                                 Object p1 = data.get("profileImageUrl");
+                                 Object p2 = data.get("photoURL");
+                                 Object p3 = data.get("photoUrl");
+                                 if (p1 != null) user.setProfileImageUrl(String.valueOf(p1));
+                                 else if (p2 != null) user.setProfileImageUrl(String.valueOf(p2));
+                                 else if (p3 != null) user.setProfileImageUrl(String.valueOf(p3));
+                             }
 
-                            // isActive boolean: try isActive or infer from status field
-                            if (user.getActive() == null) {
-                                Object activeObj = data.get("isActive");
-                                if (activeObj instanceof Boolean) {
-                                    user.setActive((Boolean) activeObj);
-                                } else {
-                                    Object statusObj = data.get("status");
-                                    if (statusObj != null) {
-                                        String statusStr = String.valueOf(statusObj);
-                                        user.setActive("active".equalsIgnoreCase(statusStr));
-                                    } else {
-                                        user.setActive(true); // default safe assumption
-                                    }
-                                }
-                            }
+                             // userType fallback
+                             if (user.getUserType() == null || user.getUserType().isEmpty()) {
+                                 Object ut = data.get("userType");
+                                 if (ut != null) user.setUserType(String.valueOf(ut));
+                             }
 
-                            // Añadir user a la lista
-                            userList.add(user);
-                        }
-                        usersAdapter.updateList(userList);
-                        checkEmptyState();
-                        Toast.makeText(this, "Usuarios cargados: " + userList.size(), Toast.LENGTH_SHORT).show();
+                             // isActive boolean: try isActive or infer from status field
+                             if (user.getActive() == null) {
+                                 Object activeObj = data.get("isActive");
+                                 if (activeObj instanceof Boolean) {
+                                     user.setActive((Boolean) activeObj);
+                                 } else {
+                                     Object statusObj = data.get("status");
+                                     if (statusObj != null) {
+                                         String statusStr = String.valueOf(statusObj);
+                                         user.setActive("active".equalsIgnoreCase(statusStr));
+                                     } else {
+                                         user.setActive(true); // default safe assumption
+                                     }
+                                 }
+                             }
 
-                        // Ahora, para cada GUIDE, obtener su estado desde la colección user_roles
-                        List<User> guidesToCheck = new ArrayList<>();
-                        for (User u : userList) {
-                            if ("GUIDE".equals(u.getUserType())) {
-                                guidesToCheck.add(u);
-                            }
-                        }
+                             // Añadir user a la lista
+                             userList.add(user);
+                         }
+                         usersAdapter.updateList(userList);
+                         checkEmptyState();
+                         Toast.makeText(this, "Usuarios cargados: " + userList.size(), Toast.LENGTH_SHORT).show();
 
-                        if (!guidesToCheck.isEmpty()) {
-                            final int total = guidesToCheck.size();
-                            final int[] completed = {0};
+                         // ocultar indicadores
+                         hideLoading();
 
-                            for (User guide : guidesToCheck) {
-                                String uid = guide.getUserId();
-                                if (uid == null || uid.isEmpty()) {
-                                    completed[0]++;
-                                    continue;
-                                }
+                         // Ahora, para cada GUIDE, obtener su estado desde la colección user_roles
+                         List<User> guidesToCheck = new ArrayList<>();
+                         for (User u : userList) {
+                             if ("GUIDE".equals(u.getUserType())) {
+                                 guidesToCheck.add(u);
+                             }
+                         }
 
-                                db.collection("user_roles").document(uid).get()
-                                        .addOnSuccessListener(doc -> {
-                                            if (doc != null && doc.exists()) {
-                                                // Manejar varias estructuras: doc puede tener directamente 'guide' o 'guide' dentro de 'roles'
-                                                if (doc.contains("guide")) {
-                                                    Object guideObj = doc.get("guide");
-                                                    if (guideObj instanceof Map) {
-                                                        Map<String, Object> guideMap = (Map<String, Object>) guideObj;
-                                                        Object statusObj = guideMap.get("status");
-                                                        if (statusObj != null) {
-                                                            guide.setStatus(String.valueOf(statusObj));
-                                                        }
-                                                    }
-                                                } else if (doc.contains("roles")) {
-                                                    Object rolesObj = doc.get("roles");
-                                                    if (rolesObj instanceof Map) {
-                                                        Map<String, Object> rolesMap = (Map<String, Object>) rolesObj;
-                                                        Object guideRole = rolesMap.get("guide");
-                                                        if (guideRole instanceof Map) {
-                                                            Map<String, Object> guideMap = (Map<String, Object>) guideRole;
-                                                            Object statusObj = guideMap.get("status");
-                                                            if (statusObj != null) guide.setStatus(String.valueOf(statusObj));
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Log.w(TAG, "No se pudo obtener user_roles para " + uid + ": " + e.getMessage());
-                                        })
-                                        .addOnCompleteListener(roleTask -> {
-                                            completed[0]++;
-                                            if (completed[0] >= total) {
-                                                // Todas las peticiones completadas - actualizar adapter
-                                                usersAdapter.updateList(userList);
-                                            }
-                                        });
-                            }
-                        }
-                    } else {
-                        Log.e(TAG, "Error cargando usuarios", task.getException());
-                        Toast.makeText(this, "Error cargando usuarios: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
-                    }
-                });
+                         if (!guidesToCheck.isEmpty()) {
+                             final int total = guidesToCheck.size();
+                             final int[] completed = {0};
+
+                             for (User guide : guidesToCheck) {
+                                 String uid = guide.getUserId();
+                                 if (uid == null || uid.isEmpty()) {
+                                     completed[0]++;
+                                     continue;
+                                 }
+
+                                 db.collection("user_roles").document(uid).get()
+                                         .addOnSuccessListener(doc -> {
+                                             if (doc != null && doc.exists()) {
+                                                 // Manejar varias estructuras: doc puede tener directamente 'guide' o 'guide' dentro de 'roles'
+                                                 if (doc.contains("guide")) {
+                                                     Object guideObj = doc.get("guide");
+                                                     if (guideObj instanceof Map) {
+                                                         Map<String, Object> guideMap = (Map<String, Object>) guideObj;
+                                                         Object statusObj = guideMap.get("status");
+                                                         if (statusObj != null) {
+                                                             guide.setStatus(String.valueOf(statusObj));
+                                                         }
+                                                     }
+                                                 } else if (doc.contains("roles")) {
+                                                     Object rolesObj = doc.get("roles");
+                                                     if (rolesObj instanceof Map) {
+                                                         Map<String, Object> rolesMap = (Map<String, Object>) rolesObj;
+                                                         Object guideRole = rolesMap.get("guide");
+                                                         if (guideRole instanceof Map) {
+                                                             Map<String, Object> guideMap = (Map<String, Object>) guideRole;
+                                                             Object statusObj = guideMap.get("status");
+                                                             if (statusObj != null) guide.setStatus(String.valueOf(statusObj));
+                                                         }
+                                                     }
+                                                 }
+                                             }
+                                         })
+                                         .addOnFailureListener(e -> {
+                                             Log.w(TAG, "No se pudo obtener user_roles para " + uid + ": " + e.getMessage());
+                                         })
+                                         .addOnCompleteListener(roleTask -> {
+                                             completed[0]++;
+                                             if (completed[0] >= total) {
+                                                 // Todas las peticiones completadas - actualizar adapter
+                                                 usersAdapter.updateList(userList);
+                                             }
+                                         });
+                             }
+                         }
+                     } else {
+                         Log.e(TAG, "Error cargando usuarios", task.getException());
+                         Toast.makeText(this, "Error cargando usuarios: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                         hideLoading();
+                     }
+                 });
     }
 
     private void checkEmptyState() {

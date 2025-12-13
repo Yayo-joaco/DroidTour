@@ -14,6 +14,7 @@ import com.example.droidtour.client.ClientRegistrationPhotoActivity;
 import com.google.android.material.textfield.TextInputEditText;
 import com.example.droidtour.utils.PreferencesManager;
 import com.example.droidtour.managers.FileManager;
+import com.example.droidtour.utils.NavigationUtils;
 import org.json.JSONObject;
 import org.json.JSONException;
 import com.google.android.material.button.MaterialButton;
@@ -29,6 +30,7 @@ public class GuideRegistrationActivity extends AppCompatActivity {
     private TextInputEditText etTelefono;
     private MaterialButton btnSiguiente;
     private CountryCodePicker ccp;
+    private boolean isGoogleUserFlow = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +51,7 @@ public class GuideRegistrationActivity extends AppCompatActivity {
     private void handleGoogleUserData() {
         Bundle extras = getIntent().getExtras();
         if (extras != null && extras.getBoolean("googleUser", false)) {
+            isGoogleUserFlow = true;
             String userEmail = extras.getString("userEmail", "");
             String userName = extras.getString("userName", "");
 
@@ -75,7 +78,7 @@ public class GuideRegistrationActivity extends AppCompatActivity {
         etTelefono = findViewById(R.id.etTelefono);
         btnSiguiente = findViewById(R.id.btnSiguiente);
         ccp = findViewById(R.id.ccp);
-        findViewById(R.id.tvRegresar).setOnClickListener(v -> finish());
+        findViewById(R.id.tvRegresar).setOnClickListener(v -> handleBackNavigation());
     }
 
 
@@ -216,9 +219,22 @@ public class GuideRegistrationActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            finish();
+            handleBackNavigation();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        handleBackNavigation();
+    }
+
+    private void handleBackNavigation() {
+        if (isGoogleUserFlow) {
+            NavigationUtils.navigateBackToLogin(this, true);
+        } else {
+            finish();
+        }
     }
 }

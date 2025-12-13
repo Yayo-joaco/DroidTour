@@ -117,7 +117,6 @@ public class GuideProfileActivity extends AppCompatActivity {
         tvUserName = findViewById(R.id.tv_user_name);
         tvUserEmail = findViewById(R.id.tv_user_email);
         tvUserRole = findViewById(R.id.tv_user_role);
-        btnEditPhoto = findViewById(R.id.btn_edit_photo_small);
         
         // Información personal
         tvDocumentType = findViewById(R.id.tv_document_type);

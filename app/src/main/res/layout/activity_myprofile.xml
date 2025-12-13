@@ -33,12 +33,11 @@
         android:paddingBottom="16dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-
+            android:orientation="vertical"
+            android:paddingBottom="80dp">
 
             <RelativeLayout
                 android:layout_width="match_parent"
@@ -70,17 +69,7 @@
                         android:scaleType="centerCrop"
                         android:src="@drawable/ic_avatar_24" />
 
-                    <!-- Botón pequeño para editar foto -->
-                    <ImageButton
-                        android:id="@+id/btn_edit_photo_small"
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:layout_gravity="bottom|end"
-                        android:background="@drawable/circle_accent_bg"
-                        android:scaleType="center"
-                        android:src="@drawable/ic_edit"
-                        android:contentDescription="Editar foto"
-                        android:elevation="4dp"/>
+
                 </FrameLayout>
 
                 <!-- Información básica del usuario -->
@@ -135,8 +124,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp"
-                android:paddingBottom="140dp">
+                android:padding="16dp">
 
                 <!-- Sección: Información Personal -->
                 <androidx.cardview.widget.CardView
@@ -192,12 +180,102 @@
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
 
+                            <!-- Nombres -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingVertical="12px">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Nombres"
+                                    android:textSize="15sp"
+                                    android:textColor="#757575" />
+
+                                <TextView
+                                    android:id="@+id/tv_first_name"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="María"
+                                    android:textSize="15sp"
+                                    android:textColor="#2C2C2C"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:background="#F5F5F5"/>
+
+                            <!-- Apellidos -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingVertical="12px">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Apellidos"
+                                    android:textSize="15sp"
+                                    android:textColor="#757575" />
+
+                                <TextView
+                                    android:id="@+id/tv_last_name"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="González López"
+                                    android:textSize="15sp"
+                                    android:textColor="#2C2C2C"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:background="#F5F5F5"/>
+
+                            <!-- Fecha de Nacimiento -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:paddingVertical="12px">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Fecha de Nacimiento"
+                                    android:textSize="15sp"
+                                    android:textColor="#757575" />
+
+                                <TextView
+                                    android:id="@+id/tv_birth_date"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="15/03/1990"
+                                    android:textSize="15sp"
+                                    android:textColor="#2C2C2C"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:background="#F5F5F5"/>
+
                             <!-- Tipo de Documento -->
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal"
-                                android:paddingVertical="12dp">
+                                android:paddingVertical="12px">
 
                                 <TextView
                                     android:layout_width="0dp"
@@ -227,7 +305,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal"
-                                android:paddingVertical="12dp">
+                                android:paddingVertical="12px">
 
                                 <TextView
                                     android:layout_width="0dp"
@@ -257,7 +335,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal"
-                                android:paddingVertical="12dp">
+                                android:paddingVertical="12px">
 
                                 <TextView
                                     android:layout_width="0dp"

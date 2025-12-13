@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.R;
+import com.example.droidtour.utils.NavigationUtils;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -157,7 +158,7 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        tvRegresar.setOnClickListener(v -> finish());
+        tvRegresar.setOnClickListener(v -> handleBackNavigation());
 
         fabEditPhoto.setOnClickListener(v -> showPhotoOptions());
 
@@ -333,6 +334,16 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
         galleryLauncher.launch(pickPhotoIntent);
     }
 
+    @Override
+    public void onBackPressed() {
+        handleBackNavigation();
+    }
 
-
+    private void handleBackNavigation() {
+        if (isGoogleUser) {
+            NavigationUtils.navigateBackToLogin(this, true);
+        } else {
+            finish();
+        }
+    }
 }

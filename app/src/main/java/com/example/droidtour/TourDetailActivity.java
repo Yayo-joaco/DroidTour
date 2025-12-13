@@ -16,11 +16,11 @@ import com.google.android.material.button.MaterialButton;
 public class TourDetailActivity extends AppCompatActivity {
     
     private TextView tvTourName, tvCompanyName, tvTourDescription, tvRating;
-    private TextView tvDuration, tvGroupSize, tvLanguages, tvPrice;
+    private TextView tvDuration, tvGroupSize, tvLanguages, tvPriceBottom;
     private RecyclerView rvItinerary, rvReviews;
-    private MaterialButton btnReserveNow, btnSeeAllReviews, btnContactCompany;
-    private MaterialButton btnViewFullMap, btnGetDirections;
-    
+    private MaterialButton btnBookNow, btnSeeAllReviews, btnContact;
+    private MaterialButton btnViewMap, btnDirections;
+
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private com.example.droidtour.firebase.FirebaseAuthManager authManager;
     private com.example.droidtour.models.Tour currentTour;
@@ -101,7 +101,7 @@ public class TourDetailActivity extends AppCompatActivity {
         
         tvTourName.setText(currentTour.getTourName());
         tvCompanyName.setText("por " + currentTour.getCompanyName());
-        tvPrice.setText("S/. " + String.format("%.2f", currentTour.getPricePerPerson()));
+        tvPriceBottom.setText("S/. " + String.format("%.2f", currentTour.getPricePerPerson()));
         tvTourDescription.setText(currentTour.getDescription());
         tvRating.setText("⭐ " + currentTour.getAverageRating() + " (" + currentTour.getTotalReviews() + ")");
         tvDuration.setText(currentTour.getDuration());
@@ -126,14 +126,16 @@ public class TourDetailActivity extends AppCompatActivity {
         tvDuration = findViewById(R.id.tv_duration);
         tvGroupSize = findViewById(R.id.tv_group_size);
         tvLanguages = findViewById(R.id.tv_languages);
-        tvPrice = findViewById(R.id.tv_price);
+        // El layout ahora define tv_price_bottom en la barra inferior
+        tvPriceBottom = findViewById(R.id.tv_price_bottom);
         rvItinerary = findViewById(R.id.rv_itinerary);
         rvReviews = findViewById(R.id.rv_reviews);
-        btnReserveNow = findViewById(R.id.btn_reserve_now);
+        // Mapear botones a los nuevos IDs del layout
+        btnBookNow = findViewById(R.id.btn_book_now);
         btnSeeAllReviews = findViewById(R.id.btn_see_all_reviews);
-        btnContactCompany = findViewById(R.id.btn_contact_company);
-        btnViewFullMap = findViewById(R.id.btn_view_full_map);
-        btnGetDirections = findViewById(R.id.btn_get_directions);
+        btnContact = findViewById(R.id.btn_contact);
+        btnViewMap = findViewById(R.id.btn_view_map);
+        btnDirections = findViewById(R.id.btn_directions);
 
         android.widget.ImageView headerImage = findViewById(R.id.iv_header_image);
         if (headerImage != null) {
@@ -146,79 +148,98 @@ public class TourDetailActivity extends AppCompatActivity {
     }
 
     private void setupTourData() {
-        tvTourName.setText(tourName);
-        tvCompanyName.setText("por " + companyName);
-        tvPrice.setText("S/. " + String.format("%.2f", price));
-        
-        // Set data based on tour type
-        switch (tourId.hashCode() % 6) {
+        // Evitar NullPointer si tourId es null
+        if (tvTourName != null) tvTourName.setText(tourName);
+        if (tvCompanyName != null) tvCompanyName.setText("por " + companyName);
+        if (tvPriceBottom != null) tvPriceBottom.setText("S/. " + String.format("%.2f", price));
+
+        if (tourId == null) {
+            // Valores por defecto cuando no hay tourId
+            if (tvTourDescription != null) tvTourDescription.setText("Una experiencia increíble que te permitirá conocer los mejores destinos de la región con guías expertos y servicios de primera calidad.");
+            if (tvRating != null) tvRating.setText("⭐ 4.7 (65)");
+            if (tvDuration != null) tvDuration.setText("6 horas");
+            if (tvGroupSize != null) tvGroupSize.setText("10 personas");
+            if (tvLanguages != null) tvLanguages.setText("ES, EN");
+            return;
+        }
+
+        // Set data based on tour type (fallback mock)
+        switch (Math.abs(tourId.hashCode()) % 6) {
             case 0:
-                tvTourDescription.setText("Descubre la historia y cultura de Lima visitando sus principales atractivos del centro histórico. Un recorrido completo por la Plaza de Armas, Catedral, Palacio de Gobierno y los balcones coloniales más emblemáticos.");
-                tvRating.setText("⭐ 4.9 (127)");
-                tvDuration.setText("4 horas");
-                tvGroupSize.setText("12 personas");
-                tvLanguages.setText("ES, EN");
+                if (tvTourDescription != null) tvTourDescription.setText("Descubre la historia y cultura de Lima visitando sus principales atractivos del centro histórico. Un recorrido completo por la Plaza de Armas, Catedral, Palacio de Gobierno y los balcones coloniales más emblemáticos.");
+                if (tvRating != null) tvRating.setText("⭐ 4.9 (127)");
+                if (tvDuration != null) tvDuration.setText("4 horas");
+                if (tvGroupSize != null) tvGroupSize.setText("12 personas");
+                if (tvLanguages != null) tvLanguages.setText("ES, EN");
                 break;
             case 1:
-                tvTourDescription.setText("Visita la maravilla del mundo con transporte y guía incluido desde Cusco. Una experiencia única que incluye tren panorámico y tiempo suficiente para explorar la ciudadela inca.");
-                tvRating.setText("⭐ 4.8 (89)");
-                tvDuration.setText("Full Day");
-                tvGroupSize.setText("15 personas");
-                tvLanguages.setText("ES, EN, FR");
+                if (tvTourDescription != null) tvTourDescription.setText("Visita la maravilla del mundo con transporte y guía incluido desde Cusco. Una experiencia única que incluye tren panorámico y tiempo suficiente para explorar la ciudadela inca.");
+                if (tvRating != null) tvRating.setText("⭐ 4.8 (89)");
+                if (tvDuration != null) tvDuration.setText("Full Day");
+                if (tvGroupSize != null) tvGroupSize.setText("15 personas");
+                if (tvLanguages != null) tvLanguages.setText("ES, EN, FR");
                 break;
             default:
-                tvTourDescription.setText("Una experiencia increíble que te permitirá conocer los mejores destinos de la región con guías expertos y servicios de primera calidad.");
-                tvRating.setText("⭐ 4.7 (65)");
-                tvDuration.setText("6 horas");
-                tvGroupSize.setText("10 personas");
-                tvLanguages.setText("ES, EN");
+                if (tvTourDescription != null) tvTourDescription.setText("Una experiencia increíble que te permitirá conocer los mejores destinos de la región con guías expertos y servicios de primera calidad.");
+                if (tvRating != null) tvRating.setText("⭐ 4.7 (65)");
+                if (tvDuration != null) tvDuration.setText("6 horas");
+                if (tvGroupSize != null) tvGroupSize.setText("10 personas");
+                if (tvLanguages != null) tvLanguages.setText("ES, EN");
         }
     }
 
     private void setupRecyclerViews() {
         // Itinerary RecyclerView
-        rvItinerary.setLayoutManager(new LinearLayoutManager(this));
-        rvItinerary.setAdapter(new ItineraryAdapter());
-        
+        if (rvItinerary != null) {
+            rvItinerary.setLayoutManager(new LinearLayoutManager(this));
+            rvItinerary.setAdapter(new ItineraryAdapter());
+        }
+
         // Reviews RecyclerView
-        rvReviews.setLayoutManager(new LinearLayoutManager(this));
-        rvReviews.setAdapter(new ReviewsAdapter());
+        if (rvReviews != null) {
+            rvReviews.setLayoutManager(new LinearLayoutManager(this));
+            rvReviews.setAdapter(new ReviewsAdapter());
+        }
     }
 
     private void setupClickListeners() {
 
-        btnSeeAllReviews.setOnClickListener(v -> {
-            Intent intent = new Intent(this, AllReviewsActivity.class);
-            intent.putExtra("tour_name", tourName);
-            startActivity(intent);
-        });
+        if (btnSeeAllReviews != null) {
+            btnSeeAllReviews.setOnClickListener(v -> {
+                Intent intent = new Intent(this, AllReviewsActivity.class);
+                intent.putExtra("tour_name", tourName);
+                startActivity(intent);
+            });
+        }
 
-        btnContactCompany.setOnClickListener(v -> {
-            Intent intent = new Intent(this, CompanyChatActivity.class);
-            intent.putExtra("company_name", companyName);
-            intent.putExtra("tour_name", tourName);
-            startActivity(intent);
-        });
+        if (btnContact != null) {
+            btnContact.setOnClickListener(v -> {
+                Intent intent = new Intent(this, CompanyChatActivity.class);
+                intent.putExtra("company_name", companyName);
+                intent.putExtra("tour_name", tourName);
+                startActivity(intent);
+            });
+        }
 
-        btnReserveNow.setOnClickListener(v -> {
-            Intent intent = new Intent(this, TourBookingActivity.class);
-            intent.putExtra("tour_id", tourId);
-            intent.putExtra("tour_name", tourName);
-            intent.putExtra("company_id", companyId);
-            intent.putExtra("company_name", companyName);
-            intent.putExtra("price", price);
-            startActivity(intent);
-        });
+        if (btnBookNow != null) {
+            btnBookNow.setOnClickListener(v -> {
+                Intent intent = new Intent(this, TourBookingActivity.class);
+                intent.putExtra("tour_id", tourId);
+                intent.putExtra("tour_name", tourName);
+                intent.putExtra("company_id", companyId);
+                intent.putExtra("company_name", companyName);
+                intent.putExtra("price", price);
+                startActivity(intent);
+            });
+        }
 
-        btnViewFullMap.setOnClickListener(v -> {
-            // TODO: Abrir mapa completo con Google Maps API
-            Toast.makeText(this, "Mapa completo próximamente", Toast.LENGTH_SHORT).show();
-        });
+        if (btnViewMap != null) {
+            btnViewMap.setOnClickListener(v -> Toast.makeText(this, "Mapa completo próximamente", Toast.LENGTH_SHORT).show());
+        }
 
-        btnGetDirections.setOnClickListener(v -> {
-            // TODO: Abrir Google Maps con direcciones
-            Toast.makeText(this, "Direcciones próximamente", Toast.LENGTH_SHORT).show();
-        });
+        if (btnDirections != null) {
+            btnDirections.setOnClickListener(v -> Toast.makeText(this, "Direcciones próximamente", Toast.LENGTH_SHORT).show());
+        }
     }
 
     @Override
@@ -242,9 +263,9 @@ public class TourDetailActivity extends AppCompatActivity {
                 Boolean hasReservation = (Boolean) result;
                 if (hasReservation != null && hasReservation) {
                     // Usuario ya tiene una reserva confirmada
-                    btnReserveNow.setEnabled(false);
-                    btnReserveNow.setText("Ya tienes una reserva");
-                    btnReserveNow.setAlpha(0.5f);
+                    btnBookNow.setEnabled(false);
+                    btnBookNow.setText("Ya tienes una reserva");
+                    btnBookNow.setAlpha(0.5f);
                 }
             }
             

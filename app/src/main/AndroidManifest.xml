@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Indicar que la cámara no es requerida para que el permiso no marque error en Lint -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -27,6 +29,10 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
 
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/maps_api_key" />
+
         <!-- Google Sign-In Activity -->
         <activity
             android:name="com.google.android.gms.auth.api.signin.internal.SignInHubActivity"
@@ -36,7 +42,7 @@
 
         <!-- Bienvenida-->
         <activity
-            android:name=".WelcomeActivity"
+            android:name=".welcome.WelcomeActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -44,14 +50,14 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".Onboarding1" android:exported="false"/>
-        <activity android:name=".Onboarding2" android:exported="false"/>
+        <activity android:name=".welcome.Onboarding1" android:exported="false"/>
+        <activity android:name=".welcome.Onboarding2" android:exported="false"/>
 
         <!-- Eliminada la actividad MainActivity ya que la navegación inicia en WelcomeActivity y Login -->
         <!-- <activity android:name=".MainActivity" android:exported="true"/> -->
 
         <activity
-            android:name=".SuperadminMainActivity"
+            android:name=".superadmin.SuperadminMainActivity"
             android:exported="false" />
 
         <activity
@@ -73,38 +79,48 @@
             android:parentActivityName=".client.ClientMainActivity" />
 
         <activity
-            android:name=".SuperadminUsersActivity"
+            android:name=".superadmin.SuperadminUsersActivity"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
-            android:name=".SuperadminReportsActivity"
+            android:name=".superadmin.SuperadminReportsActivity"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
-            android:name=".SuperadminLogsActivity"
+            android:name=".superadmin.SuperadminLogsActivity"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
-            android:name=".SuperadminProfileActivity"
+            android:name=".superadmin.SuperadminProfileActivity"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <!-- Tour Admin Activities -->
         <activity
-            android:name=".CompanyInfoActivity"
+            android:name=".admin.CompanyInfoActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
 
         <activity
-            android:name=".CreateServiceActivity"
+            android:name=".admin.CreateServiceActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
 
         <activity
-            android:name=".CreateTourActivity"
+            android:name=".admin.CreateTourActivity"
+            android:exported="false"
+            android:parentActivityName=".TourAdminMainActivity" />
+
+        <activity
+            android:name=".admin.TourLocationsMapActivity"
+            android:exported="false"
+            android:parentActivityName=".admin.CreateTourActivity" />
+
+        <activity
+            android:name=".admin.TourManagementActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
 
@@ -188,7 +204,19 @@
             android:name=".client.ClientProfileActivity"
             android:exported="false"
             android:parentActivityName=".client.ClientMainActivity" />
-        
+
+        <activity
+            android:name=".client.ClientEditProfileActivity"
+            android:theme="@style/Theme.DroidTour"
+            android:parentActivityName=".client.ClientProfileActivity"
+            android:exported="false">
+
+            <!-- Opcional: Configurar la relación padre-hijo para la navegación -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".client.ClientProfileActivity" />
+        </activity>
+
         <activity
             android:name=".client.ClientSettingsActivity"
             android:exported="false"
@@ -211,9 +239,9 @@
             android:parentActivityName=".TourGuideMainActivity" />
 
         <activity
-            android:name=".SuperadminMyAccount"
+            android:name=".superadmin.SuperadminMyAccount"
             android:exported="false"
-            android:parentActivityName=".SuperadminMainActivity" />
+            android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
             android:name=".TourRatingActivity"
@@ -363,6 +391,10 @@
             android:name=".GuideApprovalPendingActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".UserDisabledActivity"
+            android:exported="false"
+            android:parentActivityName=".LoginActivity" />
 
         <meta-data
             android:name="preloaded_fonts"

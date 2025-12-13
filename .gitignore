@@ -87,3 +87,6 @@ lint/tmp/
 
 # Android Profiling
 *.hprof
+
+# Local secrets for the app (do NOT commit)
+app/secrets.properties

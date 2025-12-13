@@ -71,7 +71,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="Nombre del titular"
-                app:startIconDrawable="@drawable/ic_person"
+                app:startIconDrawable="@drawable/ic_user_form"
                 app:startIconTint="@color/primary">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -155,7 +155,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="12dp"
-                        android:text="ℹ️ No puedes cambiar el número de tarjeta por seguridad"
+                        android:text="ℹNo puedes cambiar el número de tarjeta por seguridad"
                         android:textSize="12sp"
                         android:textColor="#388E3C" />
                 </LinearLayout>

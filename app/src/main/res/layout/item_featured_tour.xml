@@ -1,35 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="280dp"
-    android:layout_height="240dp"
+    android:layout_height="wrap_content"
     android:layout_margin="8dp"
     app:cardCornerRadius="12dp"
-    app:cardElevation="4dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#E0E0E0"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Tour Image -->
-        <ImageView
-            android:id="@+id/iv_featured_image"
+        <!-- Tour Image con overlay gradient -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:scaleType="centerCrop"
-            android:background="@color/light_gray" />
+            android:layout_height="160dp">
+
+            <ImageView
+                android:id="@+id/iv_featured_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="#F5F5F5"
+                android:contentDescription="Imagen del tour"
+                tools:src="@drawable/sample_tour" />
+
+            <!-- Gradient overlay sutil -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/gradient_overlay" />
+        </FrameLayout>
 
         <!-- Tour Info -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="16dp"
+            android:background="@color/white">
 
+            <!-- Nombre del tour -->
             <TextView
                 android:id="@+id/tv_tour_name"
                 android:layout_width="match_parent"
@@ -37,60 +56,121 @@
                 android:text="City Tour Lima Centro"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="@color/black"
-                android:maxLines="1"
-                android:ellipsize="end" />
+                android:textColor="#2C2C2C"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:lineSpacingExtra="2dp"
+                tools:text="City Tour Lima Centro Histórico" />
 
-            <TextView
-                android:id="@+id/tv_company_name"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Lima Adventure Tours"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:layout_marginTop="2dp" />
-
+            <!-- Nombre de la compañía -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:layout_marginTop="8dp">
+                android:layout_marginTop="6dp">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_company"
+                    android:tint="#757575"
+                    android:layout_marginEnd="4dp"
+                    android:contentDescription="Empresa" />
 
                 <TextView
-                    android:id="@+id/tv_rating"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⭐ 4.8"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/orange" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text=" (124)"
-                    android:textSize="12sp"
-                    android:textColor="@color/gray" />
-
-                <View
+                    android:id="@+id/tv_company_name"
                     android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Lima Adventure Tours"
+                    android:textSize="12sp"
+                    android:textColor="#757575"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    tools:text="Lima Adventure Tours" />
+            </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tv_price"
+            <!-- Divisor sutil -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#F5F5F5"
+                android:layout_marginVertical="12dp" />
+
+            <!-- Rating y duración -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- Rating -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_star_filled"
+                        android:tint="#FF9800"
+                        android:layout_marginEnd="4dp"
+                        android:contentDescription="Rating" />
+
+                    <TextView
+                        android:id="@+id/tv_rating"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="4.8"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="#2C2C2C"
+                        tools:text="4.8" />
+
+                    <TextView
+                        android:id="@+id/tv_reviews_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" (124)"
+                        android:textSize="12sp"
+                        android:textColor="#757575"
+                        tools:text=" (124)" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="S/. 85"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/green" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:baselineAligned="false"
+                    android:layout_gravity="end">
 
+                    <TextView
+                        android:id="@+id/tv_price"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="S/. 85"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary"
+                        tools:text="S/. 85" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="/persona"
+                        android:textSize="11sp"
+                        android:textColor="#757575"
+                        android:layout_marginStart="4dp"
+                        android:layout_gravity="bottom"
+                        android:layout_marginBottom="2dp" />
+                </LinearLayout>
             </LinearLayout>
 
         </LinearLayout>
-
     </LinearLayout>
-
 </com.google.android.material.card.MaterialCardView>

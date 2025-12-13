@@ -132,7 +132,8 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
         android.view.View layoutCompanyMessage = holder.itemView.findViewById(R.id.layout_company_message);
         TextView tvUserMessage = holder.itemView.findViewById(R.id.tv_user_message);
         TextView tvCompanyMessage = holder.itemView.findViewById(R.id.tv_company_message);
-        TextView tvMessageTime = holder.itemView.findViewById(R.id.tv_message_time);
+        TextView tvCompanyTime = holder.itemView.findViewById(R.id.tv_company_message_time);
+        TextView tvUserTime = holder.itemView.findViewById(R.id.tv_user_message_time);
 
         // Alternar entre mensajes del usuario y de la empresa
         if (position % 2 == 0) {
@@ -153,7 +154,7 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
                 default:
                     tvCompanyMessage.setText("¿Tienes alguna otra consulta?");
             }
-            tvMessageTime.setText("10:" + (30 + position) + " AM");
+            tvCompanyTime.setText("10:" + (30 + position) + " AM");
         } else {
             // Mensaje del usuario
             layoutCompanyMessage.setVisibility(android.view.View.GONE);
@@ -169,7 +170,8 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
                 default:
                     tvUserMessage.setText("Gracias por la información");
             }
-        }
+            // Si quisieras mostrar la hora del mensaje de usuario, usa tvUserTime.setText(...)
+         }
     }
 
     @Override
@@ -179,4 +181,3 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
         ViewHolder(android.view.View v) { super(v); } 
     }
 }
-

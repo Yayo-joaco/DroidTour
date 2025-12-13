@@ -1,0 +1,559 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F5F5">
+
+    <!-- AppBarLayout -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:title="Editar Perfil"
+            app:titleTextAppearance="@style/Toolbar.TitleText2"
+            app:titleCentered="true"
+            app:titleTextColor="@color/white"
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:navigationIconTint="@color/white"
+            app:layout_scrollFlags="scroll|enterAlways"/>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="100dp">
+
+            <!-- Sección de foto de perfil -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/profile_header_bg"
+                android:paddingTop="32dp"
+                android:paddingBottom="32dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+
+                <FrameLayout
+                    android:id="@+id/profile_image_container"
+                    android:layout_width="140dp"
+                    android:layout_height="140dp"
+                    android:layout_centerHorizontal="true">
+
+                    <View
+                        android:layout_width="140dp"
+                        android:layout_height="140dp"
+                        android:background="@drawable/profile_pink_circle" />
+
+                    <ImageView
+                        android:id="@+id/profile_image"
+                        android:layout_width="126dp"
+                        android:layout_height="126dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/profile_image_circle"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_avatar_24" />
+
+                    <!-- Botón para cambiar foto -->
+                    <!-- Botón pequeño para editar foto -->
+                    <ImageButton
+                        android:id="@+id/btn_edit_photo_small"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="bottom|end"
+                        android:background="@drawable/circle_accent_bg"
+                        android:scaleType="center"
+                        android:src="@drawable/ic_camera"
+                        android:contentDescription="Editar foto"
+                        android:elevation="4dp"/>
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/profile_image_container"
+                    android:layout_centerHorizontal="true"
+                    android:layout_marginTop="16dp"
+                    android:text="Toca el botón para cambiar tu foto"
+                    android:textSize="13sp"
+                    android:textColor="#E8E8E8"
+                    android:alpha="0.9"/>
+            </RelativeLayout>
+
+            <!-- Formulario de edición -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Sección: Datos Editables -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="3dp"
+                    android:layout_marginHorizontal="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <!-- Header -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingBottom="8dp">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:src="@drawable/ic_edit"
+                                android:tint="#4CAF50"
+                                android:layout_marginEnd="12dp"/>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Datos Editables"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="#2C2C2C" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#EEEEEE"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="16dp"/>
+
+                        <!-- Campo Teléfono -->
+                        <FrameLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content">
+
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:id="@+id/til_phone"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Número de Teléfono"
+                                app:boxStrokeColor="@color/primary"
+                                app:boxStrokeWidth="2dp"
+                                app:hintTextColor="@color/primary"
+                                app:boxCornerRadiusTopStart="8dp"
+                                app:boxCornerRadiusTopEnd="8dp"
+                                app:boxCornerRadiusBottomStart="8dp"
+                                app:boxCornerRadiusBottomEnd="8dp"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_phone"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:inputType="phone"
+                                    android:maxLines="1"
+                                    android:textSize="16sp"
+                                    android:textColor="#000000"
+                                    android:paddingStart="110dp"
+                                    android:text="987 654 321"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <com.hbb20.CountryCodePicker
+
+                                android:id="@+id/ccp"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="start|center_vertical"
+                                android:layout_marginStart="12dp"
+                                android:layout_marginTop="8dp"
+                                app:ccp_defaultNameCode="PE"
+                                app:ccp_showFlag="true"
+                                app:ccp_showNameCode="false"
+                                app:ccp_showFullName="false"
+                                app:ccp_showPhoneCode="true"
+                                app:ccp_contentColor="#000000"
+                                app:ccp_textSize="16sp"
+                                app:ccp_arrowSize="12dp"
+                                app:ccp_customMasterCountries="PE,ES,MX,AR,CO,CL,EC,BO,VE,UY,PY,BR" />
+                        </FrameLayout>
+
+
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- Sección: Idiomas (Solo para Guías) -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/card_edit_languages"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="3dp"
+                    android:layout_marginHorizontal="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <!-- Header -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingBottom="8dp">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:src="@drawable/ic_language"
+                                android:tint="#FF9800"
+                                android:layout_marginEnd="12dp"/>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Idiomas que Hablo"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="#2C2C2C" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#EEEEEE"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="16dp"/>
+
+                        <!-- Descripción -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Selecciona los idiomas que dominas para tus tours"
+                            android:textColor="#757575"
+                            android:textSize="14sp"
+                            android:layout_marginBottom="16dp"/>
+
+                        <!-- Buscador de idiomas -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="16dp"
+                            android:hint="Buscar idioma"
+                            app:startIconDrawable="@android:drawable/ic_menu_search"
+                            app:startIconTint="@color/primary"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_search_language"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="text"
+                                android:textColor="#000000"
+                                android:textSize="16sp"/>
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <!-- Chips de idiomas seleccionados -->
+                        <com.google.android.material.chip.ChipGroup
+                            android:id="@+id/chip_group_selected_languages"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="16dp"
+                            app:chipSpacing="8dp"
+                            app:singleLine="false"/>
+
+                        <!-- Divisor -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#E0E0E0"
+                            android:layout_marginBottom="16dp"/>
+
+                        <!-- Lista de idiomas disponibles con altura limitada -->
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Idiomas disponibles:"
+                            android:textColor="#757575"
+                            android:textSize="13sp"
+                            android:layout_marginBottom="8dp"/>
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rv_available_languages"
+                            android:layout_width="match_parent"
+                            android:layout_height="300dp"
+                            android:scrollbars="vertical"
+                            android:clipToPadding="false"
+                            android:background="#FAFAFA"
+                            android:padding="4dp"/>
+
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- Sección: Información Personal (Solo lectura) -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="3dp"
+                    android:layout_marginHorizontal="2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <!-- Header -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:paddingBottom="8dp">
+
+                            <ImageView
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:src="@drawable/ic_password"
+                                android:tint="#FF9800"
+                                android:layout_marginEnd="12dp"/>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Información Personal"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="#2C2C2C" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="#EEEEEE"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginBottom="8dp"/>
+
+                        <!-- Mensaje informativo -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:background="#FFF3E0"
+                            android:padding="12dp"
+                            android:layout_marginBottom="16dp"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_circle_info"
+                                android:tint="#FF9800"
+                                android:layout_marginEnd="8dp"/>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Por razones legales, estos datos no pueden ser modificados.\nSi crees que hubo un error, ponte en contacto con soporte."                                android:textSize="12sp"
+                                android:textColor="#E65100"
+                                android:lineSpacingExtra="2dp"/>
+                        </LinearLayout>
+
+                        <!-- Campos bloqueados -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <!-- Email (bloqueado) -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Correo Electrónico"
+                                app:startIconDrawable="@drawable/ic_email"
+                                app:startIconTint="#9E9E9E"
+                                app:endIconMode="custom"
+                                app:endIconDrawable="@drawable/ic_password"
+                                app:endIconTint="#9E9E9E"
+                                app:boxStrokeColor="#9E9E9E"
+                                android:layout_marginBottom="12dp"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_email"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="maria.gonzalez@email.com"
+                                    android:enabled="false"
+                                    android:textColor="#9E9E9E"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <!-- Nombres (bloqueado) -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Nombres"
+                                app:startIconDrawable="@drawable/ic_user_form"
+                                app:startIconTint="#9E9E9E"
+                                app:endIconMode="custom"
+                                app:endIconDrawable="@drawable/ic_password"
+                                app:endIconTint="#9E9E9E"
+                                app:boxStrokeColor="#9E9E9E"
+                                android:layout_marginBottom="12dp"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_first_name"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="María"
+                                    android:enabled="false"
+                                    android:textColor="#9E9E9E"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <!-- Apellidos (bloqueado) -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Apellidos"
+                                app:startIconDrawable="@drawable/ic_user_form"
+                                app:startIconTint="#9E9E9E"
+                                app:endIconMode="custom"
+                                app:endIconDrawable="@drawable/ic_password"
+                                app:endIconTint="#9E9E9E"
+                                app:boxStrokeColor="#9E9E9E"
+                                android:layout_marginBottom="12dp"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_last_name"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="González López"
+                                    android:enabled="false"
+                                    android:textColor="#9E9E9E"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <!-- Fecha de Nacimiento (bloqueado) -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Fecha de Nacimiento"
+                                app:startIconDrawable="@drawable/ic_calendar_form"
+                                app:startIconTint="#9E9E9E"
+                                app:endIconMode="custom"
+                                app:endIconDrawable="@drawable/ic_password"
+                                app:endIconTint="#9E9E9E"
+                                app:boxStrokeColor="#9E9E9E"
+                                android:layout_marginBottom="12dp"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_birth_date"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="15/03/1990"
+                                    android:enabled="false"
+                                    android:textColor="#9E9E9E"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <!-- Tipo de Documento (bloqueado) -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Tipo de Documento"
+                                app:startIconDrawable="@drawable/ic_document"
+                                app:startIconTint="#9E9E9E"
+                                app:endIconMode="custom"
+                                app:endIconDrawable="@drawable/ic_password"
+                                app:endIconTint="#9E9E9E"
+                                app:boxStrokeColor="#9E9E9E"
+                                android:layout_marginBottom="12dp"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_document_type"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="DNI"
+                                    android:enabled="false"
+                                    android:textColor="#9E9E9E"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                            <!-- Número de Documento (bloqueado) -->
+                            <com.google.android.material.textfield.TextInputLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Número de Documento"
+                                app:startIconDrawable="@drawable/ic_document"
+                                app:startIconTint="#9E9E9E"
+                                app:endIconMode="custom"
+                                app:endIconDrawable="@drawable/ic_password"
+                                app:endIconTint="#9E9E9E"
+                                app:boxStrokeColor="#9E9E9E"
+                                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                                <com.google.android.material.textfield.TextInputEditText
+                                    android:id="@+id/et_document_number"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="12345678"
+                                    android:enabled="false"
+                                    android:textColor="#9E9E9E"/>
+                            </com.google.android.material.textfield.TextInputLayout>
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Botón Guardar Cambios (FAB) -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_save"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:text="Guardar Cambios"
+        app:icon="@drawable/ic_check_circle"
+        app:backgroundTint="@color/primary"
+        app:iconTint="@color/white"
+        android:textColor="@color/white"
+        app:elevation="8dp" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

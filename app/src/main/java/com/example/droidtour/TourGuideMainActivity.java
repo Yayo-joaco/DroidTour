@@ -214,7 +214,15 @@ public class TourGuideMainActivity extends AppCompatActivity {
                 String userName = prefsManager.obtenerUsuario();
                 
                 if (userName != null && !userName.isEmpty()) {
-                    tvUserNameHeader.setText(userName);
+                    // Mostrar nombre + apellido (dos primeros tokens) si están disponibles
+                    String displayName = userName.trim();
+                    String[] parts = displayName.split("\\s+");
+                    if (parts.length >= 2) {
+                        displayName = parts[0] + " " + parts[1];
+                    } else if (parts.length == 1) {
+                        displayName = parts[0];
+                    }
+                    tvUserNameHeader.setText(displayName);
                 } else {
                     tvUserNameHeader.setText("Usuario");
                 }
@@ -576,11 +584,21 @@ public class TourGuideMainActivity extends AppCompatActivity {
                         if (tvUserNameHeader != null) {
                             String fullName = user.getFullName() != null ? user.getFullName() : 
                                             (user.getFirstName() + " " + user.getLastName());
-                            tvUserNameHeader.setText(fullName);
+                            // Mostrar nombre + apellido (dos primeros tokens) en el header
+                            String displayName = fullName != null ? fullName.trim() : "";
+                            String[] parts = displayName.split("\\s+");
+                            if (parts.length >= 2) {
+                                displayName = parts[0] + " " + parts[1];
+                            } else if (parts.length == 1) {
+                                displayName = parts[0];
+                            } else {
+                                displayName = "Usuario";
+                            }
+                            tvUserNameHeader.setText(displayName);
                         }
                     }
                 }
-                
+
                 android.util.Log.d("TourGuideMain", "✅ Nombre del drawer actualizado desde Firebase");
             }
             

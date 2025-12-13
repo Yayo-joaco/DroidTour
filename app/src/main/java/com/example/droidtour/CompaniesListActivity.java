@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -54,6 +55,7 @@ public class CompaniesListActivity extends AppCompatActivity {
         }
         
         setContentView(R.layout.activity_companies_list);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar Firebase
         firestoreManager = FirestoreManager.getInstance();

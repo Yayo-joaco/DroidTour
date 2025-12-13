@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_location"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="2dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="2dp"
+    android:foreground="?attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <!-- Drag handle (opcional) -->
+        <ImageView
+            android:id="@+id/iv_drag_handle"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_drag_handle"
+            app:tint="#9E9E9E"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Arrastrar"/>
+
+        <!-- Número de orden -->
+        <TextView
+            android:id="@+id/tv_order"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:background="@drawable/icon_background_blue"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@color/primary"/>
+
+        <!-- Nombre de la parada -->
+        <TextView
+            android:id="@+id/tv_location_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:text="Parada 1"
+            android:textSize="16sp" />
+
+        <!-- Botón eliminar -->
+        <ImageView
+            android:id="@+id/iv_delete"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_trash"
+            app:tint="#F44336"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Eliminar"/>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

@@ -42,6 +42,23 @@ public class User {
     // ========== CAMPOS COMUNES DE ESTADO ==========
     private Boolean isActive; // Activado/Desactivado por superadmin
     private Boolean isEmailVerified;
+
+    // En tu clase User, agrega:
+    private String status; // "active", "inactive", "pending", "suspended"
+
+    // Agrega estos getters y setters:
+    public String getStatus() {
+        return status != null ? status : "active";
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getPhotoUrl() {
+        return profileImageUrl;
+    }
+
     @ServerTimestamp
     private Date createdAt;
     @ServerTimestamp
@@ -194,10 +211,11 @@ public class User {
         this.documentNumber = documentNumber;
     }
 
+    @PropertyName("birthDate")
     public String getDateOfBirth() {
         return dateOfBirth;
     }
-
+    @PropertyName("birthDate")
     public void setDateOfBirth(String dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
     }
@@ -311,4 +329,3 @@ public class User {
         this.updatedAt = updatedAt;
     }
 }
-

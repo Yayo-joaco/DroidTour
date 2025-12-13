@@ -20,30 +20,13 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
-            android:background="@color/light_gray">
+            android:background="@color/light_gray"
+            android:padding="12dp">
 
-            <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_report_image"
-                android:tint="@color/green" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Gráfico de Ventas por Tour"
-                android:textSize="14sp"
-                android:textColor="@color/green"
-                android:textStyle="bold"
-                android:layout_marginTop="12dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="(De mayor a menor)"
-                android:textSize="12sp"
-                android:textColor="@color/gray"
-                android:layout_marginTop="4dp" />
+            <com.github.mikephil.charting.charts.PieChart
+                android:id="@+id/pie_chart_tours"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
         </LinearLayout>
 
@@ -73,14 +56,16 @@
         <ImageView
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:src="@android:drawable/ic_menu_mapmode"
-            android:tint="@color/gray" />
+            android:src="@drawable/ic_empty_box"
+            app:tint="@color/gray"
+            android:contentDescription="@null" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="No hay tours con ventas"
             android:textSize="16sp"
+            android:textStyle="bold"
             android:textColor="@color/gray"
             android:layout_marginTop="16dp" />
 

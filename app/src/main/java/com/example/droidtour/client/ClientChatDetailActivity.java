@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Locale;
 
 public class ClientChatDetailActivity extends AppCompatActivity {
-    
+
     private TextView tvCompanyName, tvCompanyStatus;
     private ImageView ivCompanyAvatar, ivCallCompany, ivSendMessage, ivAttach;
     private RecyclerView rvMessages;
     private TextInputEditText etMessage;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
-    
+
     private String companyName;
     private ClientChatMessagesAdapter messagesAdapter;
     private List<ClientChatMessage> messagesList;
@@ -39,17 +39,17 @@ public class ClientChatDetailActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // Inicializar PreferencesManager PRIMERO
         prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
-        
+
         // Validar sesión PRIMERO
         if (!prefsManager.isLoggedIn()) {
             redirectToLogin();
             finish();
             return;
         }
-        
+
         // Validar que el usuario sea CLIENT
         String userType = prefsManager.getUserType();
         if (userType == null || !userType.equals("CLIENT")) {
@@ -57,10 +57,10 @@ public class ClientChatDetailActivity extends AppCompatActivity {
             finish();
             return;
         }
-        
+
         setContentView(R.layout.activity_client_chat_detail);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
-        
+
         getIntentData();
         setupToolbar();
         initializeViews();
@@ -68,65 +68,65 @@ public class ClientChatDetailActivity extends AppCompatActivity {
         setupRecyclerView();
         loadChatData();
     }
-    
+
     private void getIntentData() {
         companyName = getIntent().getStringExtra("COMPANY_NAME");
         if (companyName == null) {
             companyName = "Empresa de Tours";
         }
     }
-    
+
     private void setupToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setTitle("");
     }
-    
+
     private void initializeViews() {
         tvCompanyName = findViewById(R.id.tv_company_name);
         tvCompanyStatus = findViewById(R.id.tv_company_status);
-        
+
         ivCompanyAvatar = findViewById(R.id.iv_company_avatar);
         ivCallCompany = findViewById(R.id.iv_call_company);
         ivSendMessage = findViewById(R.id.iv_send_message);
         ivAttach = findViewById(R.id.iv_attach);
-        
+
         rvMessages = findViewById(R.id.rv_messages);
         etMessage = findViewById(R.id.et_message);
     }
-    
+
     private void setupClickListeners() {
         ivCallCompany.setOnClickListener(v -> {
             Toast.makeText(this, "Llamar a " + companyName, Toast.LENGTH_SHORT).show();
             // TODO: Implementar llamada telefónica
         });
-        
+
         ivSendMessage.setOnClickListener(v -> sendMessage());
-        
+
         ivAttach.setOnClickListener(v -> {
             Toast.makeText(this, "Adjuntar archivo", Toast.LENGTH_SHORT).show();
             // TODO: Implementar adjuntar archivos
         });
     }
-    
+
     private void setupRecyclerView() {
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         rvMessages.setLayoutManager(layoutManager);
-        
+
         messagesList = new ArrayList<>();
         messagesAdapter = new ClientChatMessagesAdapter(messagesList);
         rvMessages.setAdapter(messagesAdapter);
-        
+
         loadSampleMessages();
     }
-    
+
     private void loadChatData() {
         tvCompanyName.setText(companyName);
         tvCompanyStatus.setText("En línea");
     }
-    
+
     private void loadSampleMessages() {
         // Mensajes de ejemplo basados en la imagen proporcionada
         messagesList.add(new ClientChatMessage("Hola, buenas!", true, "14:20"));
@@ -139,33 +139,33 @@ public class ClientChatDetailActivity extends AppCompatActivity {
         messagesList.add(new ClientChatMessage("La app tiene un sistema de protección contra robos y estafas", true, "14:27"));
         messagesList.add(new ClientChatMessage("Perfecto! ¿Cómo es el envío?", false, "14:28"));
         messagesList.add(new ClientChatMessage("Usted solo realiza la transacción y yo le enviaré un motorizado con un costo adicional de 5 soles.", true, "14:29"));
-        
+
         messagesAdapter.notifyDataSetChanged();
         rvMessages.scrollToPosition(messagesList.size() - 1);
     }
-    
+
     private void sendMessage() {
         String messageText = etMessage.getText().toString().trim();
-        
+
         if (messageText.isEmpty()) {
             Toast.makeText(this, "Escriba un mensaje", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         // Agregar mensaje a la lista
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
         String currentTime = timeFormat.format(new Date());
-        
+
         ClientChatMessage newMessage = new ClientChatMessage(messageText, false, currentTime); // false = mensaje del cliente
         messagesList.add(newMessage);
         messagesAdapter.notifyItemInserted(messagesList.size() - 1);
         rvMessages.scrollToPosition(messagesList.size() - 1);
-        
+
         etMessage.setText("");
-        
+
         // TODO: Enviar mensaje a la base de datos
     }
-    
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
@@ -174,7 +174,7 @@ public class ClientChatDetailActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
-    
+
     private void redirectToLogin() {
         android.content.Intent intent = new android.content.Intent(this, com.example.droidtour.LoginActivity.class);
         intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -254,11 +254,12 @@ class ClientChatMessagesAdapter extends RecyclerView.Adapter<ClientChatMessagesA
             layoutSystem = null;
 
             tvIncomingMessage = itemView.findViewById(R.id.tv_company_message);
-            tvIncomingTime = itemView.findViewById(R.id.tv_message_time);
+            // ID correcto para el tiempo de mensaje de la empresa
+            tvIncomingTime = itemView.findViewById(R.id.tv_company_message_time);
 
             tvOutgoingMessage = itemView.findViewById(R.id.tv_user_message);
-            // No hay tv_outgoing_time en el layout actual
-            tvOutgoingTime = null;
+            // Campo de tiempo para mensaje de usuario (saliente)
+            tvOutgoingTime = itemView.findViewById(R.id.tv_user_message_time);
 
             // No hay tv_system_message en el layout actual
             tvSystemMessage = null;

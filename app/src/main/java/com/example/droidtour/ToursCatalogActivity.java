@@ -114,7 +114,6 @@ public class ToursCatalogActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Tours Disponibles");
         }
     }
 
@@ -313,4 +312,3 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
         ViewHolder(android.view.View v) { super(v); } 
     }
 }
-

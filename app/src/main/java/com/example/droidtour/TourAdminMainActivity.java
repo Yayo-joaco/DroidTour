@@ -10,8 +10,11 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.droidtour.admin.CompanyInfoActivity;
+import com.example.droidtour.admin.CreateServiceActivity;
+import com.example.droidtour.admin.CreateTourActivity;
+import com.example.droidtour.admin.TourManagementActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -51,7 +54,8 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         loadUserData();
         loadNavHeaderData();
         initializeNotificationCounters();
-        
+        setupFab();
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawer_layout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -217,6 +221,9 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
             startActivity(new Intent(this, SalesReportsActivity.class));
         } else if (id == R.id.nav_customer_chat) {
             startActivity(new Intent(this, AdminChatListActivity.class));
+        } else if (id == R.id.nav_tour_management) {
+            // Nuevo: abrir actividad de gestión de tours
+            startActivity(new Intent(this, TourManagementActivity.class));
         } else if (id == R.id.nav_logout) {
             //Se limpian los datos de seión
             prefsManager.cerrarSesion();

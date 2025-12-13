@@ -1,38 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/light_gray">
+    android:background="#F5F5F5">
 
-    <!-- Toolbar -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- AppBarLayout -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        app:title="🗺️ Crear Tour"
-        app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:title="Crear Tour"
+            app:titleTextAppearance="@style/Toolbar.TitleText2"
+            app:titleCentered="true"
+            app:titleTextColor="@color/white"
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:navigationIconTint="@color/white"
+            app:layout_scrollFlags="scroll|enterAlways"/>
+
+    </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:paddingBottom="100dp">
 
-            <!-- Header Card -->
+            <!-- Header informativo -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
+                app:cardElevation="3dp"
                 app:cardBackgroundColor="@color/primary">
 
                 <LinearLayout
@@ -45,8 +59,9 @@
                     <ImageView
                         android:layout_width="48dp"
                         android:layout_height="48dp"
-                        android:src="@android:drawable/ic_menu_mapmode"
-                        app:tint="@color/white" />
+                        android:src="@drawable/ic_map_location"
+                        app:tint="@color/white"
+                        android:contentDescription="Tour" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -68,22 +83,20 @@
                             android:layout_height="wrap_content"
                             android:text="Configura una nueva experiencia turística"
                             android:textSize="14sp"
-                            android:textColor="@color/white"
+                            android:textColor="#E8E8E8"
                             android:layout_marginTop="4dp" />
-
                     </LinearLayout>
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Información Básica -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Sección: Imágenes del Tour -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -91,284 +104,930 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
+                    <!-- Header de sección -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="16dp">
+                        android:paddingBottom="8dp">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_info_details"
-                            app:tint="@color/primary"
-                            android:layout_marginEnd="8dp" />
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_image"
+                            app:tint="#FF9800"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Imágenes" />
 
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Imágenes del Tour"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Agrega hasta 5 imágenes para mostrar tu tour"
+                        android:textColor="#757575"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- RecyclerView horizontal para imágenes -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_tour_images"
+                        android:layout_width="match_parent"
+                        android:layout_height="140dp"
+                        android:orientation="horizontal"
+                        android:clipToPadding="false"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        tools:itemCount="3"
+                        tools:listitem="@layout/item_tour_image" />
+
+                    <!-- Botón para agregar más imágenes -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_add_images"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Agregar más imágenes"
+                        android:textSize="14sp"
+                        app:icon="@drawable/ic_add"
+                        app:iconTint="@color/primary"
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/primary" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Sección: Información Básica -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Header de sección -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_info"
+                            app:tint="#2196F3"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Info básica" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
                             android:text="Información Básica"
                             android:textSize="18sp"
                             android:textStyle="bold"
-                            android:textColor="@color/black" />
-
+                            android:textColor="#2C2C2C" />
                     </LinearLayout>
 
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Nombre del tour -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/til_tour_name"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Nombre del Tour"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="16dp"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:counterEnabled="true"
+                        app:counterMaxLength="100"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_tour_name"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="text" />
-
+                            android:inputType="text"
+                            android:maxLength="100"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="Tour Cusco Mágico" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Descripción -->
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/til_tour_description"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Descripción"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="16dp"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:counterEnabled="true"
+                        app:counterMaxLength="500"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_tour_description"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="textMultiLine"
-                            android:lines="3" />
-
+                            android:lines="4"
+                            android:maxLength="500"
+                            android:gravity="top|start"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="Descubre la magia de Cusco..." />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Categoría -->
                     <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/til_tour_price"
+                        android:id="@+id/til_tour_category"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Precio por persona"
+                        android:hint="Categoría"
                         android:layout_marginBottom="16dp"
-                        app:prefixText="S/. ">
+                        app:startIconDrawable="@drawable/ic_category"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_tour_price"
+                        <AutoCompleteTextView
+                            android:id="@+id/act_tour_category"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="numberDecimal" />
-
+                            android:inputType="none"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="Aventura" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/til_tour_duration"
+                    <!-- Grid de Precio y Duración -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Duración (horas)"
-                        android:layout_marginBottom="24dp">
+                        android:orientation="horizontal">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_tour_duration"
-                            android:layout_width="match_parent"
+                        <!-- Precio -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_tour_price"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:inputType="number" />
+                            android:layout_weight="1"
+                            android:hint="Precio"
+                            android:layout_marginEnd="8dp"
+                            app:prefixText="S/ "
+                            app:startIconTint="@color/primary"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
 
-                    </com.google.android.material.textfield.TextInputLayout>
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_tour_price"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="numberDecimal"
+                                android:textSize="16sp"
+                                android:textColor="#000000"
+                                tools:text="150.00" />
+                        </com.google.android.material.textfield.TextInputLayout>
 
-                    <!-- Dates Section -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Fechas"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
+                        <!-- Duración -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_tour_duration"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Duración"
+                            android:layout_marginStart="8dp"
+                            app:suffixText=" hrs"
+                            app:startIconDrawable="@drawable/ic_time"
+                            app:startIconTint="@color/primary"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
 
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_tour_duration"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="numberDecimal"
+                                android:textSize="16sp"
+                                android:textColor="#000000"
+                                tools:text="8" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Sección: Fechas y Disponibilidad -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Header de sección -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="24dp">
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/til_start_date"
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_calendar_check"
+                            app:tint="#9C27B0"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Fechas" />
+
+                        <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:text="Fechas y Disponibilidad"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Grid de fechas -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <!-- Fecha inicio -->
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_start_date"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Fecha de inicio"
                             android:layout_marginEnd="8dp"
-                            android:hint="Fecha de inicio">
+                            app:startIconDrawable="@drawable/ic_calendar_form"
+                            app:startIconTint="@color/primary"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/et_start_date"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="date"
+                                android:inputType="none"
                                 android:focusable="false"
-                                android:clickable="true" />
-
+                                android:clickable="true"
+                                android:textSize="16sp"
+                                android:textColor="#000000"
+                                tools:text="01/12/2024" />
                         </com.google.android.material.textfield.TextInputLayout>
 
+                        <!-- Fecha fin -->
                         <com.google.android.material.textfield.TextInputLayout
                             android:id="@+id/til_end_date"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
+                            android:hint="Fecha de fin"
                             android:layout_marginStart="8dp"
-                            android:hint="Fecha de fin">
+                            app:startIconDrawable="@drawable/ic_calendar_form"
+                            app:startIconTint="@color/primary"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/et_end_date"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="date"
+                                android:inputType="none"
                                 android:focusable="false"
-                                android:clickable="true" />
-
+                                android:clickable="true"
+                                android:textSize="16sp"
+                                android:textColor="#000000"
+                                tools:text="31/12/2024" />
                         </com.google.android.material.textfield.TextInputLayout>
-
                     </LinearLayout>
 
-                    <!-- Locations Section -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Ubicaciones del Tour"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_add_location"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
+                    <!-- Capacidad máxima -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_max_capacity"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Agregar Ubicación en Mapa"
-                        android:drawableStart="@android:drawable/ic_menu_mapmode"
-                        android:layout_marginBottom="16dp" />
+                        android:hint="Capacidad Máxima"
+                        app:startIconDrawable="@drawable/ic_people_24"
+                        app:startIconTint="@color/primary"
+                        app:suffixText=" personas"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
-                    <!-- Locations List -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_locations"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="24dp"
-                        android:nestedScrollingEnabled="false" />
-
-                    <!-- Services Section -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Servicios Incluidos"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
-
-                    <CheckBox
-                        android:id="@+id/cb_breakfast"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Desayuno" />
-
-                    <CheckBox
-                        android:id="@+id/cb_lunch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Almuerzo" />
-
-                    <CheckBox
-                        android:id="@+id/cb_dinner"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Cena" />
-
-                    <CheckBox
-                        android:id="@+id/cb_transport"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Transporte"
-                        android:layout_marginBottom="24dp" />
-
-                    <!-- Languages Section -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Idiomas Disponibles"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
-
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chip_group_languages"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="24dp">
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_spanish"
-                            android:layout_width="wrap_content"
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_max_capacity"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Español"
-                            android:checkable="true"
-                            android:checked="true" />
+                            android:inputType="number"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="15" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_english"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Inglés"
-                            android:checkable="true" />
+            <!-- Sección: Ubicaciones del Tour -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_french"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Francés"
-                            android:checkable="true" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
 
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_german"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Alemán"
-                            android:checkable="true" />
-
-                    </com.google.android.material.chip.ChipGroup>
-
-                    <!-- Action Buttons -->
+                    <!-- Header de sección -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="end">
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_cancel"
-                            style="@style/Widget.Material3.Button.TextButton"
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_location"
+                            app:tint="#4CAF50"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Ubicaciones" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Ubicaciones del Tour"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+
+                        <!-- Badge contador -->
+                        <TextView
+                            android:id="@+id/tv_locations_count"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/cancel"
-                            android:layout_marginEnd="16dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_save_tour"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/save" />
-
+                            android:text="0 paradas"
+                            android:textSize="13sp"
+                            android:textColor="#757575"
+                            android:background="@drawable/badge_bg"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="4dp"
+                            tools:text="3 paradas" />
                     </LinearLayout>
 
-                </LinearLayout> <!-- CIERRE del LinearLayout interno del CardView -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
 
-            </com.google.android.material.card.MaterialCardView> <!-- CIERRE del CardView de Información Básica -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Agrega las ubicaciones que visitarás en orden"
+                        android:textColor="#757575"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="16dp"/>
 
-        </LinearLayout> <!-- CIERRE del LinearLayout principal del NestedScrollView -->
+                    <!-- Botón agregar ubicación -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_add_location"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Agregar Ubicación en Mapa"
+                        android:textSize="15sp"
+                        app:icon="@drawable/ic_location_add"
+                        app:iconTint="@color/primary"
+                        app:iconSize="20dp"
+                        app:iconGravity="textStart"
+                        app:strokeColor="@color/primary"
+                        android:textColor="@color/primary"
+                        app:cornerRadius="8dp"
+                        android:layout_marginBottom="16dp" />
 
-    </androidx.core.widget.NestedScrollView> <!-- CIERRE del NestedScrollView -->
+                    <!-- Lista de ubicaciones -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_locations"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        tools:itemCount="2"
+                        tools:listitem="@layout/item_tour_location" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-</LinearLayout> <!-- CIERRE del LinearLayout principal -->
+            <!-- Sección: Servicios Incluidos -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Header de sección -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_services"
+                            app:tint="#E91E63"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Servicios" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Servicios Incluidos"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Grid de servicios con Material3 Checkboxes -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_breakfast"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Desayuno"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_lunch"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Almuerzo"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_dinner"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Cena"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_transport"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Transporte"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_guide"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Guía profesional"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_tickets"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Entradas incluidas"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Sección: Servicios No Incluidos -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Header de sección -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_services_excluded"
+                            app:tint="#FF5722"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Servicios no incluidos" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Servicios No Incluidos"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Campo de texto para servicios no incluidos -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_not_included_services"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Servicios no incluidos (separados por coma)"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:counterEnabled="true"
+                        app:counterMaxLength="200"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_not_included_services"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textMultiLine"
+                            android:lines="2"
+                            android:maxLength="200"
+                            android:gravity="top|start"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="Bebidas alcoholicas, Propinas, Actividades opcionales" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Sección: Información de Encuentro -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Header de sección -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_meeting_point"
+                            app:tint="#795548"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Punto de encuentro" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Información de Encuentro"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Punto de encuentro -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_meeting_point"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Punto de Encuentro"
+                        android:layout_marginBottom="16dp"
+                        app:startIconDrawable="@drawable/ic_location"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_meeting_point"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="Plaza de Armas de Cusco" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Hora de salida -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_departure_time"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Hora de Salida"
+                        app:startIconDrawable="@drawable/ic_time"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_departure_time"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="06:00 AM" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Sección: Idiomas Disponibles -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Header de sección -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_language"
+                            app:tint="#3F51B5"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Idiomas" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Idiomas Disponibles"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Checkboxes para idiomas -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_spanish"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Español"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary"
+                            android:checked="true" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_english"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Inglés"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_french"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Francés"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_portuguese"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Portugués"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- FAB para guardar -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btn_save_tour"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:text="Crear Tour"
+        app:icon="@drawable/ic_check_circle"
+        app:backgroundTint="@color/primary"
+        app:iconTint="@color/white"
+        android:textColor="@color/white"
+        app:elevation="8dp" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

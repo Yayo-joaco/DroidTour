@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
+import android.view.inputmethod.InputMethodManager;
+import android.content.Context;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,6 +30,7 @@ public class AdminChatDetailActivity extends AppCompatActivity {
     private ImageView ivClientAvatar, ivCallClient, ivSendMessage, ivAttach;
     private RecyclerView rvMessages;
     private TextInputEditText etMessage;
+    private View rootLayout;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
     
     private String clientName;
@@ -63,6 +66,7 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         setupToolbar();
         initializeViews();
         setupClickListeners();
+        setupInputBehavior();
         setupRecyclerView();
         loadChatData();
     }
@@ -92,19 +96,43 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         
         rvMessages = findViewById(R.id.rv_messages);
         etMessage = findViewById(R.id.et_message);
+        rootLayout = findViewById(R.id.root_layout);
     }
     
     private void setupClickListeners() {
-        ivCallClient.setOnClickListener(v -> {
-            Toast.makeText(this, "Llamar a " + clientName, Toast.LENGTH_SHORT).show();
-            // TODO: Implementar llamada telefónica
-        });
-        
-        ivSendMessage.setOnClickListener(v -> sendMessage());
-        
-        ivAttach.setOnClickListener(v -> {
-            Toast.makeText(this, "Adjuntar archivo", Toast.LENGTH_SHORT).show();
-            // TODO: Implementar adjuntar archivos
+        if (ivCallClient != null) {
+            ivCallClient.setOnClickListener(v -> {
+                Toast.makeText(this, "Llamar a " + clientName, Toast.LENGTH_SHORT).show();
+                // TODO: Implementar llamada telefónica
+            });
+        }
+
+        if (ivSendMessage != null) {
+            ivSendMessage.setOnClickListener(v -> {
+                sendMessage();
+            });
+        }
+
+        if (ivAttach != null) {
+            ivAttach.setOnClickListener(v -> {
+                Toast.makeText(this, "Adjuntar archivo", Toast.LENGTH_SHORT).show();
+                // No manipulamos el TextInputLayout: el hint está dentro del EditText
+                // Si quieres restaurar el texto del hint manualmente, podemos hacerlo con etMessage.setHint(...)
+                // TODO: Implementar adjuntar archivos
+            });
+        }
+    }
+    
+    // Solo manejamos clicks en el root para quitar foco y ocultar el teclado
+    private void setupInputBehavior() {
+        if (rootLayout == null) return;
+        rootLayout.setOnClickListener(v -> {
+            if (etMessage != null) {
+                etMessage.clearFocus();
+                // Ocultar teclado
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) imm.hideSoftInputFromWindow(etMessage.getWindowToken(), 0);
+            }
         });
     }
     
@@ -254,11 +282,12 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
             layoutSystem = null;
 
             tvIncomingMessage = itemView.findViewById(R.id.tv_company_message);
-            tvIncomingTime = itemView.findViewById(R.id.tv_message_time);
+            // ID correcto para el tiempo de mensaje de la empresa
+            tvIncomingTime = itemView.findViewById(R.id.tv_company_message_time);
 
             tvOutgoingMessage = itemView.findViewById(R.id.tv_user_message);
-            // No hay tv_outgoing_time en el layout actual
-            tvOutgoingTime = null;
+            // Campo de tiempo para mensaje de usuario (saliente)
+            tvOutgoingTime = itemView.findViewById(R.id.tv_user_message_time);
 
             // No hay tv_system_message en el layout actual
             tvSystemMessage = null;

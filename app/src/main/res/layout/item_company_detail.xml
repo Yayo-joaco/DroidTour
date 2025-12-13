@@ -1,290 +1,457 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_company"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="4dp"
+    android:layout_marginHorizontal="4dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="3dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#E0E0E0"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:background="@color/white">
 
-        <!-- Company Header -->
-        <LinearLayout
+        <!-- Imagen de la Empresa con Badges -->
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="center_vertical">
+            android:layout_height="180dp">
 
-            <!-- Company Logo -->
-            <LinearLayout
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:background="@drawable/circle_primary"
-                android:gravity="center">
+            <ImageView
+                android:id="@+id/iv_company_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="#F5F5F5"
+                android:contentDescription="Imagen de la empresa"
+                tools:src="@drawable/map_placeholder" />
 
-                <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@android:drawable/ic_menu_info_details"
-                    android:tint="@color/white" />
+            <!-- Overlay gradient para mejor legibilidad -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="80dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/gradient_overlay" />
 
-            </LinearLayout>
-
-            <!-- Company Info -->
-            <LinearLayout
-                android:layout_width="0dp"
+            <!-- Badge de Rating -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="16dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tv_company_name"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Lima Adventure Tours"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/black" />
-
-                <TextView
-                    android:id="@+id/tv_company_location"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📍 Lima, Perú"
-                    android:textSize="14sp"
-                    android:textColor="@color/gray"
-                    android:layout_marginTop="2dp" />
+                android:layout_gravity="top|start"
+                android:layout_margin="12dp"
+                app:cardCornerRadius="6dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#2196F3">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp">
+
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_star"
+                        android:tint="@color/white"
+                        android:contentDescription="Rating" />
 
                     <TextView
                         android:id="@+id/tv_rating"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⭐ 4.8"
-                        android:textSize="14sp"
-                        android:textColor="@color/orange"
-                        android:textStyle="bold" />
+                        android:text="4.8"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        android:layout_marginStart="3dp"
+                        tools:text="4.8" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Badge de Verificado -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="12dp"
+                app:cardCornerRadius="6dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#4CAF50"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp">
+
+                    <ImageView
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:src="@drawable/ic_verified"
+                        android:tint="@color/white"
+                        android:contentDescription="Verificado" />
 
                     <TextView
-                        android:id="@+id/tv_reviews_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="(245 reseñas)"
+                        android:text="Verificado"
                         android:textSize="12sp"
-                        android:textColor="@color/gray"
-                        android:layout_marginStart="4dp" />
+                        android:textStyle="bold"
+                        android:textColor="@color/white"
+                        android:layout_marginStart="3dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
+        </FrameLayout>
+
+        <!-- Contenido de la Empresa -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Nombre y Botón Favorito -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tv_company_name"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Lima Adventure Tours"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#2C2C2C"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    tools:text="Lima Adventure Tours" />
+
+                <!-- Botón Favorito Mejorado -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#E0E0E0"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:id="@+id/btn_favorite"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_favorite"
+                        android:tint="#FF5252"
+                        android:contentDescription="Favorito" />
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+            <!-- Ubicación y Reviews -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_location"
+                    android:tint="#757575"
+                    android:layout_marginEnd="4dp"
+                    android:contentDescription="Ubicación" />
+
+                <TextView
+                    android:id="@+id/tv_company_location"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Lima, Perú"
+                    android:textSize="14sp"
+                    android:textColor="#757575"
+                    tools:text="Lima, Perú" />
+
+                <TextView
+                    android:id="@+id/tv_reviews_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="(245 reseñas)"
+                    android:textSize="12sp"
+                    android:textColor="#9E9E9E"
+                    tools:text="(245 reseñas)" />
+
+            </LinearLayout>
+
+            <!-- Descripción -->
+            <TextView
+                android:id="@+id/tv_company_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Especialistas en tours culturales y gastronómicos por Lima. Más de 10 años de experiencia mostrando lo mejor de nuestra ciudad."
+                android:textSize="14sp"
+                android:textColor="#757575"
+                android:lineSpacingExtra="2dp"
+                android:layout_marginBottom="16dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                tools:text="Especialistas en tours culturales y gastronómicos por Lima. Más de 10 años de experiencia mostrando lo mejor de nuestra ciudad." />
+
+            <!-- Divisor -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEEEEE"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Estadísticas en Grid -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <!-- Tours -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/tv_tours_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="12"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/primary"
+                        tools:text="12" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Tours"
+                        android:textSize="11sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <!-- Divisor vertical -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="#EEEEEE"
+                    android:layout_marginHorizontal="12dp" />
+
+                <!-- Clientes -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/tv_clients_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1,245"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="#4CAF50"
+                        tools:text="1,245" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Clientes"
+                        android:textSize="11sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <!-- Divisor vertical -->
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="#EEEEEE"
+                    android:layout_marginHorizontal="12dp" />
+
+                <!-- Precio Desde -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/tv_price_from"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="S/. 45"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="#FF9800"
+                        tools:text="S/. 45" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Desde"
+                        android:textSize="11sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="2dp" />
                 </LinearLayout>
 
             </LinearLayout>
 
-            <!-- Favorite Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_favorite"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:text="♡"
-                android:textSize="20sp"
-                android:textColor="@color/red"
-                android:minWidth="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp" />
-
-        </LinearLayout>
-
-        <!-- Company Description -->
-        <TextView
-            android:id="@+id/tv_company_description"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Especialistas en tours culturales y gastronómicos por Lima. Más de 10 años de experiencia mostrando lo mejor de nuestra ciudad."
-            android:textSize="14sp"
-            android:textColor="@color/black"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="12dp"
-            android:maxLines="3"
-            android:ellipsize="end" />
-
-        <!-- Stats Row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="12dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <TextView
-                    android:id="@+id/tv_tours_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="12"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Tours"
-                    android:textSize="12sp"
-                    android:textColor="@color/gray" />
-
-            </LinearLayout>
-
+            <!-- Divisor -->
             <View
-                android:layout_width="1dp"
-                android:layout_height="40dp"
-                android:background="@color/light_gray" />
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEEEEE"
+                android:layout_marginBottom="12dp" />
 
-            <LinearLayout
-                android:layout_width="0dp"
+            <!-- Servicios Incluidos -->
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:text="Servicios incluidos:"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary"
+                android:layout_marginBottom="8dp" />
 
-                <TextView
-                    android:id="@+id/tv_clients_count"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_services"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:singleLine="false"
+                app:chipSpacingHorizontal="6dp"
+                app:chipSpacingVertical="4dp">
+
+                <com.google.android.material.chip.Chip
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="1,245"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/green" />
+                    android:text="Almuerzo"
+                    android:textSize="11sp"
+                    style="@style/Widget.MaterialComponents.Chip.Action"
+                    app:chipBackgroundColor="#FFF3E0"
+                    app:chipStrokeWidth="0dp"
+                    android:textColor="#F57C00"
+                    app:chipMinHeight="28dp"
 
-                <TextView
+                    app:chipIconTint="#F57C00"
+                    app:chipIconSize="14dp"
+                    tools:text="Almuerzo" />
+
+                <com.google.android.material.chip.Chip
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Clientes"
-                    android:textSize="12sp"
-                    android:textColor="@color/gray" />
+                    android:text="Transporte"
+                    android:textSize="11sp"
+                    style="@style/Widget.MaterialComponents.Chip.Action"
+                    app:chipBackgroundColor="#E3F2FD"
+                    app:chipStrokeWidth="0dp"
+                    android:textColor="#1976D2"
+                    app:chipMinHeight="28dp"
+                    app:chipIconTint="#1976D2"
+                    app:chipIconSize="14dp"
+                    tools:text="Transporte" />
 
-            </LinearLayout>
+                <com.google.android.material.chip.Chip
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fotos"
+                    android:textSize="11sp"
+                    style="@style/Widget.MaterialComponents.Chip.Action"
+                    app:chipBackgroundColor="#F3E5F5"
+                    app:chipStrokeWidth="0dp"
+                    android:textColor="#7B1FA2"
+                    app:chipMinHeight="28dp"
+                    app:chipIconTint="#7B1FA2"
+                    app:chipIconSize="14dp"
+                    tools:text="Fotos" />
 
+            </com.google.android.material.chip.ChipGroup>
+
+            <!-- Divisor -->
             <View
-                android:layout_width="1dp"
-                android:layout_height="40dp"
-                android:background="@color/light_gray" />
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEEEEE"
+                android:layout_marginBottom="16dp" />
 
+            <!-- Botones de Acción -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/tv_price_from"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="S/. 45"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/accent" />
+                <!-- Botón Contactar -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_contact"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Contactar"
+                    android:textSize="14sp"
+                    android:paddingHorizontal="16dp"
+                    app:cornerRadius="12dp"
+                    app:strokeColor="@color/primary"
+                    app:strokeWidth="1dp"
+                    android:textColor="@color/primary"
+                    android:drawableStart="@drawable/ic_chat"
+                    android:drawableTint="@color/primary"
+                    android:layout_marginEnd="8dp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Desde"
-                    android:textSize="12sp"
-                    android:textColor="@color/gray" />
+                <!-- Botón Ver Tours -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_view_tours"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Ver Tours"
+                    android:textSize="14sp"
+                    android:paddingHorizontal="16dp"
+                    app:cornerRadius="12dp"
+                    app:backgroundTint="@color/primary"
+                    android:drawableTint="@color/white" />
 
             </LinearLayout>
-
-        </LinearLayout>
-
-        <!-- Services Included -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Servicios incluidos:"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="@color/primary"
-            android:layout_marginStart="16dp"
-            android:layout_marginBottom="8dp" />
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_services"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp">
-
-            <com.google.android.material.chip.Chip
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🍽️ Almuerzo"
-                android:textSize="12sp"
-                android:enabled="false" />
-
-            <com.google.android.material.chip.Chip
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🚌 Transporte"
-                android:textSize="12sp"
-                android:enabled="false" />
-
-            <com.google.android.material.chip.Chip
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📸 Fotos"
-                android:textSize="12sp"
-                android:enabled="false" />
-
-        </com.google.android.material.chip.ChipGroup>
-
-        <!-- Action Buttons -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="end">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_contact"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Contactar"
-                android:drawableStart="@android:drawable/ic_menu_call"
-                android:layout_marginEnd="8dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_view_tours"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Ver Tours"
-                android:drawableStart="@android:drawable/ic_menu_view" />
 
         </LinearLayout>
 
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>
-

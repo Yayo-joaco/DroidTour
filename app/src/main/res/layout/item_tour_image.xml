@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="120dp"
+    android:layout_height="120dp"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:strokeColor="#E0E0E0"
+    app:strokeWidth="1dp">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Imagen del tour -->
+        <ImageView
+            android:id="@+id/iv_tour_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:background="#FAFAFA"
+            tools:src="@tools:sample/backgrounds/scenic" />
+
+        <!-- Placeholder cuando no hay imagen -->
+        <LinearLayout
+            android:id="@+id/placeholder_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="#FAFAFA"
+            android:visibility="visible">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_camera"
+                app:tint="#BDBDBD"
+                android:contentDescription="Agregar imagen" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Agregar"
+                android:textSize="12sp"
+                android:textColor="#9E9E9E"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+        <!-- Botón para eliminar imagen -->
+        <ImageButton
+            android:id="@+id/btn_delete_image"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:background="@drawable/circle_red"
+            android:src="@drawable/ic_close"
+            app:tint="@color/white"
+            android:visibility="gone"
+            android:contentDescription="Eliminar imagen"
+            android:elevation="4dp" />
+
+        <!-- Índice de la imagen -->
+        <TextView
+            android:id="@+id/tv_image_index"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="4dp"
+            android:background="@drawable/circle_primary_bg"
+            android:gravity="center"
+            android:text="1"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            android:visibility="gone"
+            android:elevation="4dp" />
+
+    </FrameLayout>
+
+</com.google.android.material.card.MaterialCardView>

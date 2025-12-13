@@ -237,11 +237,12 @@ class ChatMessagesAdapter extends RecyclerView.Adapter<ChatMessagesAdapter.Messa
             layoutSystem = null;
 
             tvIncomingMessage = itemView.findViewById(R.id.tv_company_message);
-            tvIncomingTime = itemView.findViewById(R.id.tv_message_time);
+            // ID correcto para el tiempo de mensaje de la empresa
+            tvIncomingTime = itemView.findViewById(R.id.tv_company_message_time);
 
             tvOutgoingMessage = itemView.findViewById(R.id.tv_user_message);
-            // No hay tv_outgoing_time en el layout actual
-            tvOutgoingTime = null;
+            // Campo de tiempo para mensaje de usuario (saliente)
+            tvOutgoingTime = itemView.findViewById(R.id.tv_user_message_time);
 
             // No hay tv_system_message en el layout actual
             tvSystemMessage = null;

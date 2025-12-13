@@ -4,69 +4,105 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="4dp">
+    android:padding="6dp">
 
-    <!-- Mensaje del usuario (derecha) -->
+    <!-- ================= MENSAJE USUARIO (DERECHA) ================= -->
     <LinearLayout
         android:id="@+id/layout_user_message"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="end"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="6dp"
         android:visibility="gone">
 
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="60dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="@color/primary">
+            android:orientation="vertical"
+            android:layout_marginStart="64dp">
 
-            <TextView
-                android:id="@+id/tv_user_message"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hola, tengo una consulta sobre el tour"
-                android:textColor="@color/white"
-                android:textSize="14sp"
-                android:padding="12dp"
-                android:maxWidth="250dp" />
+                app:cardCornerRadius="18dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/primary">
 
-        </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:id="@+id/tv_user_message"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hola, tengo una consulta sobre el tour"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:maxWidth="280dp" />
+            </com.google.android.material.card.MaterialCardView>
 
+            <!-- Hora + estado -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="6dp">
+
+                <TextView
+                    android:id="@+id/tv_user_message_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10:31 AM"
+                    android:textSize="10sp"
+                    android:textColor="@color/gray" />
+
+                <!-- Placeholder estado leído -->
+                <ImageView
+                    android:id="@+id/iv_message_status"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_marginStart="4dp"
+                    android:src="@drawable/ic_check_double"
+                    android:tint="@color/gray" />
+            </LinearLayout>
+
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Mensaje de la empresa (izquierda) -->
+    <!-- ================= MENSAJE EMPRESA (IZQUIERDA) ================= -->
     <LinearLayout
         android:id="@+id/layout_company_message"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="start"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="6dp"
         android:visibility="gone">
 
+        <!-- Avatar empresa -->
         <ImageView
+            android:id="@+id/iv_company_avatar"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@android:drawable/ic_menu_gallery"
-            android:background="@drawable/circle_primary"
-            android:tint="@color/white"
-            android:padding="6dp"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_avatar_24"
+            android:background="@drawable/profile_image_circle"
+            android:scaleType="centerCrop" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginEnd="60dp">
+            android:layout_marginEnd="64dp">
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="18dp"
                 app:cardElevation="2dp"
                 app:cardBackgroundColor="@color/white">
 
@@ -75,15 +111,17 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="¡Hola! Claro, estaremos encantados de ayudarte"
-                    android:textColor="@color/black"
+                    android:textColor="#2C2C2C"
                     android:textSize="14sp"
-                    android:padding="12dp"
-                    android:maxWidth="250dp" />
-
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:maxWidth="280dp" />
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
-                android:id="@+id/tv_message_time"
+                android:id="@+id/tv_company_message_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="10:30 AM"
@@ -93,7 +131,6 @@
                 android:layout_marginStart="8dp" />
 
         </LinearLayout>
-
     </LinearLayout>
 
 </LinearLayout>

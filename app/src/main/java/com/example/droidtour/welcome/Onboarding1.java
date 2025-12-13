@@ -1,4 +1,4 @@
-package com.example.droidtour;
+package com.example.droidtour.welcome;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -8,6 +8,10 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.example.droidtour.LoginActivity;
+import com.example.droidtour.R;
+import com.example.droidtour.TourAdminMainActivity;
+import com.example.droidtour.TourGuideMainActivity;
 import com.example.droidtour.superadmin.SuperadminMainActivity;
 import com.example.droidtour.utils.PreferencesManager;
 

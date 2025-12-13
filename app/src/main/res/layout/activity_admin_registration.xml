@@ -1,37 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/white">
+    android:background="#F5F5F5">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- AppBarLayout -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        app:title="Registro de Administrador"
-        app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
-    <ScrollView
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:title="Registro de Administrador"
+            app:titleTextAppearance="@style/Toolbar.TitleText3"
+            app:titleCentered="true"
+            app:titleTextColor="@color/white"
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:navigationIconTint="@color/white"
+            app:layout_scrollFlags="scroll|enterAlways"/>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="16dp"
+            android:paddingBottom="120dp">
 
-            <!-- Header Card -->
+            <!-- Header informativo -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="20dp"
+                android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp"
+                app:cardElevation="3dp"
                 app:cardBackgroundColor="@color/primary">
 
                 <LinearLayout
@@ -44,8 +59,9 @@
                     <ImageView
                         android:layout_width="48dp"
                         android:layout_height="48dp"
-                        android:src="@android:drawable/ic_menu_manage"
-                        app:tint="@color/white" />
+                        android:src="@drawable/ic_admin"
+                        app:tint="@color/white"
+                        android:contentDescription="Registro" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -57,7 +73,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Registro de Administrador"
+                            android:text="Crear Administrador de Empresa"
                             android:textSize="20sp"
                             android:textStyle="bold"
                             android:textColor="@color/white" />
@@ -65,24 +81,22 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Crea tu cuenta y empresa"
+                            android:text="Registra nuevos administradores para empresas turísticas"
                             android:textSize="14sp"
-                            android:textColor="@color/white"
+                            android:textColor="#E8E8E8"
                             android:layout_marginTop="4dp" />
-
                     </LinearLayout>
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Datos Personales -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Sección: Información Legal de la Empresa -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -90,194 +104,164 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
+                    <!-- Header de sección -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="16dp">
+                        android:paddingBottom="8dp">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_myplaces"
-                            app:tint="@color/primary"
-                            android:layout_marginEnd="8dp" />
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_company"
+                            app:tint="#9C27B0"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Empresa" />
 
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Datos Personales del Administrador"
+                            android:layout_weight="1"
+                            android:text="Información Legal de la Empresa"
                             android:textSize="18sp"
                             android:textStyle="bold"
-                            android:textColor="@color/black" />
-
+                            android:textColor="#2C2C2C" />
                     </LinearLayout>
 
-                    <LinearLayout
+                    <View
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="Nombres"
-                            android:layout_marginEnd="8dp">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_first_name"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textPersonName" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="Apellidos"
-                            android:layout_marginStart="8dp">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_last_name"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textPersonName" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="12dp">
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="Tipo de Documento"
-                            app:endIconMode="dropdown_menu"
-                            android:layout_marginEnd="8dp">
-
-                            <AutoCompleteTextView
-                                android:id="@+id/spinner_document_type"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="none" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="Número de Documento"
-                            android:layout_marginStart="8dp">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_document_number"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="number" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                    </LinearLayout>
-
+                    <!-- Razón Social -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_business_name"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Fecha de Nacimiento"
-                        android:layout_marginTop="12dp">
+                        android:hint="Razón Social *"
+                        android:layout_marginBottom="16dp"
+                        app:startIconDrawable="@drawable/ic_company"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_birth_date"
+                            android:id="@+id/et_business_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textCapWords"
+                            android:textSize="16sp"
+                            android:textColor="#000000" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- RUC -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_ruc"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="RUC *"
+                        android:layout_marginBottom="16dp"
+                        app:startIconDrawable="@drawable/ic_document"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:counterEnabled="true"
+                        app:counterMaxLength="11"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_ruc"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLength="11"
+                            android:textSize="16sp"
+                            android:textColor="#000000" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Tipo de Persona Jurídica -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_business_type"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Tipo de Persona Jurídica *"
+                        android:layout_marginBottom="16dp"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/act_business_type"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:inputType="none"
-                            android:focusable="false"
-                            android:clickable="true" />
-
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="S.A.C." />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="12dp">
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="Correo Electrónico"
-                            android:layout_marginEnd="8dp">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_email"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textEmailAddress" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="Teléfono"
-                            android:layout_marginStart="8dp">
-
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_phone"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="phone" />
-
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                    </LinearLayout>
-
+                    <!-- Nombre Comercial -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_commercial_name"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Domicilio"
-                        android:layout_marginTop="12dp">
+                        android:hint="Nombre Comercial"
+                        app:startIconDrawable="@drawable/ic_company"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_address"
+                            android:id="@+id/et_commercial_name"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textMultiLine"
-                            android:minLines="2" />
-
+                            android:inputType="text"
+                            android:textSize="16sp"
+                            android:textColor="#000000" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_select_photo"
-                        android:layout_width="match_parent"
+                    <!-- Información de campo -->
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Seleccionar Foto Personal"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_marginTop="12dp" />
-
+                        android:text="* Campos obligatorios según SUNAT"
+                        android:textSize="12sp"
+                        android:textColor="#757575"
+                        android:layout_marginTop="8dp" />
                 </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Datos de la Empresa -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Sección: Datos del Representante Legal -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -285,115 +269,237 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
+                    <!-- Header de sección -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="16dp">
+                        android:paddingBottom="8dp">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_info_details"
-                            app:tint="@color/primary"
-                            android:layout_marginEnd="8dp" />
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_person"
+                            app:tint="#2196F3"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Representante" />
 
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Datos de la Empresa de Turismo"
+                            android:layout_weight="1"
+                            android:text="Datos del Representante Legal"
                             android:textSize="18sp"
                             android:textStyle="bold"
-                            android:textColor="@color/black" />
-
+                            android:textColor="#2C2C2C" />
                     </LinearLayout>
 
-                    <com.google.android.material.textfield.TextInputLayout
+                    <View
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Nombre de la Empresa"
-                        android:layout_marginBottom="12dp">
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_company_name"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="text" />
-
-                    </com.google.android.material.textfield.TextInputLayout>
-
+                    <!-- Tipo de Documento + Número -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
 
+                        <!-- Tipo Documento -->
                         <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Correo de la Empresa"
-                            android:layout_marginEnd="8dp">
+                            android:hint="Documento *"
+                            android:layout_marginEnd="8dp"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_company_email"
+                            <AutoCompleteTextView
+                                android:id="@+id/act_admin_doc_type"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="textEmailAddress" />
-
+                                android:inputType="none"
+                                android:textSize="16sp"
+                                android:textColor="#000000"
+                                tools:text="DNI" />
                         </com.google.android.material.textfield.TextInputLayout>
 
+                        <!-- Número Documento -->
                         <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Teléfono de la Empresa"
-                            android:layout_marginStart="8dp">
+                            android:hint="Número *"
+                            android:layout_marginStart="8dp"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
 
                             <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_company_phone"
+                                android:id="@+id/et_admin_doc_number"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="phone" />
-
+                                android:inputType="number"
+                                android:textSize="16sp"
+                                android:textColor="#000000" />
                         </com.google.android.material.textfield.TextInputLayout>
-
                     </LinearLayout>
 
-                    <com.google.android.material.textfield.TextInputLayout
+                    <!-- Nombres y Apellidos -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Ubicación de la Empresa"
-                        android:layout_marginTop="12dp">
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Nombres *"
+                            android:layout_marginEnd="8dp"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_admin_first_name"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textPersonName"
+                                android:textSize="16sp"
+                                android:textColor="#000000" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Apellidos *"
+                            android:layout_marginStart="8dp"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_admin_last_name"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textPersonName"
+                                android:textSize="16sp"
+                                android:textColor="#000000" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </LinearLayout>
+
+                    <!-- Email Corporativo -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_admin_email"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Correo Corporativo *"
+                        android:layout_marginBottom="16dp"
+                        app:startIconDrawable="@drawable/ic_email"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:endIconMode="clear_text"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_company_address"
+                            android:id="@+id/et_admin_email"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textMultiLine"
-                            android:minLines="2" />
-
+                            android:inputType="textEmailAddress"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            android:importantForAutofill="no" />
                     </com.google.android.material.textfield.TextInputLayout>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_select_company_photos"
+                    <!-- Teléfono -->
+                    <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Seleccionar Fotos Promocionales (Mín. 2)"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_marginTop="12dp" />
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_admin_phone"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Teléfono de Contacto"
+                            app:boxStrokeColor="@color/primary"
+                            app:hintTextColor="@color/primary"
+                            app:boxCornerRadiusTopStart="8dp"
+                            app:boxCornerRadiusTopEnd="8dp"
+                            app:boxCornerRadiusBottomStart="8dp"
+                            app:boxCornerRadiusBottomEnd="8dp">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_admin_phone"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="phone"
+                                android:textSize="16sp"
+                                android:textColor="#000000"
+                                android:paddingStart="110dp"/>
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.hbb20.CountryCodePicker
+                            android:id="@+id/ccp_admin"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="start|center_vertical"
+                            android:layout_marginStart="12dp"
+                            android:layout_marginTop="8dp"
+                            app:ccp_defaultNameCode="PE"
+                            app:ccp_showFlag="true"
+                            app:ccp_showNameCode="false"
+                            app:ccp_showFullName="false"
+                            app:ccp_showPhoneCode="true"
+                            app:ccp_contentColor="#000000"
+                            app:ccp_textSize="16sp"
+                            app:ccp_arrowSize="12dp"
+                            app:ccp_customMasterCountries="PE,ES,MX,AR,CO,CL,EC,BO,VE,UY,PY,BR" />
+                    </FrameLayout>
+
 
                 </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Datos de Cuenta -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Sección: Credenciales de Acceso -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
+                android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -401,79 +507,124 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
+                    <!-- Header de sección -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
-                        android:layout_marginBottom="16dp">
+                        android:paddingBottom="8dp">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@android:drawable/ic_lock_lock"
-                            app:tint="@color/primary"
-                            android:layout_marginEnd="8dp" />
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_password"
+                            app:tint="#FF9800"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Credenciales" />
 
                         <TextView
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Datos de Cuenta"
+                            android:layout_weight="1"
+                            android:text="Credenciales de Acceso"
                             android:textSize="18sp"
                             android:textStyle="bold"
-                            android:textColor="@color/black" />
-
+                            android:textColor="#2C2C2C" />
                     </LinearLayout>
 
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Contraseña Temporal -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_admin_password"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Contraseña"
+                        android:hint="Contraseña Temporal *"
+                        android:layout_marginBottom="16dp"
+                        app:startIconDrawable="@drawable/ic_password"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
                         app:endIconMode="password_toggle"
-                        android:layout_marginBottom="12dp">
+                        app:passwordToggleEnabled="true"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_password"
+                            android:id="@+id/et_admin_password"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textPassword" />
-
+                            android:inputType="textPassword"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            android:importantForAutofill="no"
+                            tools:text="TempPass123!" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Confirmar Contraseña -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_admin_confirm_password"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Confirmar Contraseña"
+                        android:hint="Confirmar Contraseña *"
+                        android:layout_marginBottom="12dp"
+                        app:startIconDrawable="@drawable/ic_password"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
                         app:endIconMode="password_toggle"
-                        android:layout_marginBottom="12dp">
+                        app:passwordToggleEnabled="true"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_confirm_password"
+                            android:id="@+id/et_admin_confirm_password"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textPassword" />
-
+                            android:inputType="textPassword"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            android:importantForAutofill="no" />
                     </com.google.android.material.textfield.TextInputLayout>
+
+
+
 
                 </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-            </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_register"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="🚀 Registrar Administrador y Empresa"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:backgroundTint="@color/primary"
-                android:textColor="@color/white"
-                app:cornerRadius="12dp"
-                app:elevation="4dp"
-                android:layout_marginTop="8dp" />
+
+
 
         </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-    </ScrollView>
+    <!-- FAB para registrar -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btn_register_admin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:text="Registrar"
+        app:icon="@drawable/ic_check_circle"
+        app:backgroundTint="@color/primary"
+        app:iconTint="@color/white"
+        android:textColor="@color/white"
+        app:elevation="8dp"
+        app:extendStrategy="wrap_content" />
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

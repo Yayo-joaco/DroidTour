@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- TOOLBAR -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/primary"
+        app:title="Ubicaciones del Tour"
+        app:subtitle="Toca el mapa para agregar paradas"
+        app:titleTextAppearance="@style/Toolbar.TitleText3"
+        app:titleTextColor="@color/white"
+        app:subtitleTextColor="@color/white"
+        app:subtitleTextAppearance="@style/Toolbar.SubTitleText"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/white"/>
+
+    <!-- MAP -->
+    <FrameLayout
+        android:id="@+id/map_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"/>
+
+    <!-- PEEK VIEW FIJO (siempre visible, NO parte del bottom sheet) -->
+    <LinearLayout
+        android:id="@+id/peek_view_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="100dp"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="16dp"
+        android:background="@drawable/bg_bottom_sheet_rounded_top"
+        android:elevation="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_map_location"
+            app:tint="#9C27B0"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Paradas" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Paradas del Tour"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#2C2C2C" />
+
+            <TextView
+                android:id="@+id/tv_peek_summary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Toca el mapa para agregar paradas"
+                android:textSize="14sp"
+                android:textColor="#757575"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/iv_expand_indicator"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_arrow_up"
+            app:tint="#9E9E9E"
+            android:contentDescription="Expandir" />
+    </LinearLayout>
+
+    <!-- BOTTOM SHEET MODAL (se abre cuando se hace click en el peek) -->
+    <FrameLayout
+        android:id="@+id/bottom_sheet_modal"
+        style="@style/Widget.Material3.BottomSheet.Modal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+        app:behavior_peekHeight="0dp"
+        app:behavior_hideable="true"
+        app:behavior_skipCollapsed="true"
+        android:visibility="gone">
+
+        <!-- Contenido del bottom sheet -->
+        <include layout="@layout/activity_tour_locations_map_bottom_sheet" />
+
+    </FrameLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

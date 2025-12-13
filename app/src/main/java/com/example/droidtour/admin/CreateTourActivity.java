@@ -1,6 +1,7 @@
 package com.example.droidtour.admin;
 
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -24,6 +25,7 @@ import java.util.List;
 public class CreateTourActivity extends AppCompatActivity {
     
     private static final String TAG = "CreateTourActivity";
+    private static final int REQ_LOCATIONS = 101;
 
     private TextInputEditText etTourName, etTourDescription, etTourPrice, etTourDuration;
     private TextInputEditText etStartDate, etEndDate;
@@ -103,8 +105,7 @@ public class CreateTourActivity extends AppCompatActivity {
 
         if (btnAddLocation != null) {
             btnAddLocation.setOnClickListener(v -> {
-                Toast.makeText(this, "Abrir mapa para agregar ubicación", Toast.LENGTH_SHORT).show();
-                // TODO: Implementar selección de ubicación en mapa
+                openMap();
             });
         } else {
             Log.w(TAG, "btnAddLocation es null");
@@ -247,4 +248,29 @@ public class CreateTourActivity extends AppCompatActivity {
         intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
+
+
+
+    private void openMap() {
+        Intent intent = new Intent(this, TourLocationsMapActivity.class);
+        startActivityForResult(intent, REQ_LOCATIONS);
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQ_LOCATIONS && resultCode == RESULT_OK) {
+            ArrayList<TourLocation> locations =
+                    data.getParcelableArrayListExtra("locations");
+
+            // Actualiza UI resumen
+        }
+    }
+
+
+
+
+
 }

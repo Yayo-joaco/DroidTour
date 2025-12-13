@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Indicar que la cámara no es requerida para que el permiso no marque error en Lint -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -111,6 +113,11 @@
             android:name=".admin.CreateTourActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
+
+        <activity
+            android:name=".admin.TourLocationsMapActivity"
+            android:exported="false"
+            android:parentActivityName=".admin.CreateTourActivity" />
 
         <activity
             android:name=".admin.TourManagementActivity"

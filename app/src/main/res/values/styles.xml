@@ -57,4 +57,16 @@
         <item name="colorControlNormal">@color/light_gray</item>
     </style>
 
+    <style name="Toolbar.TitleText3" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+    <item name="fontFamily">@font/bricolage_grotesque_medium</item>
+    <item name="android:textSize">20sp</item>
+    </style>
+
+    <style name="Toolbar.SubTitleText" parent="TextAppearance.Widget.AppCompat.Toolbar.Subtitle">
+    <item name="fontFamily">@font/bricolage_grotesque</item>
+    </style>
+
+
+
+
 </resources>

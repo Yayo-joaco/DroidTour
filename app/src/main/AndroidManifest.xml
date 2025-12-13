@@ -325,8 +325,8 @@
             android:parentActivityName=".RoleSelectionActivity" />
 
         <activity
-            android:name=".AdminRegistrationActivity"
-            android:exported="false"
+            android:name=".superadmin.AdminRegistrationActivity"
+            android:exported="true"
             android:parentActivityName=".RoleSelectionActivity" />
 
         <activity

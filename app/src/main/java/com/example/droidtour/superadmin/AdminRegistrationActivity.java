@@ -1,0 +1,333 @@
+package com.example.droidtour.superadmin;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.graphics.Insets;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.hbb20.CountryCodePicker;
+import android.widget.AutoCompleteTextView;
+import com.example.droidtour.R;
+import com.example.droidtour.utils.PreferencesManager;
+import com.google.firebase.auth.UserProfileChangeRequest;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+public class AdminRegistrationActivity extends AppCompatActivity {
+
+    private TextInputEditText etBusinessName, etRuc, etCommercialName;
+    private TextInputEditText etAdminFirstName, etAdminLastName, etAdminEmail;
+    private TextInputEditText etAdminPhone, etAdminDocNumber;
+    private TextInputEditText etAdminPassword, etAdminConfirmPassword;
+    private AutoCompleteTextView actBusinessType, actAdminDocType;
+    private CountryCodePicker ccpAdmin;
+    private ExtendedFloatingActionButton btnRegisterAdmin;
+
+    private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
+    private PreferencesManager prefsManager;
+
+    // Patterns para validación
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    );
+    private static final Pattern PASSWORD_PATTERN = Pattern.compile(
+            "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{8,}$"
+    );
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_admin_registration);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
+
+        // Configurar compatibilidad con ventana
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+
+        // Validar permisos del usuario actual
+        prefsManager = new PreferencesManager(this);
+        if (!prefsManager.isLoggedIn() || !"SUPERADMIN".equals(prefsManager.getUserType())) {
+            Toast.makeText(this, "Acceso denegado", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        // Inicializar Firebase
+        mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
+
+        // Configurar Toolbar
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
+
+        // Inicializar vistas
+        initViews();
+
+        // Configurar dropdowns
+        setupDropdowns();
+
+        // Configurar listener del botón de registro
+        setupRegisterButton();
+    }
+
+    private void initViews() {
+        // Campos de empresa
+        etBusinessName = findViewById(R.id.et_business_name);
+        etRuc = findViewById(R.id.et_ruc);
+        etCommercialName = findViewById(R.id.et_commercial_name);
+        actBusinessType = findViewById(R.id.act_business_type);
+
+        // Campos del administrador
+        etAdminFirstName = findViewById(R.id.et_admin_first_name);
+        etAdminLastName = findViewById(R.id.et_admin_last_name);
+        etAdminEmail = findViewById(R.id.et_admin_email);
+        etAdminPhone = findViewById(R.id.et_admin_phone);
+        etAdminDocNumber = findViewById(R.id.et_admin_doc_number);
+        actAdminDocType = findViewById(R.id.act_admin_doc_type);
+        ccpAdmin = findViewById(R.id.ccp_admin);
+
+        // Campos de contraseña
+        etAdminPassword = findViewById(R.id.et_admin_password);
+        etAdminConfirmPassword = findViewById(R.id.et_admin_confirm_password);
+
+        // Botón de registro
+        btnRegisterAdmin = findViewById(R.id.btn_register_admin);
+    }
+
+    private void setupDropdowns() {
+        // Tipos de persona jurídica
+        String[] businessTypes = {"S.A.C.", "S.A.", "E.I.R.L.", "S.R.L.", "S.C.", "Asociación", "Fundación"};
+        ArrayAdapter<String> businessAdapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_dropdown_item_1line, businessTypes
+        );
+        actBusinessType.setAdapter(businessAdapter);
+        actBusinessType.setText(businessTypes[0], false); // Valor por defecto
+
+        // Tipos de documento
+        String[] docTypes = {"DNI", "Carné de Extranjería", "Pasaporte", "RUC"};
+        ArrayAdapter<String> docAdapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_dropdown_item_1line, docTypes
+        );
+        actAdminDocType.setAdapter(docAdapter);
+        actAdminDocType.setText(docTypes[0], false); // Valor por defecto DNI
+    }
+
+    private void setupRegisterButton() {
+        btnRegisterAdmin.setOnClickListener(v -> {
+            if (validateForm()) {
+                registerAdmin();
+            }
+        });
+    }
+
+    private boolean validateForm() {
+        boolean isValid = true;
+
+        // Validar empresa
+        if (TextUtils.isEmpty(etBusinessName.getText())) {
+            etBusinessName.setError("La razón social es obligatoria");
+            isValid = false;
+        }
+
+        if (TextUtils.isEmpty(etRuc.getText()) || etRuc.getText().length() != 11) {
+            etRuc.setError("RUC debe tener 11 dígitos");
+            isValid = false;
+        }
+
+        // Validar datos del administrador
+        if (TextUtils.isEmpty(etAdminFirstName.getText())) {
+            etAdminFirstName.setError("Nombres son obligatorios");
+            isValid = false;
+        }
+
+        if (TextUtils.isEmpty(etAdminLastName.getText())) {
+            etAdminLastName.setError("Apellidos son obligatorios");
+            isValid = false;
+        }
+
+        String email = etAdminEmail.getText().toString().trim();
+        if (TextUtils.isEmpty(email) || !EMAIL_PATTERN.matcher(email).matches()) {
+            etAdminEmail.setError("Correo corporativo inválido");
+            isValid = false;
+        }
+
+        if (TextUtils.isEmpty(etAdminDocNumber.getText())) {
+            etAdminDocNumber.setError("Número de documento es obligatorio");
+            isValid = false;
+        }
+
+        // Validar contraseñas
+        String password = etAdminPassword.getText().toString();
+        String confirmPassword = etAdminConfirmPassword.getText().toString();
+
+        if (TextUtils.isEmpty(password) || !PASSWORD_PATTERN.matcher(password).matches()) {
+            etAdminPassword.setError("La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y un carácter especial");
+            isValid = false;
+        }
+
+        if (!password.equals(confirmPassword)) {
+            etAdminConfirmPassword.setError("Las contraseñas no coinciden");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private void registerAdmin() {
+        btnRegisterAdmin.setEnabled(false);
+        btnRegisterAdmin.setText("Registrando...");
+
+        String email = etAdminEmail.getText().toString().trim();
+        String password = etAdminPassword.getText().toString();
+        String firstName = etAdminFirstName.getText().toString().trim();
+        String lastName = etAdminLastName.getText().toString().trim();
+        String fullName = firstName + " " + lastName;
+        String phone = ccpAdmin.getSelectedCountryCodeWithPlus() + etAdminPhone.getText().toString();
+        String docType = actAdminDocType.getText().toString();
+        String docNumber = etAdminDocNumber.getText().toString();
+
+        // Datos de empresa
+        String businessName = etBusinessName.getText().toString().trim();
+        String ruc = etRuc.getText().toString().trim();
+        String commercialName = etCommercialName.getText().toString().trim();
+        String businessType = actBusinessType.getText().toString();
+
+        // 1. Crear usuario en Firebase Authentication
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(authTask -> {
+                    if (authTask.isSuccessful()) {
+                        String userId = authTask.getResult().getUser().getUid();
+
+                        // Actualizar perfil del usuario
+                        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                                .setDisplayName(fullName)
+                                .build();
+
+                        authTask.getResult().getUser().updateProfile(profileUpdates)
+                                .addOnCompleteListener(profileTask -> {
+                                    // 2. Guardar datos en Firestore
+                                    Map<String, Object> userData = new HashMap<>();
+                                    userData.put("userId", userId);
+                                    userData.put("email", email);
+                                    userData.put("firstName", firstName);
+                                    userData.put("lastName", lastName);
+                                    userData.put("fullName", fullName);
+                                    userData.put("phoneNumber", phone);
+                                    userData.put("userType", "ADMIN");
+                                    userData.put("isActive", true);
+                                    userData.put("createdAt", new java.util.Date());
+                                    userData.put("documentType", docType);
+                                    userData.put("documentNumber", docNumber);
+
+                                    // Datos de empresa
+                                    userData.put("companyBusinessName", businessName);
+                                    userData.put("companyRuc", ruc);
+                                    userData.put("companyCommercialName", commercialName);
+                                    userData.put("companyType", businessType);
+                                    userData.put("registeredBy", prefsManager.getUserId());
+
+                                    // Guardar en colección users
+                                    db.collection("users").document(userId)
+                                            .set(userData)
+                                            .addOnSuccessListener(aVoid -> {
+                                                // 3. Crear registro en user_roles para ADMIN
+                                                Map<String, Object> roleData = new HashMap<>();
+                                                Map<String, Object> adminRole = new HashMap<>();
+                                                adminRole.put("status", "active");
+                                                adminRole.put("assignedAt", new java.util.Date());
+                                                adminRole.put("assignedBy", prefsManager.getUserId());
+                                                adminRole.put("company", businessName);
+                                                adminRole.put("companyRuc", ruc);
+
+                                                roleData.put("admin", adminRole);
+
+                                                db.collection("user_roles").document(userId)
+                                                        .set(roleData)
+                                                        .addOnSuccessListener(aVoid2 -> {
+                                                            Toast.makeText(AdminRegistrationActivity.this,
+                                                                    "Administrador registrado exitosamente", Toast.LENGTH_LONG).show();
+
+                                                            // Enviar email de bienvenida (opcional)
+                                                            sendWelcomeEmail(email, fullName, password);
+
+                                                            // Regresar a la lista de usuarios
+                                                            Intent intent = new Intent();
+                                                            intent.putExtra("newAdminRegistered", true);
+                                                            setResult(RESULT_OK, intent);
+                                                            finish();
+                                                        })
+                                                        .addOnFailureListener(e -> {
+                                                            handleRegistrationError("Error al asignar rol: " + e.getMessage());
+                                                        });
+                                            })
+                                            .addOnFailureListener(e -> {
+                                                handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                                            });
+                                })
+                                .addOnFailureListener(e -> {
+                                    handleRegistrationError("Error al actualizar perfil: " + e.getMessage());
+                                });
+                    } else {
+                        handleRegistrationError("Error al crear usuario: " + authTask.getException().getMessage());
+                    }
+                });
+    }
+
+    private void handleRegistrationError(String errorMessage) {
+        Log.e("AdminRegistration", errorMessage);
+        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+        btnRegisterAdmin.setEnabled(true);
+        btnRegisterAdmin.setText("Registrar");
+    }
+
+    private void sendWelcomeEmail(String email, String fullName, String tempPassword) {
+        // Aquí puedes implementar el envío de email usando Firebase Functions o un servicio
+        // Por ahora solo mostraremos un mensaje
+        String message = String.format(
+                "Credenciales de acceso:\n\nEmail: %s\nContraseña temporal: %s\n\nPor favor cambie su contraseña al primer inicio de sesión.",
+                email, tempPassword
+        );
+
+        // Esto es solo para demostración. En producción, usa Firebase Functions
+        Log.i("AdminRegistration", "Email de bienvenida para " + email + ": " + message);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
+    }
+}

@@ -9,7 +9,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -51,6 +54,8 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     private List<User> userList;
     private FirebaseFirestore db;
 
+    private com.google.android.material.floatingactionbutton.FloatingActionButton fabAddAdmin;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,6 +74,7 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         }
 
         setContentView(R.layout.activity_superadmin_users);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -110,6 +116,10 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         swipeRefresh = findViewById(R.id.swipe_refresh);
         loadingIndicator = findViewById(R.id.loading_indicator);
 
+        // fab
+        fabAddAdmin = findViewById(R.id.fab_add_admin);
+        fabAddAdmin.setVisibility(View.GONE); // Ocultar por defecto
+
         userList = new ArrayList<>();
 
         // Configurar comportamiento del SwipeRefreshLayout
@@ -147,14 +157,33 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                 String filterType = getFilterTypeForTab(tab.getPosition());
                 usersAdapter.setFilter(filterType);
                 checkEmptyState();
+
+
+                // Mostrar FAB solo en la pestaña de administradores (posición 1)
+                if (tab.getPosition() == 1) {
+                    fabAddAdmin.setVisibility(View.VISIBLE);
+                } else {
+                    fabAddAdmin.setVisibility(View.GONE);
+                }
             }
+
+
 
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {}
 
             @Override
             public void onTabReselected(TabLayout.Tab tab) {}
+
+
         });
+
+        // Agrega el listener para el FAB:
+        fabAddAdmin.setOnClickListener(v -> {
+            Intent intent = new Intent(SuperadminUsersActivity.this, AdminRegistrationActivity.class);
+            startActivityForResult(intent, 1001);
+        });
+
     }
 
     private void showLoading() {
@@ -552,5 +581,15 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1001 && resultCode == RESULT_OK) {
+            // Recargar la lista de usuarios
+            loadUsersFromFirestore();
+            Toast.makeText(this, "Nuevo administrador registrado", Toast.LENGTH_SHORT).show();
+        }
     }
 }

@@ -17,7 +17,6 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.droidtour.CompanyChatActivity;
 import com.example.droidtour.R;
 import com.google.android.material.appbar.MaterialToolbar;
 

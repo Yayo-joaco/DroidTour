@@ -1,6 +1,6 @@
 package com.example.droidtour.models;
 
-import java.util.Date;
+import com.google.firebase.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,15 +12,15 @@ public class Message {
     private String receiverName;
     private String senderType; // "CLIENT", "COMPANY", "GUIDE", "ADMIN"
     private String messageText;
-    private Date timestamp;
+    private Timestamp timestamp;
     private boolean isRead;
     private String conversationId; // Para agrupar mensajes
 
     public Message() {}
 
-    public Message(String messageId, String senderId, String senderName, String receiverId, 
-                   String receiverName, String senderType, String messageText, 
-                   Date timestamp, boolean isRead, String conversationId) {
+    public Message(String messageId, String senderId, String senderName, String receiverId,
+                   String receiverName, String senderType, String messageText,
+                   Timestamp timestamp, boolean isRead, String conversationId) {
         this.messageId = messageId;
         this.senderId = senderId;
         this.senderName = senderName;
@@ -56,7 +56,7 @@ public class Message {
     public String getReceiverName() { return receiverName; }
     public String getSenderType() { return senderType; }
     public String getMessageText() { return messageText; }
-    public Date getTimestamp() { return timestamp; }
+    public Timestamp getTimestamp() { return timestamp; }
     public boolean isRead() { return isRead; }
     public String getConversationId() { return conversationId; }
 
@@ -68,8 +68,7 @@ public class Message {
     public void setReceiverName(String receiverName) { this.receiverName = receiverName; }
     public void setSenderType(String senderType) { this.senderType = senderType; }
     public void setMessageText(String messageText) { this.messageText = messageText; }
-    public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
+    public void setTimestamp(Timestamp timestamp) { this.timestamp = timestamp; }
     public void setRead(boolean read) { isRead = read; }
     public void setConversationId(String conversationId) { this.conversationId = conversationId; }
 }
-

@@ -196,7 +196,7 @@
             android:parentActivityName=".client.PaymentMethodsActivity" />
         
         <activity
-            android:name=".CompanyChatActivity"
+            android:name=".client.CompanyChatActivity"
             android:exported="false"
             android:parentActivityName=".TourDetailActivity" />
         

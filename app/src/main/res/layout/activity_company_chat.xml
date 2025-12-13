@@ -1,130 +1,160 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/root_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/light_gray">
+    android:background="#F5F5F5"
+    android:clickable="true"
+    android:focusableInTouchMode="true">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/primary"
-            app:title="Chat con Empresas"
-            app:titleTextAppearance="@style/Toolbar.TitleText2"
-            app:titleCentered="true"
-            app:titleTextColor="@color/white"
-            app:navigationIcon="?attr/homeAsUpIndicator"
-            app:navigationIconTint="@color/white"
-            app:layout_scrollFlags="scroll|enterAlways"/>
-
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <!-- Company Info Header -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        app:cardCornerRadius="8dp"
-        app:cardElevation="2dp">
+    <!-- ================= TOOLBAR ================= -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/primary"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/white"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="horizontal"
-            android:padding="12dp"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:paddingEnd="12dp">
 
-            <ImageView
+            <!-- Avatar Cliente -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/iv_client_avatar"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:src="@android:drawable/ic_menu_gallery"
-                android:background="@drawable/circle_primary"
-                android:tint="@color/white"
-                android:padding="8dp" />
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_avatar_24"
+                android:scaleType="centerCrop"
+                android:background="@color/light_gray"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
 
+            <!-- Nombre + estado -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:layout_marginStart="12dp"
+                android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
-                    android:id="@+id/tv_company_name"
+                    android:id="@+id/tv_client_name"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Lima Adventure Tours"
+                    android:text="Cusco Tour Adventure"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    android:textColor="@color/black" />
+                    android:textColor="@color/white"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
 
                 <TextView
+                    android:id="@+id/tv_client_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🟢 En línea"
+                    android:text="En línea"
                     android:textSize="12sp"
-                    android:textColor="@color/green"
-                    android:layout_marginTop="2dp" />
-
+                    android:textColor="@color/white"
+                    android:alpha="0.8" />
             </LinearLayout>
 
+
         </LinearLayout>
+    </com.google.android.material.appbar.MaterialToolbar>
 
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Chat Messages -->
+    <!-- ================= MESSAGES ================= -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_chat_messages"
-        android:layout_width="match_parent"
+        android:id="@+id/rv_messages"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="8dp" />
+        android:padding="12dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintBottom_toTopOf="@id/layout_message_input"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Message Input -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
+    <!-- ================= MESSAGE INPUT ================= -->
+    <LinearLayout
+        android:id="@+id/layout_message_input"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="4dp">
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="#FFFFFF"
+        android:gravity="center_vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- Adjuntar -->
+        <ImageView
+            android:id="@+id/iv_attach"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_attach"
+            app:tint="@color/gray"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="4dp"
+            android:layout_marginEnd="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@null" />
+
+        <!-- Input -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_message"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="8dp"
-            android:gravity="center_vertical">
+            android:layout_weight="1"
+            app:boxBackgroundMode="filled"
+            app:boxBackgroundColor="#F2F2F2"
+            app:boxCornerRadiusTopStart="24dp"
+            app:boxCornerRadiusTopEnd="24dp"
+            app:boxCornerRadiusBottomStart="24dp"
+            app:boxCornerRadiusBottomEnd="24dp"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@android:color/transparent">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_message"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:hint="Escribe tu mensaje..."
-                android:background="@android:color/transparent"
-                android:padding="12dp"
-                android:maxLines="3" />
+                android:hint="Escribe un mensaje"
+                android:inputType="textMultiLine|textCapSentences"
+                android:maxLines="4"
+                android:textColor="#2C2C2C"
+                android:textColorHint="#9E9E9E"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_send_message"
-                style="@style/Widget.Material3.Button.IconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                app:icon="@android:drawable/ic_menu_send"
-                app:iconTint="@color/white"
-                app:backgroundTint="@color/primary" />
+        <!-- Enviar -->
+        <ImageView
+            android:id="@+id/iv_send_message"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_send"
+            app:tint="@color/primary"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:padding="6dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@null" />
 
-        </LinearLayout>
+    </LinearLayout>
 
-    </com.google.android.material.card.MaterialCardView>
-
-</LinearLayout>
-
+</androidx.constraintlayout.widget.ConstraintLayout>

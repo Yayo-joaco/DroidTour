@@ -1,53 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/light_gray">
+    android:background="#F5F5F5">
 
-    <!-- Toolbar -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- AppBarLayout -->
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        app:title="Reservar Tour"
-        app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
-    <ScrollView
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:title="Reservar Tour"
+            app:titleTextAppearance="@style/Toolbar.TitleText2"
+            app:titleCentered="true"
+            app:titleTextColor="@color/white"
+            app:navigationIcon="?attr/homeAsUpIndicator"
+            app:navigationIconTint="@color/white"
+            app:layout_scrollFlags="scroll|enterAlways"/>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:paddingBottom="80dp">
 
-            <!-- Tour Info -->
+            <!-- Header informativo -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="3dp"
+                app:cardBackgroundColor="@color/primary">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp"
+                    android:padding="20dp"
                     android:gravity="center_vertical">
 
                     <ImageView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        android:src="@android:drawable/ic_menu_mapmode"
-                        android:background="@drawable/circle_primary"
-                        android:tint="@color/white"
-                        android:padding="12dp" />
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_confirmation"
+                        app:tint="@color/white"
+                        android:contentDescription="Reserva" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -57,104 +71,248 @@
                         android:orientation="vertical">
 
                         <TextView
-                            android:id="@+id/tv_tour_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="City Tour Lima Centro"
-                            android:textSize="18sp"
+                            android:text="Confirmar tu Reserva"
+                            android:textSize="20sp"
                             android:textStyle="bold"
-                            android:textColor="@color/black" />
+                            android:textColor="@color/white" />
 
                         <TextView
-                            android:id="@+id/tv_company_name"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Lima Adventure Tours"
+                            android:text="Completa los detalles para finalizar"
                             android:textSize="14sp"
-                            android:textColor="@color/gray"
+                            android:textColor="#E8E8E8"
                             android:layout_marginTop="4dp" />
-
-                        <TextView
-                            android:id="@+id/tv_price"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="S/. 85.00 por persona"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/green"
-                            android:layout_marginTop="4dp" />
-
                     </LinearLayout>
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Booking Form -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Sección: Información del Tour -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Detalles de la Reserva"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
-
-                    <com.google.android.material.textfield.TextInputLayout
+                    <!-- Header de sección -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_map_location"
+                            app:tint="#2196F3"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Tour" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Información del Tour"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Detalles del tour -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:padding="12dp"
+                        android:background="#F9F9F9"
                         android:layout_marginBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:paddingVertical="16dp">
+
+                        <ImageView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@android:drawable/ic_menu_mapmode"
+                            android:background="@drawable/circle_primary"
+                            android:tint="@color/white"
+                            android:padding="12dp" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="16dp"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tv_tour_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="City Tour Lima Centro"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/black" />
+
+                            <TextView
+                                android:id="@+id/tv_company_name"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Lima Adventure Tours"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray"
+                                android:layout_marginTop="4dp" />
+
+                            <TextView
+                                android:id="@+id/tv_price"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="S/. 85.00 por persona"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/green"
+                                android:layout_marginTop="8dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Sección: Detalles de la Reserva -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Header de sección -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_calendar_check"
+                            app:tint="#9C27B0"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Detalles" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Detalles de la Reserva"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Fecha del tour -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_tour_date"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:hint="Fecha del tour"
+                        android:layout_marginBottom="16dp"
+                        app:startIconDrawable="@drawable/ic_calendar_form"
+                        app:startIconTint="@color/primary"
                         app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary">
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_tour_date"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="15 Diciembre, 2024"
+                            android:inputType="none"
                             android:focusable="false"
-                            android:clickable="true" />
-
+                            android:clickable="true"
+                            android:textSize="16sp"
+                            android:textColor="#000000" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Número de personas -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_participants"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
                         android:hint="Número de personas"
+                        android:layout_marginBottom="16dp"
+                        app:startIconDrawable="@drawable/ic_people_24"
+                        app:startIconTint="@color/primary"
                         app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary">
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_participants"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="2"
-                            android:inputType="number" />
-
+                            android:inputType="number"
+                            android:textSize="16sp"
+                            android:textColor="#000000" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Comentarios especiales -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_comments"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
                         android:hint="Comentarios especiales (opcional)"
+                        app:startIconTint="@color/primary"
                         app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary">
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_comments"
@@ -162,38 +320,63 @@
                             android:layout_height="wrap_content"
                             android:minLines="2"
                             android:maxLines="4"
-                            android:gravity="top"
-                            android:inputType="textMultiLine|textCapSentences" />
-
+                            android:gravity="top|start"
+                            android:inputType="textMultiLine|textCapSentences"
+                            android:textSize="16sp"
+                            android:textColor="#000000" />
                     </com.google.android.material.textfield.TextInputLayout>
-
                 </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Payment Method Selection -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Sección: Método de Pago -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- Header de sección -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Método de Pago"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
 
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_payment"
+                            app:tint="#E91E63"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Pago" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Método de Pago"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Selector de método de pago -->
                     <LinearLayout
                         android:id="@+id/layout_payment_method"
                         android:layout_width="match_parent"
@@ -203,20 +386,21 @@
                         android:background="?attr/selectableItemBackground"
                         android:clickable="true"
                         android:focusable="true"
-                        android:padding="12dp">
+                        android:padding="16dp"
+                        android:layout_marginBottom="8dp">
 
                         <ImageView
                             android:id="@+id/iv_card_icon"
                             android:layout_width="32dp"
                             android:layout_height="32dp"
-                            android:src="@android:drawable/ic_menu_month"
+                            android:src="@drawable/ic_card_form"
                             android:tint="@color/primary" />
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginStart="12dp"
+                            android:layout_marginStart="16dp"
                             android:orientation="vertical">
 
                             <TextView
@@ -236,110 +420,139 @@
                                 android:textSize="14sp"
                                 android:textColor="@color/gray"
                                 android:layout_marginTop="2dp" />
-
                         </LinearLayout>
 
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:src="@android:drawable/ic_menu_edit"
+                            android:src="@drawable/ic_chevron_right"
                             android:tint="@color/gray" />
-
                     </LinearLayout>
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Selecciona o agrega un método de pago para continuar"
+                        android:textSize="13sp"
+                        android:textColor="#757575"
+                        android:layout_marginTop="4dp" />
                 </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Payment Summary -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- Sección: Resumen de Pago -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="24dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="3dp"
+                android:layout_marginHorizontal="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Resumen de Pago"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
-
+                    <!-- Header de sección -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="8dp">
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
+
+                        <ImageView
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
+                            android:src="@drawable/ic_receipt_24"
+                            app:tint="#4CAF50"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Resumen" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Resumen de Pago"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#EEEEEE"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"/>
+
+                    <!-- Detalles del pago -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="12dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Precio por persona:"
-                            android:textSize="14sp"
-                            android:textColor="@color/black" />
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="S/. 85.00"
-                            android:textSize="14sp"
-                            android:textColor="@color/black" />
-
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="8dp">
+                        android:layout_marginBottom="12dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="Número de personas:"
-                            android:textSize="14sp"
-                            android:textColor="@color/black" />
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C" />
 
                         <TextView
                             android:id="@+id/tv_participants_count"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="2"
-                            android:textSize="14sp"
-                            android:textColor="@color/black" />
-
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C" />
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
-                        android:background="@color/gray"
-                        android:layout_marginVertical="8dp" />
+                        android:background="#EEEEEE"
+                        android:layout_marginVertical="12dp" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:layout_marginTop="4dp">
 
                         <TextView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Total:"
+                            android:text="Total a pagar:"
                             android:textSize="18sp"
                             android:textStyle="bold"
-                            android:textColor="@color/black" />
+                            android:textColor="#2C2C2C" />
 
                         <TextView
                             android:id="@+id/tv_total_price"
@@ -349,25 +562,31 @@
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="@color/green" />
-
                     </LinearLayout>
-
                 </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Confirm Button -->
+            <!-- Botón Confirmar Reserva -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_confirm_booking"
+                style="@style/Widget.Material3.Button"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:text="Confirmar Reserva"
                 android:textSize="16sp"
-                android:paddingVertical="12dp"
-                android:layout_marginTop="8dp" />
+                android:textStyle="bold"
+                app:icon="@drawable/ic_check_circle"
+                app:iconTint="@color/white"
+                app:iconSize="24dp"
+                app:iconGravity="textStart"
+                app:cornerRadius="12dp"
+                app:backgroundTint="@color/primary"
+                android:textColor="@color/white"
+                android:layout_marginHorizontal="4dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="16dp" />
 
         </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-    </ScrollView>
-
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

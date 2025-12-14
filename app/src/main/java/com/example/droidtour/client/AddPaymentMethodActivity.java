@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -225,7 +224,7 @@ public class AddPaymentMethodActivity extends AppCompatActivity {
         btnSaveCard.setEnabled(false);
         btnSaveCard.setText("Guardando...");
 
-        firestoreManager.addPaymentMethod(paymentMethod, new FirestoreManager.FirestoreCallback() {
+        /*firestoreManager.addPaymentMethod(paymentMethod, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 Toast.makeText(AddPaymentMethodActivity.this, 
@@ -241,6 +240,8 @@ public class AddPaymentMethodActivity extends AppCompatActivity {
                 btnSaveCard.setText("Guardar Tarjeta");
             }
         });
+
+         */
     }
 
     /**

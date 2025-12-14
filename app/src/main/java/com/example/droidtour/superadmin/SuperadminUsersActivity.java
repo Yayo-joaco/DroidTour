@@ -118,13 +118,12 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
 
         // fab
         fabAddAdmin = findViewById(R.id.fab_add_admin);
-        fabAddAdmin.setVisibility(View.GONE); // Ocultar por defecto
+        fabAddAdmin.setVisibility(View.GONE);
 
         userList = new ArrayList<>();
 
         // Configurar comportamiento del SwipeRefreshLayout
         swipeRefresh.setOnRefreshListener(() -> {
-            // Cuando el usuario hace pull-to-refresh, recargar usuarios
             loadUsersFromFirestore();
         });
     }
@@ -158,8 +157,7 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                 usersAdapter.setFilter(filterType);
                 checkEmptyState();
 
-
-                // Mostrar FAB solo en la pestaña de administradores (posición 1)
+                // Mostrar FAB solo en la pestaña de administradores
                 if (tab.getPosition() == 1) {
                     fabAddAdmin.setVisibility(View.VISIBLE);
                 } else {
@@ -167,23 +165,18 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                 }
             }
 
-
-
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {}
 
             @Override
             public void onTabReselected(TabLayout.Tab tab) {}
-
-
         });
 
-        // Agrega el listener para el FAB:
+        // Listener para el FAB
         fabAddAdmin.setOnClickListener(v -> {
             Intent intent = new Intent(SuperadminUsersActivity.this, AdminRegistrationActivity.class);
             startActivityForResult(intent, 1001);
         });
-
     }
 
     private void showLoading() {
@@ -207,230 +200,193 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     }
 
     private void loadUsersFromFirestore() {
-        // Asegurarse que se ve el indicador de carga cuando se inicia una recarga manual
         if (!swipeRefresh.isRefreshing()) showLoading();
 
-         db.collection(FirestoreManager.COLLECTION_USERS)
-                 .get()
-                 .addOnCompleteListener(task -> {
-                     if (task.isSuccessful()) {
-                         userList.clear();
-                         for (QueryDocumentSnapshot document : task.getResult()) {
-                             // Intentamos mapear al modelo User, pero manejamos errores de documentos legacy
-                             User user = null;
-                             boolean manualMapping = false;
-                             try {
-                                 user = document.toObject(User.class);
-                             } catch (RuntimeException e) {
-                                 // Si hay error (por ejemplo, conflicto con @DocumentId o campos duplicados),
-                                 // crear usuario manualmente desde los datos del documento
-                                 android.util.Log.w("SuperadminUsersAct", "Error mapeando documento " + document.getId() + ": " + e.getMessage());
-                                 user = new User();
-                                 manualMapping = true; // Marcar que necesitamos mapeo manual completo
-                             }
+        db.collection(FirestoreManager.COLLECTION_USERS)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        userList.clear();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            User user = null;
+                            try {
+                                user = document.toObject(User.class);
+                            } catch (RuntimeException e) {
+                                Log.w(TAG, "Error mapeando documento " + document.getId() + ": " + e.getMessage());
+                                user = new User();
+                            }
 
-                             // Always ensure user is not null
-                             if (user == null) {
-                                 user = new User();
-                                 manualMapping = true;
-                             }
+                            if (user == null) {
+                                user = new User();
+                            }
 
-                             // Document ID -> userId (siempre establecer desde el ID del documento)
-                             user.setUserId(document.getId());
+                            // Establecer userId desde el ID del documento
+                            user.setUserId(document.getId());
 
-                             Map<String, Object> data = document.getData();
-                             
-                             // Si hubo error en toObject(), mapear todos los campos manualmente
-                             if (manualMapping) {
-                                 // Mapear campos básicos desde el Map
-                                 if (data.get("email") != null) user.setEmail(String.valueOf(data.get("email")));
-                                 if (data.get("firstName") != null) user.setFirstName(String.valueOf(data.get("firstName")));
-                                 if (data.get("lastName") != null) user.setLastName(String.valueOf(data.get("lastName")));
-                                 if (data.get("phoneNumber") != null) user.setPhoneNumber(String.valueOf(data.get("phoneNumber")));
-                                 else if (data.get("phone") != null) user.setPhoneNumber(String.valueOf(data.get("phone")));
-                                 if (data.get("userType") != null) user.setUserType(String.valueOf(data.get("userType")));
-                                 if (data.get("documentType") != null) user.setDocumentType(String.valueOf(data.get("documentType")));
-                                 if (data.get("documentNumber") != null) user.setDocumentNumber(String.valueOf(data.get("documentNumber")));
-                                 if (data.get("address") != null) user.setAddress(String.valueOf(data.get("address")));
-                                 
-                                 // Date of birth: intentar dateOfBirth primero, luego birthDate (legacy)
-                                 if (data.get("dateOfBirth") != null) user.setDateOfBirth(String.valueOf(data.get("dateOfBirth")));
-                                 else if (data.get("birthDate") != null) user.setDateOfBirth(String.valueOf(data.get("birthDate")));
-                                 
-                                 // Campos de metadatos
-                                 if (data.get("provider") != null) user.setProvider(String.valueOf(data.get("provider")));
-                                 if (data.get("customPhoto") instanceof Boolean) user.setCustomPhoto((Boolean) data.get("customPhoto"));
-                                 if (data.get("profileCompleted") instanceof Boolean) user.setProfileCompleted((Boolean) data.get("profileCompleted"));
-                                 if (data.get("profileCompletedAt") != null && data.get("profileCompletedAt") instanceof java.util.Date) {
-                                     user.setProfileCompletedAt((java.util.Date) data.get("profileCompletedAt"));
-                                 }
-                                 if (data.get("registeredBy") != null) user.setRegisteredBy(String.valueOf(data.get("registeredBy")));
-                                 
-                                 // Campos específicos para guías
-                                 if ("GUIDE".equals(user.getUserType())) {
-                                     if (data.get("isGuideApproved") instanceof Boolean) {
-                                         user.setGuideApproved((Boolean) data.get("isGuideApproved"));
-                                     }
-                                     if (data.get("guideRating") instanceof Number) {
-                                         user.setGuideRating(((Number) data.get("guideRating")).floatValue());
-                                     }
-                                     if (data.get("guideLanguages") instanceof java.util.List) {
-                                         @SuppressWarnings("unchecked")
-                                         java.util.List<String> languages = (java.util.List<String>) data.get("guideLanguages");
-                                         user.setGuideLanguages(languages);
-                                     } else if (data.get("languages") instanceof java.util.List) {
-                                         @SuppressWarnings("unchecked")
-                                         java.util.List<String> languages = (java.util.List<String>) data.get("languages");
-                                         user.setGuideLanguages(languages);
-                                     }
-                                     if (data.get("guideSpecialties") != null) {
-                                         user.setGuideSpecialties(String.valueOf(data.get("guideSpecialties")));
-                                     }
-                                 }
-                                 
-                                 // Campos específicos para admins
-                                 if ("ADMIN".equals(user.getUserType())) {
-                                     if (data.get("companyId") != null) user.setCompanyId(String.valueOf(data.get("companyId")));
-                                     if (data.get("companyBusinessName") != null) user.setCompanyBusinessName(String.valueOf(data.get("companyBusinessName")));
-                                     if (data.get("companyRuc") != null) user.setCompanyRuc(String.valueOf(data.get("companyRuc")));
-                                     if (data.get("companyCommercialName") != null) user.setCompanyCommercialName(String.valueOf(data.get("companyCommercialName")));
-                                     if (data.get("companyType") != null) user.setCompanyType(String.valueOf(data.get("companyType")));
-                                 }
-                                 
-                                 // Timestamps
-                                 if (data.get("createdAt") != null && data.get("createdAt") instanceof java.util.Date) {
-                                     user.setCreatedAt((java.util.Date) data.get("createdAt"));
-                                 }
-                                 if (data.get("updatedAt") != null && data.get("updatedAt") instanceof java.util.Date) {
-                                     user.setUpdatedAt((java.util.Date) data.get("updatedAt"));
-                                 }
-                             }
+                            Map<String, Object> data = document.getData();
 
-                             // Email fallback
-                             if (user.getEmail() == null || user.getEmail().isEmpty()) {
-                                 Object e = data.get("email");
-                                 if (e != null) user.setEmail(String.valueOf(e));
-                             }
+                            // Mapear campos básicos
+                            if (data.get("email") != null) {
+                                user.setEmail(String.valueOf(data.get("email")));
+                            }
 
-                             // Full name: prefer fullName, luego displayName (legacy), luego firstName+lastName
-                             if (user.getFullName() == null || user.getFullName().isEmpty()) {
-                                 Object dn = data.get("displayName");
-                                 if (dn != null) {
-                                     user.setFullName(String.valueOf(dn));
-                                 } else if (user.getFirstName() != null || user.getLastName() != null) {
-                                     String fn = (user.getFirstName() != null ? user.getFirstName() : "");
-                                     String ln = (user.getLastName() != null ? user.getLastName() : "");
-                                     String combined = (fn + " " + ln).trim();
-                                     if (!combined.isEmpty()) user.setFullName(combined);
-                                 }
-                             }
+                            if (data.get("userType") != null) {
+                                user.setUserType(String.valueOf(data.get("userType")));
+                            }
 
-                             // Profile image: try profileImageUrl, photoURL (legacy), photoUrl
-                             if (user.getProfileImageUrl() == null || user.getProfileImageUrl().isEmpty()) {
-                                 Object p1 = data.get("profileImageUrl");
-                                 Object p2 = data.get("photoURL");
-                                 Object p3 = data.get("photoUrl");
-                                 if (p1 != null) user.setProfileImageUrl(String.valueOf(p1));
-                                 else if (p2 != null) user.setProfileImageUrl(String.valueOf(p2));
-                                 else if (p3 != null) user.setProfileImageUrl(String.valueOf(p3));
-                             }
+                            if (data.get("status") != null) {
+                                user.setStatus(String.valueOf(data.get("status")));
+                            }
 
-                             // userType fallback
-                             if (user.getUserType() == null || user.getUserType().isEmpty()) {
-                                 Object ut = data.get("userType");
-                                 if (ut != null) user.setUserType(String.valueOf(ut));
-                             }
+                            // Mapear personalData si existe
+                            if (data.get("personalData") instanceof Map) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> pdMap = (Map<String, Object>) data.get("personalData");
+                                User.PersonalData pd = new User.PersonalData();
 
-                             // isActive boolean: try isActive or infer from status field
-                             if (user.getActive() == null) {
-                                 Object activeObj = data.get("isActive");
-                                 if (activeObj instanceof Boolean) {
-                                     user.setActive((Boolean) activeObj);
-                                 } else {
-                                     Object statusObj = data.get("status");
-                                     if (statusObj != null) {
-                                         String statusStr = String.valueOf(statusObj);
-                                         user.setActive("active".equalsIgnoreCase(statusStr));
-                                     } else {
-                                         user.setActive(true); // default safe assumption
-                                     }
-                                 }
-                             }
+                                if (pdMap.get("firstName") != null)
+                                    pd.setFirstName(String.valueOf(pdMap.get("firstName")));
+                                if (pdMap.get("lastName") != null)
+                                    pd.setLastName(String.valueOf(pdMap.get("lastName")));
+                                if (pdMap.get("fullName") != null)
+                                    pd.setFullName(String.valueOf(pdMap.get("fullName")));
+                                if (pdMap.get("documentType") != null)
+                                    pd.setDocumentType(String.valueOf(pdMap.get("documentType")));
+                                if (pdMap.get("documentNumber") != null)
+                                    pd.setDocumentNumber(String.valueOf(pdMap.get("documentNumber")));
+                                if (pdMap.get("dateOfBirth") != null)
+                                    pd.setDateOfBirth(String.valueOf(pdMap.get("dateOfBirth")));
+                                if (pdMap.get("phoneNumber") != null)
+                                    pd.setPhoneNumber(String.valueOf(pdMap.get("phoneNumber")));
+                                if (pdMap.get("profileImageUrl") != null)
+                                    pd.setProfileImageUrl(String.valueOf(pdMap.get("profileImageUrl")));
 
-                             // Añadir user a la lista
-                             userList.add(user);
-                         }
-                         usersAdapter.updateList(userList);
-                         checkEmptyState();
-                         Toast.makeText(this, "Usuarios cargados: " + userList.size(), Toast.LENGTH_SHORT).show();
+                                user.setPersonalData(pd);
+                            }
 
-                         // ocultar indicadores
-                         hideLoading();
+                            // Fallback para campos legacy (por si no existe personalData)
+                            if (user.getFullName() == null || user.getFullName().isEmpty()) {
+                                Object displayName = data.get("displayName");
+                                if (displayName != null) {
+                                    user.setFullName(String.valueOf(displayName));
+                                } else {
+                                    // Construir desde firstName y lastName si existen
+                                    Object fn = data.get("firstName");
+                                    Object ln = data.get("lastName");
+                                    if (fn != null || ln != null) {
+                                        String firstName = fn != null ? String.valueOf(fn) : "";
+                                        String lastName = ln != null ? String.valueOf(ln) : "";
+                                        String combined = (firstName + " " + lastName).trim();
+                                        if (!combined.isEmpty()) {
+                                            user.setFullName(combined);
+                                        }
+                                    }
+                                }
+                            }
 
-                         // Ahora, para cada GUIDE, obtener su estado desde la colección user_roles
-                         List<User> guidesToCheck = new ArrayList<>();
-                         for (User u : userList) {
-                             if ("GUIDE".equals(u.getUserType())) {
-                                 guidesToCheck.add(u);
-                             }
-                         }
+                            // Mapear companyId si es ADMIN o COMPANY_ADMIN
+                            if (data.get("companyId") != null) {
+                                user.setCompanyId(String.valueOf(data.get("companyId")));
+                            }
 
-                         if (!guidesToCheck.isEmpty()) {
-                             final int total = guidesToCheck.size();
-                             final int[] completed = {0};
+                            // Timestamps
+                            if (data.get("createdAt") instanceof Date) {
+                                user.setCreatedAt((Date) data.get("createdAt"));
+                            }
 
-                             for (User guide : guidesToCheck) {
-                                 String uid = guide.getUserId();
-                                 if (uid == null || uid.isEmpty()) {
-                                     completed[0]++;
-                                     continue;
-                                 }
+                            // Añadir usuario a la lista
+                            userList.add(user);
+                        }
 
-                                 db.collection(FirestoreManager.COLLECTION_USER_ROLES).document(uid).get()
-                                         .addOnSuccessListener(doc -> {
-                                             if (doc != null && doc.exists()) {
-                                                 // Manejar varias estructuras: doc puede tener directamente 'guide' o 'guide' dentro de 'roles'
-                                                 if (doc.contains("guide")) {
-                                                     Object guideObj = doc.get("guide");
-                                                     if (guideObj instanceof Map) {
-                                                         Map<String, Object> guideMap = (Map<String, Object>) guideObj;
-                                                         Object statusObj = guideMap.get("status");
-                                                         if (statusObj != null) {
-                                                             guide.setStatus(String.valueOf(statusObj));
-                                                         }
-                                                     }
-                                                 } else if (doc.contains("roles")) {
-                                                     Object rolesObj = doc.get("roles");
-                                                     if (rolesObj instanceof Map) {
-                                                         Map<String, Object> rolesMap = (Map<String, Object>) rolesObj;
-                                                         Object guideRole = rolesMap.get("guide");
-                                                         if (guideRole instanceof Map) {
-                                                             Map<String, Object> guideMap = (Map<String, Object>) guideRole;
-                                                             Object statusObj = guideMap.get("status");
-                                                             if (statusObj != null) guide.setStatus(String.valueOf(statusObj));
-                                                         }
-                                                     }
-                                                 }
-                                             }
-                                         })
-                                         .addOnFailureListener(e -> {
-                                             Log.w(TAG, "No se pudo obtener user_roles para " + uid + ": " + e.getMessage());
-                                         })
-                                         .addOnCompleteListener(roleTask -> {
-                                             completed[0]++;
-                                             if (completed[0] >= total) {
-                                                 // Todas las peticiones completadas - actualizar adapter
-                                                 usersAdapter.updateList(userList);
-                                             }
-                                         });
-                             }
-                         }
-                     } else {
-                         Log.e(TAG, "Error cargando usuarios", task.getException());
-                         Toast.makeText(this, "Error cargando usuarios: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
-                         hideLoading();
-                     }
-                 });
+                        usersAdapter.updateList(userList);
+                        checkEmptyState();
+                        Toast.makeText(this, "Usuarios cargados: " + userList.size(), Toast.LENGTH_SHORT).show();
+
+                        hideLoading();
+
+                        // Cargar estado de los guías desde user_roles
+                        loadGuideStatusFromUserRoles();
+
+                    } else {
+                        Log.e(TAG, "Error cargando usuarios", task.getException());
+                        Toast.makeText(this, "Error cargando usuarios: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        hideLoading();
+                    }
+                });
+    }
+
+    /**
+     * Carga el estado de los guías desde la colección user_roles
+     */
+    private void loadGuideStatusFromUserRoles() {
+        List<User> guidesToCheck = new ArrayList<>();
+        for (User u : userList) {
+            if ("GUIDE".equals(u.getUserType())) {
+                guidesToCheck.add(u);
+            }
+        }
+
+        if (guidesToCheck.isEmpty()) return;
+
+        final int total = guidesToCheck.size();
+        final int[] completed = {0};
+
+        for (User guide : guidesToCheck) {
+            String uid = guide.getUserId();
+            if (uid == null || uid.isEmpty()) {
+                completed[0]++;
+                continue;
+            }
+
+            db.collection(FirestoreManager.COLLECTION_USER_ROLES).document(uid).get()
+                    .addOnSuccessListener(doc -> {
+                        if (doc != null && doc.exists()) {
+                            // Manejar diferentes estructuras de user_roles
+                            if (doc.contains("guide")) {
+                                Object guideObj = doc.get("guide");
+                                if (guideObj instanceof Map) {
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, Object> guideMap = (Map<String, Object>) guideObj;
+                                    Object statusObj = guideMap.get("status");
+                                    if (statusObj != null) {
+                                        guide.setStatus(String.valueOf(statusObj));
+                                    }
+                                }
+                            } else if (doc.contains("status")) {
+                                // Estructura directa con status
+                                Object statusObj = doc.get("status");
+                                if (statusObj != null) {
+                                    guide.setStatus(String.valueOf(statusObj));
+                                }
+                            } else if (doc.contains("roles")) {
+                                Object rolesObj = doc.get("roles");
+                                if (rolesObj instanceof Map) {
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, Object> rolesMap = (Map<String, Object>) rolesObj;
+                                    Object guideRole = rolesMap.get("guide");
+                                    if (guideRole instanceof Map) {
+                                        @SuppressWarnings("unchecked")
+                                        Map<String, Object> guideMap = (Map<String, Object>) guideRole;
+                                        Object statusObj = guideMap.get("status");
+                                        if (statusObj != null) {
+                                            guide.setStatus(String.valueOf(statusObj));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.w(TAG, "No se pudo obtener user_roles para " + uid + ": " + e.getMessage());
+                    })
+                    .addOnCompleteListener(roleTask -> {
+                        completed[0]++;
+                        if (completed[0] >= total) {
+                            // Todas las peticiones completadas
+                            usersAdapter.updateList(userList);
+                        }
+                    });
+        }
     }
 
     private void checkEmptyState() {
@@ -446,16 +402,29 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     // Implementación de los listeners del adapter
     @Override
     public void onUserClick(User user) {
-        // Mostrar bottom sheet con los datos del usuario
+        // Obtener phoneNumber desde personalData
+        String phoneNumber = null;
+        if (user.getPersonalData() != null) {
+            phoneNumber = user.getPersonalData().getPhoneNumber();
+        }
+
+        // Obtener profileImageUrl desde personalData
+        String profileImageUrl = null;
+        if (user.getPersonalData() != null) {
+            profileImageUrl = user.getPersonalData().getProfileImageUrl();
+        }
+
         long createdAtMillis = -1;
-        if (user.getCreatedAt() != null) createdAtMillis = user.getCreatedAt().getTime();
+        if (user.getCreatedAt() != null) {
+            createdAtMillis = user.getCreatedAt().getTime();
+        }
 
         UserProfileBottomSheet sheet = UserProfileBottomSheet.newInstance(
                 user.getUserId() != null ? user.getUserId() : "",
                 user.getFullName(),
                 user.getEmail(),
-                user.getPhoneNumber(),
-                user.getProfileImageUrl(),
+                phoneNumber,
+                profileImageUrl,
                 user.getUserType(),
                 createdAtMillis,
                 user.getStatus()
@@ -466,7 +435,6 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
 
     @Override
     public void onEditUser(String userId) {
-        // Lanzar actividad de edición o mostrar formulario
         Toast.makeText(this, "Abrir edición para " + userId, Toast.LENGTH_SHORT).show();
         // TODO: implementar navegación a la pantalla de edición
     }
@@ -495,10 +463,10 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
 
     @Override
     public void onUserStatusChange(User user, boolean isActive) {
-        // Mostrar diálogo de confirmación antes de realizar el cambio
         boolean isGuide = "GUIDE".equals(user.getUserType());
         String title = isActive ? "Activar usuario" : "Desactivar usuario";
         String message;
+
         if (isActive) {
             if (isGuide) {
                 message = "Activar este usuario aprobará automáticamente la solicitud del guía. ¿Deseas activar y aprobarlo?";
@@ -513,11 +481,9 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                 .setTitle(title)
                 .setMessage(message)
                 .setPositiveButton(isActive ? "Activar" : "Desactivar", (dialog, which) -> {
-                    // Ejecutar la actualización
                     performUserStatusUpdate(user, isActive, isGuide && isActive);
                 })
                 .setNegativeButton("Cancelar", (dialog, which) -> {
-                    // Revertir el cambio en la UI
                     int idx = userList.indexOf(user);
                     if (idx >= 0) usersAdapter.notifyItemChanged(idx);
                 })
@@ -529,10 +495,7 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     }
 
     /**
-     * Realiza la actualización en Firestore del campo isActive y opcionalmente actualiza user_roles/guide.status
-     * @param user usuario
-     * @param isActive nuevo estado
-     * @param approveGuide si true, actualizará user_roles/{userId}.guide.status a "active" y marcará aprobado
+     * Actualiza el estado del usuario en Firestore
      */
     private void performUserStatusUpdate(User user, boolean isActive, boolean approveGuide) {
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
@@ -542,20 +505,23 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
             return;
         }
 
+        // Actualizar el campo status en la colección users
+        String newStatus = isActive ? "active" : "inactive";
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", newStatus);
+
         db.collection(FirestoreManager.COLLECTION_USERS).document(user.getUserId())
-                .update("isActive", isActive)
+                .update(updates)
                 .addOnSuccessListener(aVoid -> {
-                    // Actualizar objeto local
-                    user.setActive(isActive);
+                    user.setStatus(newStatus);
 
                     if (approveGuide) {
-                        // Actualizar user_roles para aprobar la solicitud del guía usando FirestoreManager
+                        // Actualizar user_roles para aprobar guía
                         FirestoreManager firestoreManager = FirestoreManager.getInstance();
                         firestoreManager.saveUserRole(user.getUserId(), "GUIDE", "active", null, new FirestoreManager.FirestoreCallback() {
                             @Override
                             public void onSuccess(Object result) {
                                 user.setStatus("active");
-                                user.setGuideApproved(true);
                                 Toast.makeText(SuperadminUsersActivity.this, "Usuario activado y guía aprobado", Toast.LENGTH_SHORT).show();
                                 int idx = userList.indexOf(user);
                                 if (idx >= 0) usersAdapter.notifyItemChanged(idx);
@@ -568,16 +534,14 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                                 if (idx >= 0) usersAdapter.notifyItemChanged(idx);
                             }
                         });
-
                     } else {
-                        // Si no se aprueba, para guías que se desactivan dejamos el estado en user_roles como inactive
                         if (!isActive && "GUIDE".equals(user.getUserType())) {
+                            // Desactivar guía en user_roles
                             FirestoreManager firestoreManager = FirestoreManager.getInstance();
                             firestoreManager.saveUserRole(user.getUserId(), "GUIDE", "inactive", null, new FirestoreManager.FirestoreCallback() {
                                 @Override
                                 public void onSuccess(Object result) {
                                     user.setStatus("inactive");
-                                    user.setGuideApproved(false);
                                     Toast.makeText(SuperadminUsersActivity.this, "Usuario desactivado", Toast.LENGTH_SHORT).show();
                                     int idx = userList.indexOf(user);
                                     if (idx >= 0) usersAdapter.notifyItemChanged(idx);
@@ -600,7 +564,6 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Error actualizando estado: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    // Revertir switch en UI
                     int idx = userList.indexOf(user);
                     if (idx >= 0) usersAdapter.notifyItemChanged(idx);
                 });
@@ -616,7 +579,7 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                 .delete()
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Usuario eliminado", Toast.LENGTH_SHORT).show();
-                    loadUsersFromFirestore(); // Recargar lista
+                    loadUsersFromFirestore();
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Error eliminando usuario: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -655,7 +618,6 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1001 && resultCode == RESULT_OK) {
-            // Recargar la lista de usuarios
             loadUsersFromFirestore();
             Toast.makeText(this, "Nuevo administrador registrado", Toast.LENGTH_SHORT).show();
         }

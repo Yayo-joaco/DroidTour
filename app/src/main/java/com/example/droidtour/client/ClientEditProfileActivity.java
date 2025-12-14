@@ -44,6 +44,9 @@ public class ClientEditProfileActivity extends AppCompatActivity {
     private Uri selectedImageUri;
     private Calendar birthDateCalendar;
 
+    // Para almacenar datos originales
+    private User currentUser;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,9 +106,9 @@ public class ClientEditProfileActivity extends AppCompatActivity {
         firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                User user = (User) result;
-                if (user != null) {
-                    updateUIWithUserData(user);
+                currentUser = (User) result;
+                if (currentUser != null) {
+                    updateUIWithUserData(currentUser);
                 } else {
                     Log.e(TAG, "Usuario no encontrado en Firestore");
                     showFallbackData();
@@ -122,42 +125,58 @@ public class ClientEditProfileActivity extends AppCompatActivity {
     }
 
     /**
-     * 🔥 Actualizar UI con datos del usuario
+     * 🔥 Actualizar UI con datos del usuario CORREGIDO
      */
     private void updateUIWithUserData(User user) {
-        // Campos editables
-        String phone = user.getPhoneNumber();
-        if (phone != null && !phone.isEmpty()) {
-            // Separar código de país y número si es necesario
-            if (phone.startsWith("+")) {
-                try {
-                    // El CountryCodePicker puede manejar el formato internacional
-                    countryCodePicker.setFullNumber(phone);
-                    // Extraer solo el número local para el campo de texto
-                    String localNumber = phone.substring(phone.indexOf(" ") + 1);
-                    etPhone.setText(localNumber);
-                } catch (Exception e) {
+        // Guardar referencia al usuario
+        this.currentUser = user;
+
+        // Campos editables - Teléfono
+        if (user.getPersonalData() != null) {
+            String phone = user.getPersonalData().getPhoneNumber();
+            if (phone != null && !phone.isEmpty()) {
+                // Separar código de país y número si es necesario
+                if (phone.startsWith("+")) {
+                    try {
+                        // El CountryCodePicker puede manejar el formato internacional
+                        countryCodePicker.setFullNumber(phone);
+                        // Extraer solo el número local para el campo de texto
+                        String localNumber = phone.substring(phone.indexOf(" ") + 1);
+                        etPhone.setText(localNumber);
+                    } catch (Exception e) {
+                        etPhone.setText(phone);
+                    }
+                } else {
                     etPhone.setText(phone);
                 }
-            } else {
-                etPhone.setText(phone);
             }
         }
 
         // Campos de solo lectura
         etEmail.setText(user.getEmail() != null ? user.getEmail() : "N/A");
+
+        // Usar métodos compatibles que acceden a personalData
         etFirstName.setText(user.getFirstName() != null ? user.getFirstName() : "N/A");
         etLastName.setText(user.getLastName() != null ? user.getLastName() : "N/A");
 
-        // Fecha de nacimiento
-        if (user.getDateOfBirth() != null && !user.getDateOfBirth().isEmpty()) {
-            etBirthDate.setText(user.getDateOfBirth());
+        // Fecha de nacimiento - Acceder a través de personalData
+        if (user.getPersonalData() != null) {
+            String dateOfBirth = user.getPersonalData().getDateOfBirth();
+            if (dateOfBirth != null && !dateOfBirth.isEmpty()) {
+                etBirthDate.setText(dateOfBirth);
+            } else {
+                etBirthDate.setText("N/A");
+            }
+
+            etDocumentType.setText(user.getPersonalData().getDocumentType() != null ?
+                    user.getPersonalData().getDocumentType() : "DNI");
+            etDocumentNumber.setText(user.getPersonalData().getDocumentNumber() != null ?
+                    user.getPersonalData().getDocumentNumber() : "N/A");
         } else {
             etBirthDate.setText("N/A");
+            etDocumentType.setText("DNI");
+            etDocumentNumber.setText("N/A");
         }
-
-        etDocumentType.setText(user.getDocumentType() != null ? user.getDocumentType() : "DNI");
-        etDocumentNumber.setText(user.getDocumentNumber() != null ? user.getDocumentNumber() : "N/A");
     }
 
     /**
@@ -190,7 +209,6 @@ public class ClientEditProfileActivity extends AppCompatActivity {
 
         // Configurar CountryCodePicker
         countryCodePicker.setOnCountryChangeListener(() -> {
-            // El código de país se actualiza automáticamente
             Log.d(TAG, "País seleccionado: " + countryCodePicker.getSelectedCountryName() +
                     " Código: " + countryCodePicker.getSelectedCountryCodeWithPlus());
         });
@@ -212,9 +230,7 @@ public class ClientEditProfileActivity extends AppCompatActivity {
 
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             selectedImageUri = data.getData();
-            // Aquí puedes mostrar una preview de la imagen seleccionada
             Toast.makeText(this, "Imagen seleccionada", Toast.LENGTH_SHORT).show();
-            // TODO: Implementar upload de imagen a Firebase Storage
         }
     }
 
@@ -234,24 +250,65 @@ public class ClientEditProfileActivity extends AppCompatActivity {
         }
 
         String userId = prefsManager.getUserId();
-        Map<String, Object> updates = new HashMap<>();
 
-        // Obtener número de teléfono completo con código de país
+        // Crear nuevo objeto User con los cambios
+        User updatedUser = createUpdatedUser();
+
+        if (updatedUser != null) {
+            saveProfileToFirestore(userId, updatedUser);
+        }
+    }
+
+    /**
+     * 🔥 Crear objeto User actualizado
+     */
+    private User createUpdatedUser() {
+        if (currentUser == null) {
+            return null;
+        }
+
+        // Crear copia del usuario actual
+        User updatedUser = new User();
+        updatedUser.setUserId(currentUser.getUserId());
+        updatedUser.setEmail(currentUser.getEmail());
+        updatedUser.setUserType(currentUser.getUserType());
+        updatedUser.setStatus(currentUser.getStatus());
+        updatedUser.setCreatedAt(currentUser.getCreatedAt());
+        updatedUser.setCompanyId(currentUser.getCompanyId());
+
+        // Actualizar personalData
+        User.PersonalData personalData = new User.PersonalData();
+
+        // Mantener datos existentes o usar nuevos
+        personalData.setFirstName(currentUser.getPersonalData() != null ?
+                currentUser.getPersonalData().getFirstName() : null);
+        personalData.setLastName(currentUser.getPersonalData() != null ?
+                currentUser.getPersonalData().getLastName() : null);
+
+        // Actualizar teléfono si cambió
         String fullPhoneNumber = getFullPhoneNumber();
         if (fullPhoneNumber != null && !fullPhoneNumber.isEmpty()) {
-            updates.put("phoneNumber", fullPhoneNumber);
-            // También mantener compatibilidad con el campo legacy "phone"
-            updates.put("phone", fullPhoneNumber);
+            personalData.setPhoneNumber(fullPhoneNumber);
+        } else if (currentUser.getPersonalData() != null) {
+            personalData.setPhoneNumber(currentUser.getPersonalData().getPhoneNumber());
         }
 
-        // Aquí podrías agregar más campos editables en el futuro
-
-        // Si hay imagen seleccionada, subirla primero
-        if (selectedImageUri != null) {
-            uploadImageAndSaveProfile(userId, updates);
-        } else {
-            saveProfileToFirestore(userId, updates);
+        // Mantener otros datos
+        if (currentUser.getPersonalData() != null) {
+            personalData.setDocumentType(currentUser.getPersonalData().getDocumentType());
+            personalData.setDocumentNumber(currentUser.getPersonalData().getDocumentNumber());
+            personalData.setDateOfBirth(currentUser.getPersonalData().getDateOfBirth());
+            personalData.setProfileImageUrl(currentUser.getPersonalData().getProfileImageUrl());
         }
+
+        // Actualizar fullName
+        if (personalData.getFirstName() != null && personalData.getLastName() != null) {
+            personalData.setFullName(personalData.getFirstName() + " " + personalData.getLastName());
+        }
+
+        updatedUser.setPersonalData(personalData);
+
+        return updatedUser;
     }
 
     /**
@@ -291,28 +348,10 @@ public class ClientEditProfileActivity extends AppCompatActivity {
     }
 
     /**
-     * 🔥 Subir imagen y luego guardar perfil
+     * 🔥 Guardar cambios en Firestore CORREGIDO
      */
-    private void uploadImageAndSaveProfile(String userId, Map<String, Object> updates) {
-        // TODO: Implementar upload a Firebase Storage
-        // Por ahora, guardamos solo los datos sin imagen
-        Toast.makeText(this, "Subida de imagen próximamente", Toast.LENGTH_SHORT).show();
-        saveProfileToFirestore(userId, updates);
-    }
-
-    /**
-     * 🔥 Guardar cambios en Firestore
-     */
-    private void saveProfileToFirestore(String userId, Map<String, Object> updates) {
-        if (updates.isEmpty()) {
-            Toast.makeText(this, "No hay cambios para guardar", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Agregar timestamp de actualización
-        updates.put("updatedAt", com.google.firebase.Timestamp.now());
-
-        firestoreManager.updateUser(userId, updates, new FirestoreManager.FirestoreCallback() {
+    private void saveProfileToFirestore(String userId, User updatedUser) {
+        firestoreManager.upsertUser(updatedUser, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 Log.d(TAG, "✅ Perfil actualizado exitosamente");
@@ -323,6 +362,9 @@ public class ClientEditProfileActivity extends AppCompatActivity {
                 if (fullPhoneNumber != null && !fullPhoneNumber.isEmpty()) {
                     prefsManager.saveUserPhone(fullPhoneNumber);
                 }
+
+                // Actualizar referencia local
+                currentUser = updatedUser;
 
                 // Devolver resultado a ClientProfileActivity
                 setResult(RESULT_OK);
@@ -360,9 +402,29 @@ public class ClientEditProfileActivity extends AppCompatActivity {
      * 🔥 Verificar si hay cambios sin guardar
      */
     private boolean hasUnsavedChanges() {
-        // Comparar con datos originales o verificar si hay texto en los campos editables
-        String currentPhone = etPhone.getText().toString().trim();
-        return !currentPhone.isEmpty() || selectedImageUri != null;
+        // Verificar si el teléfono cambió
+        if (currentUser != null && currentUser.getPersonalData() != null) {
+            String currentPhone = etPhone.getText().toString().trim();
+            String originalPhone = currentUser.getPersonalData().getPhoneNumber();
+
+            // Normalizar números para comparación
+            if (originalPhone != null && originalPhone.startsWith("+")) {
+                try {
+                    // Extraer solo el número local del original
+                    String originalLocal = originalPhone.substring(originalPhone.indexOf(" ") + 1);
+                    if (!originalLocal.equals(currentPhone)) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    // Si hay error en el parsing, comparar directamente
+                    if (!originalPhone.equals(getFullPhoneNumber())) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return selectedImageUri != null;
     }
 
     /**
@@ -373,7 +435,6 @@ public class ClientEditProfileActivity extends AppCompatActivity {
                 .setTitle("Cambios sin guardar")
                 .setMessage("Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?")
                 .setPositiveButton("Salir", (dialog, which) -> {
-                    // Forzar salida
                     ClientEditProfileActivity.super.onBackPressed();
                 })
                 .setNegativeButton("Cancelar", (dialog, which) -> {

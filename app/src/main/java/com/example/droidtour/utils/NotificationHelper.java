@@ -2,18 +2,14 @@ package com.example.droidtour.utils;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import com.example.droidtour.R;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.Notification;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
+
 import java.util.Date;
-import java.util.Locale;
 
 public class NotificationHelper {
     
@@ -138,7 +134,7 @@ public class NotificationHelper {
             notification.setCreatedAt(new Date());
             notification.setIsRead(false);
             
-            firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
+            /*firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
                     // Notificación guardada en Firestore
@@ -149,6 +145,8 @@ public class NotificationHelper {
                     // Error al guardar, pero mostrar notificación de todos modos
                 }
             });
+
+             */
         }
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)
@@ -176,7 +174,7 @@ public class NotificationHelper {
             notification.setCreatedAt(new Date());
             notification.setIsRead(false);
             
-            firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
+            /*firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
                     // Notificación guardada en Firestore
@@ -187,6 +185,8 @@ public class NotificationHelper {
                     // Error al guardar, pero mostrar notificación de todos modos
                 }
             });
+
+             */
         }
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_REMINDERS)
@@ -214,7 +214,7 @@ public class NotificationHelper {
             notification.setCreatedAt(new Date());
             notification.setIsRead(false);
             
-            firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
+            /*firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
                     // Notificación guardada en Firestore
@@ -225,6 +225,8 @@ public class NotificationHelper {
                     // Error al guardar, pero mostrar notificación de todos modos
                 }
             });
+
+             */
         }
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)
@@ -251,7 +253,7 @@ public class NotificationHelper {
             notification.setCreatedAt(new Date());
             notification.setIsRead(false);
             
-            firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
+            /*firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
                     // Notificación guardada en Firestore
@@ -262,6 +264,8 @@ public class NotificationHelper {
                     // Error al guardar, pero mostrar notificación de todos modos
                 }
             });
+
+             */
         }
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)

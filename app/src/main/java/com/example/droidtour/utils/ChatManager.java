@@ -1,19 +1,9 @@
 package com.example.droidtour.utils;
 
-import androidx.annotation.Nullable;
-
 import com.example.droidtour.models.Message;
-import com.example.droidtour.firebase.FirestoreManager;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentChange;
-import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QuerySnapshot;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -49,10 +39,10 @@ public class ChatManager {
             return;
         }
 
-        CollectionReference messagesRef = db.collection(FirestoreManager.COLLECTION_CONVERSATIONS).document(conversationId).collection("messages");
+        //CollectionReference messagesRef = db.collection(FirestoreManager.COLLECTION_CONVERSATIONS).document(conversationId).collection("messages");
 
         // Añadir el mensaje; Firestore asignará un id
-        messagesRef.add(message)
+        /*messagesRef.add(message)
                 .addOnSuccessListener(docRef -> {
                     // opcional: establecer el messageId dentro del documento
                     String id = docRef.getId();
@@ -62,6 +52,8 @@ public class ChatManager {
                 .addOnFailureListener(e -> {
                     if (callback != null) callback.onFailure(e);
                 });
+
+         */
     }
 
     /**
@@ -71,8 +63,8 @@ public class ChatManager {
     public void listenForMessages(String conversationId, final MessagesListener listener) {
         if (conversationId == null || conversationId.isEmpty()) return;
 
-        CollectionReference messagesRef = db.collection(FirestoreManager.COLLECTION_CONVERSATIONS).document(conversationId).collection("messages");
-        Query q = messagesRef.orderBy("timestamp", Query.Direction.ASCENDING);
+        //CollectionReference messagesRef = db.collection(FirestoreManager.COLLECTION_CONVERSATIONS).document(conversationId).collection("messages");
+        //Query q = messagesRef.orderBy("timestamp", Query.Direction.ASCENDING);
 
         // Remover listener anterior si existe
         if (currentListener != null) {
@@ -80,6 +72,7 @@ public class ChatManager {
             currentListener = null;
         }
 
+        /*
         currentListener = q.addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
             public void onEvent(@Nullable QuerySnapshot snapshots, @Nullable FirebaseFirestoreException e) {
@@ -104,6 +97,8 @@ public class ChatManager {
                 }
             }
         });
+
+         */
     }
 
     /**

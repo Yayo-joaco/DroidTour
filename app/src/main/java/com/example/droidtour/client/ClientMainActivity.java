@@ -2,7 +2,6 @@ package com.example.droidtour.client;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -25,17 +24,20 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.droidtour.CompaniesListActivity;
 import com.example.droidtour.LoginActivity;
-import com.example.droidtour.MainActivity;
 import com.example.droidtour.MyReservationsActivity;
 import com.example.droidtour.R;
 import com.example.droidtour.TourDetailActivity;
 import com.example.droidtour.ToursCatalogActivity;
+import com.example.droidtour.models.Tour;
+import com.example.droidtour.models.Company;
+import com.example.droidtour.models.Reservation;
 import com.example.droidtour.utils.NotificationHelper;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
 import java.util.List;
+import java.util.ArrayList;
 
 public class ClientMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "ClientMainActivity";
@@ -51,35 +53,33 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private com.example.droidtour.firebase.FirebaseAuthManager authManager;
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private String currentUserId;
-    
+
     // Helpers
     private PreferencesManager prefsManager;
     private NotificationHelper notificationHelper;
-    
+
     // Datos Firebase
-    private List<com.example.droidtour.models.Tour> featuredTours = new java.util.ArrayList<>();
-    private List<com.example.droidtour.models.Company> popularCompanies = new java.util.ArrayList<>();
-    
+    private final List<Tour> featuredTours = new ArrayList<>();
+    private final List<Company> popularCompanies = new ArrayList<>();
+
     // Toolbar menu elements
-    private FrameLayout notificationActionLayout, avatarActionLayout;
     private TextView tvNotificationBadge;
     private ImageView ivAvatarAction;
-    private int notificationCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // Inicializar PreferencesManager PRIMERO
         prefsManager = new PreferencesManager(this);
-        
+
         // Validar sesión PRIMERO
         if (!prefsManager.isLoggedIn()) {
             redirectToLogin();
             finish();
             return;
         }
-        
+
         // Validar que el usuario sea CLIENT
         String userType = prefsManager.getUserType();
         if (userType == null || !userType.equals("CLIENT")) {
@@ -87,36 +87,28 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             finish();
             return;
         }
-        
+
         setContentView(R.layout.activity_client_main);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar Firebase
         authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
         firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
-        currentUserId = authManager.getCurrentUserId();
-        
-        // 🔥 TEMPORAL: Para testing sin login
-        if (currentUserId == null) {
-            // Usar UID real de Firebase Authentication: prueba@droidtour.com
-            currentUserId = "K35mJaSYbAT8YgFN5tq33ik6";
-            android.widget.Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", android.widget.Toast.LENGTH_LONG).show();
-        }
-        
+        currentUserId = prefsManager.getUserId(); // Usar el ID de PreferencesManager
+
         // Inicializar helpers
         notificationHelper = new NotificationHelper(this);
 
         initializeViews();
-        // Corregir datos del usuario PRIMERO (sin actualizar vistas aún)
         correctUserData();
         setupToolbarAndDrawer();
         setupDashboardData();
         setupClickListeners();
         setupRecyclerViews();
-        
+
         // Cargar datos del usuario y actualizar vistas
         loadUserData();
-        
+
         // Cargar reservas activas desde Firestore
         updateActiveReservationsCount();
 
@@ -134,7 +126,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         cardExploreTours = findViewById(R.id.card_explore_tours);
         cardMyReservations = findViewById(R.id.card_my_reservations);
         cardChats = findViewById(R.id.card_chats);
-        
+
         // RecyclerViews
         rvFeaturedTours = findViewById(R.id.rv_featured_tours);
         rvPopularCompanies = findViewById(R.id.rv_popular_companies);
@@ -142,21 +134,21 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
     private void setupDashboardData() {
         // Set welcome message (dynamic based on user)
-        if (prefsManager.sesionActiva()) {
-            String userName = prefsManager.obtenerUsuario();
+        if (prefsManager.isLoggedIn()) {
+            String userName = prefsManager.getUserName();
             if (userName != null && !userName.isEmpty()) {
                 // Extraer solo el primer nombre para el saludo
                 String firstName = userName.split(" ")[0];
                 tvWelcomeMessage.setText("¡Hola, " + firstName + "!");
             } else {
-                tvWelcomeMessage.setText("¡Hola, Gabrielle!");
+                tvWelcomeMessage.setText("¡Hola!");
             }
         } else {
-            tvWelcomeMessage.setText("¡Hola, Gabrielle!");
+            tvWelcomeMessage.setText("¡Hola!");
         }
-        
-        // Set active reservations count
-        tvActiveReservations.setText("2");
+
+        // Set active reservations count (temporal)
+        tvActiveReservations.setText("0 reservas activas");
     }
 
     @Override
@@ -172,7 +164,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         if (id == R.id.action_notifications) {
             // Abrir la pantalla de notificaciones desde el toolbar
             Intent intent = new Intent(this, ClientNotificationsActivity.class);
-            startActivityForResult(intent, 100);
+            startActivity(intent);
             return true;
         } else if (id == R.id.action_profile) {
             // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
@@ -181,55 +173,86 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             return true;
         }
         // Handle drawer toggle
-        if (drawerToggle.onOptionsItemSelected(item)) return true;
+        if (drawerToggle != null && drawerToggle.onOptionsItemSelected(item)) return true;
         return super.onOptionsItemSelected(item);
     }
 
     private void setupVisualMenuElements(Menu menu) {
         MenuItem notificationItem = menu.findItem(R.id.action_notifications);
-        if (notificationItem != null) {
-            notificationActionLayout = (FrameLayout) notificationItem.getActionView();
-            if (notificationActionLayout != null) {
-                tvNotificationBadge = notificationActionLayout.findViewById(R.id.tv_notification_badge);
-                updateNotificationBadge();
-                notificationActionLayout.setOnClickListener(v -> {
-                    Intent intent = new Intent(ClientMainActivity.this, ClientNotificationsActivity.class);
-                    startActivityForResult(intent, 100);
-                });
-            }
+        if (notificationItem != null && notificationItem.getActionView() != null) {
+            FrameLayout notificationActionLayout = (FrameLayout) notificationItem.getActionView();
+            tvNotificationBadge = notificationActionLayout.findViewById(R.id.tv_notification_badge);
+            updateNotificationBadge();
+            notificationActionLayout.setOnClickListener(v -> {
+                Intent intent = new Intent(ClientMainActivity.this, ClientNotificationsActivity.class);
+                startActivity(intent);
+            });
         }
 
         MenuItem avatarItem = menu.findItem(R.id.action_profile);
-        if (avatarItem != null) {
-            avatarActionLayout = (FrameLayout) avatarItem.getActionView();
-            if (avatarActionLayout != null) {
-                ivAvatarAction = avatarActionLayout.findViewById(R.id.iv_avatar_action);
-                // Al hacer click en el avatar del toolbar, abrir ClientMyAccount
-                avatarActionLayout.setOnClickListener(v -> {
-                    Intent intent = new Intent(ClientMainActivity.this, ClientMyAccount.class);
-                    startActivity(intent);
-                });
-            }
+        if (avatarItem != null && avatarItem.getActionView() != null) {
+            FrameLayout avatarActionLayout = (FrameLayout) avatarItem.getActionView();
+            ivAvatarAction = avatarActionLayout.findViewById(R.id.iv_avatar_action);
+            // Cargar imagen de perfil si existe
+            loadUserProfileImage();
+            // Al hacer click en el avatar del toolbar, abrir ClientMyAccount
+            avatarActionLayout.setOnClickListener(v -> {
+                Intent intent = new Intent(ClientMainActivity.this, ClientMyAccount.class);
+                startActivity(intent);
+            });
         }
     }
 
-    private void updateNotificationBadge() {
-        if (tvNotificationBadge != null && currentUserId != null) {
-            firestoreManager.countUnreadNotifications(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+    private void loadUserProfileImage() {
+        if (ivAvatarAction != null && currentUserId != null) {
+            // Cargar datos del usuario para obtener la foto
+            firestoreManager.getUserById(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
-                    int unreadCount = (Integer) result;
-                    if (unreadCount > 0) {
-                        tvNotificationBadge.setVisibility(View.VISIBLE);
-                        tvNotificationBadge.setText(String.valueOf(Math.min(unreadCount, 99)));
-                    } else {
-                        tvNotificationBadge.setVisibility(View.GONE);
+                    if (result instanceof com.example.droidtour.models.User) {
+                        com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                        String photoUrl = user.getPhotoUrl();
+                        if (photoUrl != null && !photoUrl.isEmpty()) {
+                            Glide.with(ClientMainActivity.this)
+                                    .load(photoUrl)
+                                    .placeholder(android.R.drawable.sym_def_app_icon)
+                                    .circleCrop()
+                                    .into(ivAvatarAction);
+                        } else {
+                            // Mostrar icono por defecto si no hay foto
+                            ivAvatarAction.setImageResource(android.R.drawable.sym_def_app_icon);
+                        }
                     }
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-                    Log.e(TAG, "Error cargando contador de notificaciones (no crítico)", e);
+                    android.util.Log.e(TAG, "Error cargando foto de perfil", e);
+                }
+            });
+        }
+    }
+
+    private void updateNotificationBadge() {
+        if (tvNotificationBadge != null && currentUserId != null) {
+            firestoreManager.getUnreadNotifications(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    if (result instanceof List) {
+                        List<?> notifications = (List<?>) result;
+                        int unreadCount = notifications.size();
+                        if (unreadCount > 0) {
+                            tvNotificationBadge.setVisibility(View.VISIBLE);
+                            tvNotificationBadge.setText(String.valueOf(Math.min(unreadCount, 99)));
+                        } else {
+                            tvNotificationBadge.setVisibility(View.GONE);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    android.util.Log.e(TAG, "Error cargando contador de notificaciones", e);
                     tvNotificationBadge.setVisibility(View.GONE);
                 }
             });
@@ -248,6 +271,10 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     @Override
     protected void onResume() {
         super.onResume();
+        // Actualizar datos al regresar a la actividad
+        updateNotificationBadge();
+        updateActiveReservationsCount();
+
         // Asegurar que "Inicio" esté seleccionado cuando la activity sea visible
         try {
             if (navigationView != null) {
@@ -262,8 +289,10 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private void setupToolbarAndDrawer() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeButtonEnabled(true);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setHomeButtonEnabled(true);
+        }
 
         drawerLayout = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
@@ -271,34 +300,38 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         drawerLayout.addDrawerListener(drawerToggle);
         drawerToggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
-        
+
         // Marcar "Inicio" (dashboard) como seleccionado para esta activity
         try {
-            navigationView.setCheckedItem(R.id.nav_dashboard);
-            MenuItem dashboardItem = navigationView.getMenu().findItem(R.id.nav_dashboard);
-            if (dashboardItem != null) dashboardItem.setChecked(true);
+            if (navigationView != null) {
+                navigationView.setCheckedItem(R.id.nav_dashboard);
+                MenuItem dashboardItem = navigationView.getMenu().findItem(R.id.nav_dashboard);
+                if (dashboardItem != null) dashboardItem.setChecked(true);
+            }
         } catch (Exception ignored) {
             // Si por alguna razón el menú aún no está inflado o el id no existe, ignorar sin romper la app
         }
 
         // Actualizar nombre de usuario en el header del drawer
-        View headerView = navigationView.getHeaderView(0);
-        if (headerView != null) {
-            TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
-            if (tvUserNameHeader != null) {
-                String userName = prefsManager.obtenerUsuario();
-                if (userName != null && !userName.isEmpty()) {
-                    // Mostrar nombre + apellido (dos primeros tokens) si están disponibles
-                    String displayName = userName.trim();
-                    String[] parts = displayName.split("\\s+");
-                    if (parts.length >= 2) {
-                        displayName = parts[0] + " " + parts[1];
-                    } else if (parts.length == 1) {
-                        displayName = parts[0];
+        if (navigationView != null) {
+            View headerView = navigationView.getHeaderView(0);
+            if (headerView != null) {
+                TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+                if (tvUserNameHeader != null) {
+                    String userName = prefsManager.getUserName();
+                    if (userName != null && !userName.isEmpty()) {
+                        // Mostrar nombre + apellido (dos primeros tokens) si están disponibles
+                        String displayName = userName.trim();
+                        String[] parts = displayName.split("\\s+");
+                        if (parts.length >= 2) {
+                            displayName = parts[0] + " " + parts[1];
+                        } else if (parts.length == 1) {
+                            displayName = parts[0];
+                        }
+                        tvUserNameHeader.setText(displayName);
+                    } else {
+                        tvUserNameHeader.setText("Usuario");
                     }
-                    tvUserNameHeader.setText(displayName);
-                } else {
-                    tvUserNameHeader.setText("Usuario");
                 }
             }
         }
@@ -317,7 +350,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
         try {
             // Si el ActionBarDrawerToggle creó un DrawerArrowDrawable, forzar su color
-            if (drawerToggle != null && drawerToggle.getDrawerArrowDrawable() != null) {
+            if (drawerToggle != null) {
                 drawerToggle.getDrawerArrowDrawable().setColor(whiteColor);
                 // sincronizar estado por si acaso
                 drawerToggle.syncState();
@@ -342,14 +375,6 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             startActivity(intent);
         });
     }
-    
-    /**
-     * 🔥 Abrir activity para inicializar datos de prueba
-     */
-    private void openInitializeDataActivity() {
-        Intent intent = new Intent(this, com.example.droidtour.firebase.InitializeTestDataActivity.class);
-        startActivity(intent);
-    }
 
     private void setupRecyclerViews() {
         // Featured Tours (horizontal)
@@ -359,69 +384,51 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         // Popular Companies (vertical)
         rvPopularCompanies.setLayoutManager(new LinearLayoutManager(this));
         rvPopularCompanies.setAdapter(new PopularCompaniesAdapter(popularCompanies, this::onCompanyClick));
-        
+
         // Cargar datos desde Firebase
         loadFeaturedToursFromFirebase();
         loadPopularCompaniesFromFirebase();
     }
-    
-    private void loadFeaturedToursFromFirebase() {
-        firestoreManager.getTours(new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                featuredTours.clear();
-                featuredTours.addAll((List<com.example.droidtour.models.Tour>) result);
-                rvFeaturedTours.getAdapter().notifyDataSetChanged();
-            }
 
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error cargando tours destacados", e);
-                Toast.makeText(ClientMainActivity.this, "Error cargando tours", Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void loadFeaturedToursFromFirebase() {
+        // TODO: Implementar la carga real desde FirestoreManager
+        featuredTours.clear();
+        // Dejar vacío para evitar datos de testing hardcodeados
+        if (rvFeaturedTours.getAdapter() != null) rvFeaturedTours.getAdapter().notifyDataSetChanged();
     }
 
     private void loadPopularCompaniesFromFirebase() {
-        firestoreManager.getCompanies(new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                popularCompanies.clear();
-                popularCompanies.addAll((List<com.example.droidtour.models.Company>) result);
-                rvPopularCompanies.getAdapter().notifyDataSetChanged();
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                Toast.makeText(ClientMainActivity.this, "Error cargando empresas", Toast.LENGTH_SHORT).show();
-            }
-        });
+        // TODO: Implementar la carga real desde FirestoreManager
+        popularCompanies.clear();
+        // Dejar vacío para evitar datos de testing hardcodeados
+        if (rvPopularCompanies.getAdapter() != null) rvPopularCompanies.getAdapter().notifyDataSetChanged();
     }
 
-    private void onFeaturedTourClick(com.example.droidtour.models.Tour tour) {
+    private void onFeaturedTourClick(Tour tour) {
         Intent intent = new Intent(this, TourDetailActivity.class);
         intent.putExtra("tour_id", tour.getTourId());
-        intent.putExtra("tour_name", tour.getName());
+        intent.putExtra("tour_name", tour.getTourName());
         intent.putExtra("company_name", tour.getCompanyName());
         intent.putExtra("company_id", tour.getCompanyId());
-        intent.putExtra("price", tour.getPricePerPerson());
+        Double price = tour.getPricePerPerson();
+        if (price != null) intent.putExtra("price", price);
         startActivity(intent);
     }
 
-    private void onCompanyClick(com.example.droidtour.models.Company company) {
+    private void onCompanyClick(Company company) {
         Intent intent = new Intent(this, ToursCatalogActivity.class);
         intent.putExtra("company_id", company.getCompanyId());
-        intent.putExtra("company_name", company.getName());
+        intent.putExtra("company_name", company.getCommercialName());
         startActivity(intent);
     }
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        
+
         if (id == R.id.nav_dashboard) {
             // Already on dashboard
-            drawerLayout.closeDrawers();
+            if (drawerLayout != null) drawerLayout.closeDrawers();
         } else if (id == R.id.nav_explore_tours) {
             startActivity(new Intent(this, CompaniesListActivity.class));
         } else if (id == R.id.nav_companies) {
@@ -436,52 +443,48 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             startActivity(new Intent(this, ClientProfileActivity.class));
         } else if (id == R.id.nav_settings) {
             startActivity(new Intent(this, ClientSettingsActivity.class));
-        } else if (id == R.id.nav_init_test_data) {
-            // 🔥 Inicializar datos de prueba
-            openInitializeDataActivity();
         } else if (id == R.id.nav_logout) {
-            //Se limpian los datos de seión
-            prefsManager.cerrarSesion();
+            // Se limpian los datos de sesión
+            prefsManager.logout();
 
-            //Limpiar el stack de activities de Login
-            Intent intent= new Intent(this, LoginActivity.class);
+            // Limpiar el stack de activities de Login
+            Intent intent = new Intent(this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
 
+            if (drawerLayout != null) drawerLayout.closeDrawers();
             finish();
 
             Toast.makeText(this, "Sesión cerrada correctamente", Toast.LENGTH_SHORT).show();
         }
-        
-        drawerLayout.closeDrawers();
+
+        if (drawerLayout != null) drawerLayout.closeDrawers();
         return true;
     }
-    
+
     // ==================== STORAGE LOCAL ====================
-    
+
     private void correctUserData() {
         // Si no hay sesión activa, no corregir nada
-        if (!prefsManager.sesionActiva()) return;
+        if (!prefsManager.isLoggedIn()) return;
 
         // Verificar y corregir datos del cliente (sin actualizar vistas)
-        String userType = prefsManager.obtenerTipoUsuario();
-        String userName = prefsManager.obtenerUsuario();
-        // Ya no necesitamos corregir datos - LoginActivity ya guarda todo correctamente
+        // No-op por ahora
     }
-    
+
     private void loadUserData() {
         // Cargar datos del usuario y actualizar vistas
-        String userName = prefsManager.obtenerUsuario();
-        
+        String userName = prefsManager.getUserName();
+
         // Actualizar mensaje de bienvenida
         if (userName != null && !userName.isEmpty()) {
             // Extraer solo el primer nombre para el saludo
             String firstName = userName.split(" ")[0];
             tvWelcomeMessage.setText("¡Hola, " + firstName + "!");
         } else {
-            tvWelcomeMessage.setText("¡Hola, Gabrielle!");
+            tvWelcomeMessage.setText("¡Hola!");
         }
-        
+
         // Actualizar nombre en el header del drawer
         if (navigationView != null) {
             View headerView = navigationView.getHeaderView(0);
@@ -501,53 +504,54 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             }
         }
     }
-    
+
     private void updateActiveReservationsCount() {
         if (currentUserId == null) {
             tvActiveReservations.setText("0 reservas activas");
             return;
         }
-        
+
         firestoreManager.getReservationsByUser(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                @SuppressWarnings("unchecked")
-                List<com.example.droidtour.models.Reservation> reservations = (List<com.example.droidtour.models.Reservation>) result;
-                int activeCount = 0;
-                
-                for (com.example.droidtour.models.Reservation res : reservations) {
-                    if (res.getStatus() != null && res.getStatus().equals("CONFIRMADA")) {
-                        activeCount++;
+                if (result instanceof List) {
+                    List<Reservation> reservations = (List<Reservation>) result;
+                    int activeCount = 0;
+
+                    for (Reservation res : reservations) {
+                        if (res.getStatus() != null && res.getStatus().equals("CONFIRMADA")) {
+                            activeCount++;
+                        }
                     }
+
+                    tvActiveReservations.setText(activeCount + " reservas activas");
                 }
-                
-                tvActiveReservations.setText(activeCount + " reservas activas");
             }
 
             @Override
             public void onFailure(Exception e) {
-                Log.e(TAG, "Error cargando contador de reservas activas (no crítico)", e);
+                android.util.Log.e(TAG, "Error cargando contador de reservas activas", e);
                 tvActiveReservations.setText("0 reservas activas");
             }
         });
     }
-    
+
     // ==================== NOTIFICACIONES ====================
-    
+
     private void testClientNotifications() {
         // Método de prueba para enviar notificaciones de ejemplo
         if (currentUserId != null) {
             notificationHelper.sendTourReminderForClient(
-                currentUserId,
-                "City Tour Lima Centro", 
-                "28 Oct", 
-                "09:00 AM"
+                    currentUserId,
+                    "City Tour Lima Centro",
+                    "28 Oct",
+                    "09:00 AM"
             );
         }
     }
-    
+
     // ==================== VALIDACIÓN DE SESIÓN ====================
-    
+
     private void redirectToLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -557,13 +561,13 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
 // Adaptador para tours destacados (horizontal)
 class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.ViewHolder> {
-    interface OnTourClick { void onClick(com.example.droidtour.models.Tour tour); }
-    private final List<com.example.droidtour.models.Tour> tours;
+    interface OnTourClick { void onClick(Tour tour); }
+    private final List<Tour> tours;
     private final OnTourClick onTourClick;
-    
-    FeaturedToursAdapter(List<com.example.droidtour.models.Tour> tours, OnTourClick listener) { 
+
+    FeaturedToursAdapter(List<Tour> tours, OnTourClick listener) {
         this.tours = tours;
-        this.onTourClick = listener; 
+        this.onTourClick = listener;
     }
 
     @Override
@@ -575,48 +579,58 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        com.example.droidtour.models.Tour tour = tours.get(position);
-        
+        Tour tour = tours.get(position);
+
         android.widget.ImageView tourImage = holder.itemView.findViewById(R.id.iv_featured_image);
         TextView tourName = holder.itemView.findViewById(R.id.tv_tour_name);
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
         TextView rating = holder.itemView.findViewById(R.id.tv_rating);
         TextView price = holder.itemView.findViewById(R.id.tv_price);
 
-        tourName.setText(tour.getName());
-        companyName.setText(tour.getCompanyName());
-        rating.setText("" + tour.getAverageRating());
-        price.setText("S/. " + String.format("%.0f", tour.getPricePerPerson()));
+        tourName.setText(tour.getTourName() != null ? tour.getTourName() : "Tour sin nombre");
+        companyName.setText(tour.getCompanyName() != null ? tour.getCompanyName() : "Compañía");
+        // Mostrar rating si existe
+        Double avg = tour.getAverageRating();
+        rating.setText(avg != null ? String.format("%.1f", avg) : "4.5");
+        Double priceVal = tour.getPricePerPerson();
+        if (priceVal != null && priceVal > 0) {
+            price.setText("S/. " + String.format("%.0f", priceVal));
+        } else {
+            price.setText("Consultar precio");
+        }
 
         if (tourImage != null) {
-            String imageUrl = tour.getImageUrl() != null ? tour.getImageUrl() : "https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg";
+            String imageUrl = tour.getMainImageUrl() != null ? tour.getMainImageUrl() :
+                    "https://www.dicasdeviagem.com/wp-content/uploads/2020/03/lima-costa-mar-2048x1364.jpg";
             Glide.with(tourImage.getContext())
-                .load(imageUrl)
-                .placeholder(android.R.drawable.ic_menu_gallery)
-                .centerCrop()
-                .into(tourImage);
+                    .load(imageUrl)
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .centerCrop()
+                    .into(tourImage);
         }
 
         holder.itemView.setOnClickListener(v -> onTourClick.onClick(tour));
     }
 
     @Override
-    public int getItemCount() { return tours.size(); }
+    public int getItemCount() {
+        return tours != null ? tours.size() : 0;
+    }
 
-    static class ViewHolder extends RecyclerView.ViewHolder { 
-        ViewHolder(android.view.View v) { super(v); } 
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        ViewHolder(android.view.View v) { super(v); }
     }
 }
 
 // Adaptador para empresas populares (vertical)
 class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapter.ViewHolder> {
-    interface OnCompanyClick { void onClick(com.example.droidtour.models.Company company); }
-    private final List<com.example.droidtour.models.Company> companies;
+    interface OnCompanyClick { void onClick(Company company); }
+    private final List<Company> companies;
     private final OnCompanyClick onCompanyClick;
-    
-    PopularCompaniesAdapter(List<com.example.droidtour.models.Company> companies, OnCompanyClick listener) { 
+
+    PopularCompaniesAdapter(List<Company> companies, OnCompanyClick listener) {
         this.companies = companies;
-        this.onCompanyClick = listener; 
+        this.onCompanyClick = listener;
     }
 
     @Override
@@ -628,8 +642,8 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        com.example.droidtour.models.Company company = companies.get(position);
-        
+        Company company = companies.get(position);
+
         TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
         TextView location = holder.itemView.findViewById(R.id.tv_company_location);
         TextView rating = holder.itemView.findViewById(R.id.tv_rating);
@@ -637,20 +651,30 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
         TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
         android.view.View btnViewTours = holder.itemView.findViewById(R.id.btn_view_tours);
 
-        companyName.setText(company.getName());
-        location.setText("📍 " + company.getCity() + ", " + company.getCountry());
-        rating.setText("⭐ " + company.getAverageRating());
-        toursCount.setText("• " + company.getTotalTours() + " tours");
-        reviewsCount.setText("• " + company.getTotalReviews() + " reseñas");
+        // Usar nombre comercial o razón social
+        String displayName = company.getCommercialName() != null ?
+                company.getCommercialName() : company.getBusinessName();
+        companyName.setText(displayName != null ? displayName : "Empresa");
+
+        location.setText("📍 " + (company.getAddress() != null ? company.getAddress() : "Ubicación no disponible"));
+
+        // Datos temporales - mostrar campos si existen
+        rating.setText("⭐ " + (company.getStatus() != null ? company.getStatus() : "4.5"));
+        toursCount.setText("• -- tours");
+        reviewsCount.setText("• -- reseñas");
 
         holder.itemView.setOnClickListener(v -> onCompanyClick.onClick(company));
-        btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(company));
+        if (btnViewTours != null) {
+            btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(company));
+        }
     }
 
     @Override
-    public int getItemCount() { return companies.size(); }
+    public int getItemCount() {
+        return companies != null ? companies.size() : 0;
+    }
 
-    static class ViewHolder extends RecyclerView.ViewHolder { 
-        ViewHolder(android.view.View v) { super(v); } 
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        ViewHolder(android.view.View v) { super(v); }
     }
 }

@@ -159,7 +159,7 @@ public class EditPaymentMethodActivity extends AppCompatActivity {
         btnUpdateCard.setEnabled(false);
         btnUpdateCard.setText("Actualizando...");
 
-        firestoreManager.updatePaymentMethod(paymentMethodId, updates, new FirestoreManager.FirestoreCallback() {
+        /*firestoreManager.updatePaymentMethod(paymentMethodId, updates, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 Toast.makeText(EditPaymentMethodActivity.this, 
@@ -175,6 +175,8 @@ public class EditPaymentMethodActivity extends AppCompatActivity {
                 btnUpdateCard.setText("Actualizar Tarjeta");
             }
         });
+
+         */
     }
 
     @Override

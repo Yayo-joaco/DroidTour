@@ -76,7 +76,7 @@ public class CompanyInfoActivity extends AppCompatActivity implements OnMapReady
 
         firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
         authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
-        currentUserId = authManager.getCurrentUserId();
+        //currentUserId = authManager.getCurrentUserId();
 
         setupToolbar();
         initializeViews();
@@ -319,10 +319,16 @@ public class CompanyInfoActivity extends AppCompatActivity implements OnMapReady
         // Generar ID único para la empresa
         String companyId = "COMP_" + System.currentTimeMillis();
 
-        com.example.droidtour.models.Company company = new com.example.droidtour.models.Company(
-                name, currentUserId, email, phone, "Lima", "Perú");
+        com.example.droidtour.models.Company company = new com.example.droidtour.models.Company();
+        company.setBusinessName(name);
+        company.setCommercialName(name); // Mismo nombre si no hay comercial
+        company.setRuc(""); // Dejar vacío o pedir al usuario
+        company.setBusinessType(""); // Dejar vacío
+        company.setAdminUserId(currentUserId);
+        company.setEmail(email);
+        company.setPhone(phone);
         company.setAddress(address);
-        company.setActive(true);
+        company.setStatus("active");
 
         firestoreManager.createCompany(company, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override

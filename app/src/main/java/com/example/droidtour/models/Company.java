@@ -3,162 +3,153 @@ package com.example.droidtour.models;
 import com.google.firebase.firestore.DocumentId;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-/**
- * Modelo de Empresa Turística para Firebase Firestore
- * Representa empresas que ofrecen tours y servicios turísticos
- */
 public class Company {
     @DocumentId
     private String companyId;
-    
-    private String companyName;
-    private String description;
-    private String adminUserId; // ID del usuario administrador de la empresa
-    private String email;
-    private String phoneNumber;
+
+    private String businessName;    // Razón social
+    private String commercialName;  // Nombre comercial
+    private String ruc;
+    private String businessType;    // S.A.C., E.I.R.L., etc.
+
+    private String adminUserId;     // ID del usuario administrador (referencia)
+    private String email;           // Email corporativo
+    private String phone;           // Teléfono corporativo
     private String address;
-    private String city;
-    private String country;
     private String logoUrl;
     private List<String> coverImageUrls;
-    
-    // Información legal
-    private String ruc; // Registro Único de Contribuyentes (Perú)
-    private String businessType; // S.A.C., E.I.R.L., etc.
-    
-    // Estadísticas
-    private Double averageRating;
-    private Integer totalReviews;
-    private Integer totalTours;
-    private Integer totalClients;
-    private Double priceFrom; // Precio desde
-    
-    // Estado
-    private Boolean isActive;
-    private Boolean isVerified;
-    @ServerTimestamp
-    private Date createdAt;
-    @ServerTimestamp
-    private Date updatedAt;
 
-    // Constructor vacío requerido por Firestore
+    private String status; // active, inactive
+    @ServerTimestamp private Date createdAt;
+    @ServerTimestamp private Date updatedAt;
+
+    // Constructor vacío
     public Company() {}
 
-    // Constructor básico
-    public Company(String companyName, String adminUserId, String email, String phoneNumber, 
-                   String city, String country) {
-        this.companyName = companyName;
+    // Constructor para crear empresa
+    public Company(String businessName, String commercialName, String ruc,
+                   String businessType, String adminUserId, String email, String phone) {
+        this.businessName = businessName;
+        this.commercialName = commercialName;
+        this.ruc = ruc;
+        this.businessType = businessType;
         this.adminUserId = adminUserId;
         this.email = email;
-        this.phoneNumber = phoneNumber;
-        this.city = city;
-        this.country = country;
-        this.isActive = true;
-        this.isVerified = false;
-        this.averageRating = 0.0;
-        this.totalReviews = 0;
-        this.totalTours = 0;
-        this.totalClients = 0;
-        this.priceFrom = 0.0;
+        this.phone = phone;
+        this.status = "active";
     }
 
-    // Convertir a Map para guardar en Firestore
-    public Map<String, Object> toMap() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("companyName", companyName);
-        map.put("description", description);
-        map.put("adminUserId", adminUserId);
-        map.put("email", email);
-        map.put("phoneNumber", phoneNumber);
-        map.put("address", address);
-        map.put("city", city);
-        map.put("country", country);
-        map.put("logoUrl", logoUrl);
-        map.put("coverImageUrls", coverImageUrls);
-        map.put("ruc", ruc);
-        map.put("businessType", businessType);
-        map.put("averageRating", averageRating);
-        map.put("totalReviews", totalReviews);
-        map.put("totalTours", totalTours);
-        map.put("totalClients", totalClients);
-        map.put("priceFrom", priceFrom);
-        map.put("isActive", isActive);
-        map.put("isVerified", isVerified);
-        return map;
+    public String getCompanyId() {
+        return companyId;
     }
 
-    // Getters y Setters
-    public String getCompanyId() { return companyId; }
-    public void setCompanyId(String companyId) { this.companyId = companyId; }
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
 
-    public String getCompanyName() { return companyName; }
-    public void setCompanyName(String companyName) { this.companyName = companyName; }
-    
-    // Método alias para compatibilidad
-    public String getName() { return companyName; }
+    public String getBusinessName() {
+        return businessName;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public void setBusinessName(String businessName) {
+        this.businessName = businessName;
+    }
 
-    public String getAdminUserId() { return adminUserId; }
-    public void setAdminUserId(String adminUserId) { this.adminUserId = adminUserId; }
+    public String getCommercialName() {
+        return commercialName;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setCommercialName(String commercialName) {
+        this.commercialName = commercialName;
+    }
 
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public String getRuc() {
+        return ruc;
+    }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
+    public void setRuc(String ruc) {
+        this.ruc = ruc;
+    }
 
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
+    public String getBusinessType() {
+        return businessType;
+    }
 
-    public String getCountry() { return country; }
-    public void setCountry(String country) { this.country = country; }
+    public void setBusinessType(String businessType) {
+        this.businessType = businessType;
+    }
 
-    public String getLogoUrl() { return logoUrl; }
-    public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
+    public String getAdminUserId() {
+        return adminUserId;
+    }
 
-    public List<String> getCoverImageUrls() { return coverImageUrls; }
-    public void setCoverImageUrls(List<String> coverImageUrls) { this.coverImageUrls = coverImageUrls; }
+    public void setAdminUserId(String adminUserId) {
+        this.adminUserId = adminUserId;
+    }
 
-    public String getRuc() { return ruc; }
-    public void setRuc(String ruc) { this.ruc = ruc; }
+    public String getEmail() {
+        return email;
+    }
 
-    public String getBusinessType() { return businessType; }
-    public void setBusinessType(String businessType) { this.businessType = businessType; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public Double getAverageRating() { return averageRating; }
-    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+    public String getPhone() {
+        return phone;
+    }
 
-    public Integer getTotalReviews() { return totalReviews; }
-    public void setTotalReviews(Integer totalReviews) { this.totalReviews = totalReviews; }
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 
-    public Integer getTotalTours() { return totalTours; }
-    public void setTotalTours(Integer totalTours) { this.totalTours = totalTours; }
+    public String getAddress() {
+        return address;
+    }
 
-    public Integer getTotalClients() { return totalClients; }
-    public void setTotalClients(Integer totalClients) { this.totalClients = totalClients; }
+    public void setAddress(String address) {
+        this.address = address;
+    }
 
-    public Double getPriceFrom() { return priceFrom; }
-    public void setPriceFrom(Double priceFrom) { this.priceFrom = priceFrom; }
+    public String getLogoUrl() {
+        return logoUrl;
+    }
 
-    public Boolean getActive() { return isActive; }
-    public void setActive(Boolean active) { isActive = active; }
+    public void setLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
+    }
 
-    public Boolean getVerified() { return isVerified; }
-    public void setVerified(Boolean verified) { isVerified = verified; }
+    public List<String> getCoverImageUrls() {
+        return coverImageUrls;
+    }
 
-    public Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+    public void setCoverImageUrls(List<String> coverImageUrls) {
+        this.coverImageUrls = coverImageUrls;
+    }
 
-    public Date getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }
-

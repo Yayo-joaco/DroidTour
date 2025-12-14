@@ -247,7 +247,8 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
         }
 
         private void setupStatusSwitch(User user, OnUserClickListener listener) {
-            boolean isActive = user.getActive() != null ? user.getActive() : true;
+            // Determinar si está activo basándose en el status // nuevo actualizado
+            boolean isActive = "active".equalsIgnoreCase(user.getStatus());
             switchUserStatus.setChecked(isActive);
 
             switchUserStatus.setOnCheckedChangeListener(null);

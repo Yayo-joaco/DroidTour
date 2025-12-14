@@ -69,7 +69,7 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         // Inicializar Firebase
         firestoreManager = FirestoreManager.getInstance();
         authManager = FirebaseAuthManager.getInstance(this);
-        currentUserId = authManager.getCurrentUserId();
+        //currentUserId = authManager.getCurrentUserId();
         
         // Si no hay usuario autenticado, usar del PreferencesManager
         if (currentUserId == null || currentUserId.isEmpty()) {
@@ -120,7 +120,7 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         
         Log.d(TAG, "🔄 Cargando reservas para userId: " + currentUserId);
         
-        firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+        /*firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 userReservations = (List<Reservation>) result;
@@ -140,6 +140,8 @@ public class PaymentMethodsActivity extends AppCompatActivity {
                 loadPaymentMethodsFromFirestore();
             }
         });
+
+         */
     }
     
     /**

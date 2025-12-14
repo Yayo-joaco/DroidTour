@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.R;
+import com.example.droidtour.models.Reservation;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.zxing.BarcodeFormat;
@@ -30,7 +31,7 @@ public class ClientQRCodesActivity extends AppCompatActivity {
     private com.example.droidtour.utils.PreferencesManager prefsManager;
     
     private String reservationId;
-    private com.example.droidtour.models.Reservation currentReservation;
+    private Reservation currentReservation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +63,7 @@ public class ClientQRCodesActivity extends AppCompatActivity {
         getIntentData();
         setupToolbar();
         initializeViews();
-        loadReservationFromFirebase();
+        //loadReservationFromFirebase();
         setupClickListeners();
     }
 
@@ -72,12 +73,14 @@ public class ClientQRCodesActivity extends AppCompatActivity {
             reservationId = "RES001"; // Fallback
         }
     }
-    
+
+
+    /*
     private void loadReservationFromFirebase() {
         firestoreManager.getReservationById(reservationId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                currentReservation = (com.example.droidtour.models.Reservation) result;
+                currentReservation = (com.example.droidtour.modelsenhanced.Reservation) result;
                 displayReservationData();
                 generateQRCodes();
             }
@@ -89,6 +92,8 @@ public class ClientQRCodesActivity extends AppCompatActivity {
             }
         });
     }
+
+     */
     
     private void displayReservationData() {
         if (currentReservation == null) return;

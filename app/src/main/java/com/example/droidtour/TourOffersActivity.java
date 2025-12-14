@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.TourOffer;
-import com.example.droidtour.LoginActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
 import java.util.ArrayList;
@@ -24,7 +23,7 @@ public class TourOffersActivity extends AppCompatActivity {
     private RecyclerView rvTourOffers;
     private Chip chipAll, chipPending, chipRejected;
     private String currentFilter = "PENDING";
-    
+
     private FirestoreManager firestoreManager;
     private FirebaseAuthManager authManager;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
@@ -35,19 +34,19 @@ public class TourOffersActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // Inicializar helpers
         prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
         firestoreManager = FirestoreManager.getInstance();
         authManager = FirebaseAuthManager.getInstance(this);
-        
+
         // Validar sesión PRIMERO
         if (!prefsManager.isLoggedIn()) {
             redirectToLogin();
             finish();
             return;
         }
-        
+
         // Validar que el usuario sea un guía
         String userType = prefsManager.getUserType();
         if (userType == null || !userType.equals("GUIDE")) {
@@ -55,13 +54,13 @@ public class TourOffersActivity extends AppCompatActivity {
             finish();
             return;
         }
-        
+
         // Obtener ID del usuario actual
         currentUserId = authManager.getCurrentUserId();
         if (currentUserId == null || currentUserId.isEmpty()) {
             currentUserId = prefsManager.getUserId();
         }
-        
+
         setContentView(R.layout.activity_tour_offers);
 
         initializeViews();
@@ -70,48 +69,48 @@ public class TourOffersActivity extends AppCompatActivity {
         setupFilters();
         loadOffersFromFirebase();
     }
-    
+
     @Override
     protected void onResume() {
         super.onResume();
         // Recargar ofertas cuando volvemos de la actividad de detalles
         loadOffersFromFirebase();
     }
-    
+
     private void loadOffersFromFirebase() {
         if (currentUserId == null || currentUserId.isEmpty()) {
             Log.e(TAG, "❌ Error: currentUserId es null o vacío");
             Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         Log.d(TAG, "🔄 Cargando ofertas para guía: " + currentUserId);
-        
+
         firestoreManager.getOffersByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 allOffers = (List<TourOffer>) result;
                 Log.d(TAG, "✅ Ofertas cargadas: " + allOffers.size());
                 filterAndUpdateList();
-                
+
                 if (allOffers.isEmpty()) {
-                    Toast.makeText(TourOffersActivity.this, "No hay ofertas disponibles", 
+                    Toast.makeText(TourOffersActivity.this, "No hay ofertas disponibles",
                         Toast.LENGTH_SHORT).show();
                 }
             }
-            
+
             @Override
             public void onFailure(Exception e) {
                 Log.e(TAG, "❌ Error cargando ofertas", e);
-                Toast.makeText(TourOffersActivity.this, 
+                Toast.makeText(TourOffersActivity.this,
                     "Error al cargar ofertas: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
-    
+
     private void filterAndUpdateList() {
         List<TourOffer> filteredOffers = new ArrayList<>();
-        
+
         for (TourOffer offer : allOffers) {
             String status = offer.getStatus();
             if (currentFilter.equals("ALL")) {
@@ -122,7 +121,7 @@ public class TourOffersActivity extends AppCompatActivity {
                 filteredOffers.add(offer);
             }
         }
-        
+
         adapter.updateData(filteredOffers);
         Log.d(TAG, "📊 Ofertas filtradas (" + currentFilter + "): " + filteredOffers.size());
     }
@@ -149,17 +148,17 @@ public class TourOffersActivity extends AppCompatActivity {
 
     private void setupFilters() {
         chipPending.setChecked(true);
-        
+
         chipAll.setOnClickListener(v -> {
             currentFilter = "ALL";
             filterAndUpdateList();
         });
-        
+
         chipPending.setOnClickListener(v -> {
             currentFilter = "PENDING";
             filterAndUpdateList();
         });
-        
+
         chipRejected.setOnClickListener(v -> {
             currentFilter = "REJECTED";
             filterAndUpdateList();
@@ -168,13 +167,13 @@ public class TourOffersActivity extends AppCompatActivity {
 
     // Adapter for Tour Offers
     private class TourOffersAdapter extends RecyclerView.Adapter<TourOffersAdapter.ViewHolder> {
-        
+
         private List<TourOffer> offers;
-        
+
         TourOffersAdapter(List<TourOffer> offers) {
             this.offers = offers != null ? offers : new ArrayList<>();
         }
-        
+
         public void updateData(List<TourOffer> newOffers) {
             this.offers = newOffers != null ? newOffers : new ArrayList<>();
             notifyDataSetChanged();
@@ -189,7 +188,7 @@ public class TourOffersActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             TourOffer offer = offers.get(position);
-            
+
             holder.tvTourName.setText(offer.getTourName() != null ? offer.getTourName() : "Tour sin nombre");
             holder.tvCompanyName.setText(offer.getCompanyName() != null ? offer.getCompanyName() : "Empresa no especificada");
             holder.tvTourDate.setText(offer.getTourDate() != null ? offer.getTourDate() : "Fecha no especificada");
@@ -198,7 +197,7 @@ public class TourOffersActivity extends AppCompatActivity {
             holder.tvPaymentAmount.setText(String.format("S/. %.2f", offer.getPaymentAmount() != null ? offer.getPaymentAmount() : 0.0));
             holder.tvParticipants.setText((offer.getNumberOfParticipants() != null ? offer.getNumberOfParticipants() : 0) + " personas");
             holder.tvOfferStatus.setText(offer.getStatus() != null ? offer.getStatus() : "PENDIENTE");
-            
+
             // Set status color and visibility based on status
             String status = offer.getStatus();
             if ("PENDIENTE".equals(status)) {
@@ -233,25 +232,25 @@ public class TourOffersActivity extends AppCompatActivity {
                 firestoreManager.updateOfferStatus(offer.getOfferId(), "ACEPTADA", new FirestoreManager.FirestoreCallback() {
                     @Override
                     public void onSuccess(Object result) {
-                        Toast.makeText(TourOffersActivity.this, 
-                            "✅ Oferta aceptada: " + offer.getTourName(), 
+                        Toast.makeText(TourOffersActivity.this,
+                            "✅ Oferta aceptada: " + offer.getTourName(),
                             Toast.LENGTH_LONG).show();
-                        
+
                         // Actualizar UI
                         holder.layoutPendingActions.setVisibility(View.GONE);
                         holder.layoutResponseStatus.setVisibility(View.VISIBLE);
                         holder.tvResponseMessage.setText("Oferta aceptada - Tour asignado");
                         holder.tvResponseMessage.setTextColor(getColor(R.color.green));
                         holder.ivResponseIcon.setColorFilter(getColor(R.color.green));
-                        
+
                         // Recargar ofertas
                         loadOffersFromFirebase();
                     }
-                    
+
                     @Override
                     public void onFailure(Exception e) {
-                        Toast.makeText(TourOffersActivity.this, 
-                            "Error al aceptar oferta: " + e.getMessage(), 
+                        Toast.makeText(TourOffersActivity.this,
+                            "Error al aceptar oferta: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -262,25 +261,25 @@ public class TourOffersActivity extends AppCompatActivity {
                 firestoreManager.updateOfferStatus(offer.getOfferId(), "RECHAZADA", new FirestoreManager.FirestoreCallback() {
                     @Override
                     public void onSuccess(Object result) {
-                        Toast.makeText(TourOffersActivity.this, 
-                            "Oferta rechazada", 
+                        Toast.makeText(TourOffersActivity.this,
+                            "Oferta rechazada",
                             Toast.LENGTH_SHORT).show();
-                        
+
                         // Actualizar UI
                         holder.layoutPendingActions.setVisibility(View.GONE);
                         holder.layoutResponseStatus.setVisibility(View.VISIBLE);
                         holder.tvResponseMessage.setText("Oferta rechazada");
                         holder.tvResponseMessage.setTextColor(getColor(R.color.red));
                         holder.ivResponseIcon.setColorFilter(getColor(R.color.red));
-                        
+
                         // Recargar ofertas
                         loadOffersFromFirebase();
                     }
-                    
+
                     @Override
                     public void onFailure(Exception e) {
-                        Toast.makeText(TourOffersActivity.this, 
-                            "Error al rechazar oferta: " + e.getMessage(), 
+                        Toast.makeText(TourOffersActivity.this,
+                            "Error al rechazar oferta: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -351,7 +350,7 @@ public class TourOffersActivity extends AppCompatActivity {
             }
         }
     }
-    
+
     private void redirectToLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

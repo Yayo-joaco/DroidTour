@@ -18,6 +18,9 @@ import androidx.core.content.ContextCompat;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.R;
+import com.example.droidtour.firebase.FirebaseStorageManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.User;
 import com.example.droidtour.utils.NavigationUtils;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -210,6 +213,8 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
     }
 
     private void completeGoogleRegistration() {
+
+
         // Mostrar progreso
         btnSiguiente.setEnabled(false);
         Toast.makeText(this, "Completando registro...", Toast.LENGTH_SHORT).show();
@@ -254,12 +259,69 @@ public class ClientRegistrationPhotoActivity extends AppCompatActivity {
                 additionalData.put("customPhoto", false);
             }
 
-            // Guardar en Firestore
-            com.example.droidtour.utils.FirebaseUtils.saveGoogleUserToFirestore(
-                    firebaseUser,
-                    "CLIENT", // Siempre será CLIENT en este flujo
-                    additionalData
+            FirestoreManager firestore = FirestoreManager.getInstance();
+            FirebaseStorageManager storage = FirebaseStorageManager.getInstance();
+
+            User user = User.createClient(
+                    firebaseUser.getEmail(),
+                    nombres != null ? nombres : "",
+                    apellidos != null ? apellidos : "",
+                    tipoDocumento,
+                    numeroDocumento,
+                    fechaNacimiento,
+                    telefono
             );
+            user.setUserId(firebaseUser.getUid()); // importante: mismo UID de Auth
+            user.setStatus("active"); // cliente activo
+
+// foto final:
+// - si eligió una local (photoUri), se sube a Storage y se guarda la URL real
+// - si no, usa la de Google (userPhoto o firebaseUser.getPhotoUrl())
+            if (photoUri != null) {
+                storage.uploadProfileImage(firebaseUser.getUid(), photoUri, new FirebaseStorageManager.StorageCallback() {
+                    @Override public void onSuccess(String downloadUrl) {
+                        user.getPersonalData().setProfileImageUrl(downloadUrl);
+
+                        firestore.upsertUser(user, new FirestoreManager.FirestoreCallback() {
+                            @Override public void onSuccess(Object result) {
+                                saveToPreferencesManager(firebaseUser.getUid(), fullName, firebaseUser.getEmail(), telefono, "CLIENT");
+                                Toast.makeText(ClientRegistrationPhotoActivity.this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+                                redirectToMainActivity();
+                            }
+
+                            @Override public void onFailure(Exception e) {
+                                btnSiguiente.setEnabled(true);
+                                Toast.makeText(ClientRegistrationPhotoActivity.this, "Error guardando usuario: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                    @Override public void onFailure(Exception e) {
+                        btnSiguiente.setEnabled(true);
+                        Toast.makeText(ClientRegistrationPhotoActivity.this, "Error subiendo foto: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override public void onProgress(int progress) { /* opcional */ }
+                });
+
+            } else {
+                String googlePhoto = (firebaseUser.getPhotoUrl() != null) ? firebaseUser.getPhotoUrl().toString() : userPhoto;
+                user.getPersonalData().setProfileImageUrl(googlePhoto);
+
+                firestore.upsertUser(user, new FirestoreManager.FirestoreCallback() {
+                    @Override public void onSuccess(Object result) {
+                        saveToPreferencesManager(firebaseUser.getUid(), fullName, firebaseUser.getEmail(), telefono, "CLIENT");
+                        Toast.makeText(ClientRegistrationPhotoActivity.this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+                        redirectToMainActivity();
+                    }
+
+                    @Override public void onFailure(Exception e) {
+                        btnSiguiente.setEnabled(true);
+                        Toast.makeText(ClientRegistrationPhotoActivity.this, "Error guardando usuario: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+
 
             // Guardar en PreferencesManager para la sesión actual
             saveToPreferencesManager(firebaseUser.getUid(), fullName, firebaseUser.getEmail(), telefono, "CLIENT");

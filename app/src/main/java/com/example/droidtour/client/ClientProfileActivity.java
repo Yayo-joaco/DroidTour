@@ -33,7 +33,7 @@ public class ClientProfileActivity extends AppCompatActivity {
     private TextView tvToursCount, tvRating, tvMemberSince;
     private CardView cardLanguages;
     private FloatingActionButton fabEdit;
-    private ImageButton btnEditPhoto;
+    private View btnEditPhoto; // usar ImageView existente 'profile_image' como botón editar
 
     private PreferencesManager prefsManager;
     private FirestoreManager firestoreManager;
@@ -90,6 +90,10 @@ public class ClientProfileActivity extends AppCompatActivity {
 
         // FAB
         fabEdit = findViewById(R.id.fab_edit);
+
+        // Botón editar foto (asegurar inicialización)
+        // En el layout no existe btn_edit_photo; usamos el ImageView 'profile_image' como activador
+        btnEditPhoto = findViewById(R.id.profile_image);
     }
 
     /**
@@ -161,35 +165,47 @@ public class ClientProfileActivity extends AppCompatActivity {
         // Header - Nombre completo
         String fullName = user.getFullName() != null && !user.getFullName().isEmpty()
                 ? user.getFullName()
-                : user.getFirstName() + " " + user.getLastName();
-        tvUserName.setText(fullName);
-        tvUserEmail.setText(user.getEmail());
+                : (user.getFirstName() != null || user.getLastName() != null)
+                ? ( (user.getFirstName() != null ? user.getFirstName() : "") + " " + (user.getLastName() != null ? user.getLastName() : "") ).trim()
+                : prefsManager.getUserName();
+        tvUserName.setText(fullName != null && !fullName.isEmpty() ? fullName : "Usuario");
+        tvUserEmail.setText(user.getEmail() != null ? user.getEmail() : prefsManager.getUserEmail());
         tvUserRole.setText("CLIENTE");
 
         // NUEVOS CAMPOS: Nombres y apellidos por separado
         tvFirstName.setText(user.getFirstName() != null ? user.getFirstName() : "N/A");
         tvLastName.setText(user.getLastName() != null ? user.getLastName() : "N/A");
 
-        // NUEVO CAMPO: Fecha de nacimiento
-        if (user.getDateOfBirth() != null) {
+        // NUEVO CAMPO: Fecha de nacimiento (usa personalData dentro de User)
+        String birthDateStr = null;
+        if (user.getPersonalData() != null) {
+            birthDateStr = user.getPersonalData().getDateOfBirth();
+        }
+        if (birthDateStr != null && !birthDateStr.isEmpty()) {
             try {
-                // Formatear la fecha si viene como timestamp o string
-                String formattedDate = formatBirthDate(user.getDateOfBirth());
+                String formattedDate = formatBirthDate(birthDateStr);
                 tvBirthDate.setText(formattedDate);
             } catch (Exception e) {
                 Log.e(TAG, "Error formateando fecha de nacimiento: " + e.getMessage());
-                tvBirthDate.setText(user.getDateOfBirth().toString());
+                tvBirthDate.setText(birthDateStr);
             }
         } else {
             tvBirthDate.setText("N/A");
         }
 
-        // Información personal existente
-        tvDocumentType.setText(user.getDocumentType() != null ? user.getDocumentType() : "DNI");
-        tvDocumentNumber.setText(user.getDocumentNumber() != null ? user.getDocumentNumber() : "N/A");
+        // Información personal existente (documento)
+        String docType = null;
+        String docNum = null;
+        if (user.getPersonalData() != null) {
+            docType = user.getPersonalData().getDocumentType();
+            docNum = user.getPersonalData().getDocumentNumber();
+        }
+        tvDocumentType.setText(docType != null ? docType : "DNI");
+        tvDocumentNumber.setText(docNum != null ? docNum : "N/A");
 
         // Teléfono
-        String phone = user.getPhoneNumber();
+        String phone = null;
+        if (user.getPersonalData() != null) phone = user.getPersonalData().getPhoneNumber();
         if (phone == null || phone.isEmpty()) {
             phone = prefsManager.getUserPhone();
         }
@@ -206,10 +222,8 @@ public class ClientProfileActivity extends AppCompatActivity {
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
             return sdf.format(timestamp.toDate());
         } else if (birthDate instanceof String) {
-            // Si es un string, intentar parsearlo
-            String dateString = (String) birthDate;
-            // Puedes ajustar el formato según cómo guardes las fechas en Firestore
-            return dateString;
+            // Si es un string, devolverlo tal cual (ya está formateado en el modelo)
+            return (String) birthDate;
         } else {
             return birthDate.toString();
         }
@@ -245,24 +259,10 @@ public class ClientProfileActivity extends AppCompatActivity {
             tvStatLabel1.setText("Tours\nReservados");
         }
 
-        // Cargar cantidad de reservas desde Firestore
-        firestoreManager.getReservationsByUser(userId, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                java.util.List<com.example.droidtour.models.Reservation> reservations =
-                        (java.util.List<com.example.droidtour.models.Reservation>) result;
-                tvToursCount.setText(String.valueOf(reservations.size()));
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error cargando reservas", e);
-                tvToursCount.setText("0");
-            }
-        });
+        // Cargar cantidad de reservas desde Firestore (implementación pendiente)
+        // TODO: implementar la carga real cuando FirestoreManager devuelva reservas
 
         // Cargar rating promedio del usuario
-        // TODO: Implementar cuando exista un sistema de reviews
         double avgRating = 4.8; // Valor por defecto
         tvRating.setText(String.format("%.1f", avgRating));
 
@@ -281,18 +281,12 @@ public class ClientProfileActivity extends AppCompatActivity {
     private void setupClickListeners() {
         // Botón editar foto
         if (btnEditPhoto != null) {
-            btnEditPhoto.setOnClickListener(v -> {
-                Toast.makeText(this, "Editar foto próximamente", Toast.LENGTH_SHORT).show();
-            });
+            btnEditPhoto.setOnClickListener(v -> Toast.makeText(this, "Editar foto próximamente", Toast.LENGTH_SHORT).show());
         }
 
         // FAB editar - NUEVO: Abrir ClientEditProfileActivity
         if (fabEdit != null) {
             fabEdit.setOnClickListener(v -> {
-                // CAMBIAR ESTO:
-                // Toast.makeText(this, "Edición de perfil próximamente", Toast.LENGTH_SHORT).show();
-
-                // POR ESTO:
                 Intent editIntent = new Intent(ClientProfileActivity.this, ClientEditProfileActivity.class);
                 startActivityForResult(editIntent, 1); // Usar startActivityForResult para recibir actualizaciones
             });

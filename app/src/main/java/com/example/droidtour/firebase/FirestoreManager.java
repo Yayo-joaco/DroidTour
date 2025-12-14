@@ -1,1836 +1,755 @@
 package com.example.droidtour.firebase;
 
 import android.util.Log;
+import android.graphics.Bitmap;
+import android.net.Uri;
 
-import com.example.droidtour.models.*;
-import com.google.firebase.firestore.CollectionReference;
+import com.example.droidtour.models.Company;
+import com.example.droidtour.models.Guide;
+import com.example.droidtour.models.User;
+import com.example.droidtour.models.TourOffer;
+import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.Notification;
+import com.example.droidtour.models.Tour;
+import com.example.droidtour.models.PaymentMethod;
+import com.example.droidtour.models.Review;
+import com.example.droidtour.models.UserSession;
+import com.example.droidtour.utils.ImageUploadManager;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.SetOptions;
-import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Manager para Firebase Firestore
- * Proporciona métodos CRUD para todas las colecciones de la base de datos
- */
 public class FirestoreManager {
     private static final String TAG = "FirestoreManager";
     private static FirestoreManager instance;
-    
+
     private final FirebaseFirestore db;
-    
-    // Nombres de colecciones - Públicas para uso en toda la aplicación
+
     public static final String COLLECTION_USERS = "users";
     public static final String COLLECTION_COMPANIES = "companies";
-    public static final String COLLECTION_TOURS = "tours";
-    public static final String COLLECTION_RESERVATIONS = "reservations";
-    public static final String COLLECTION_REVIEWS = "reviews";
-    public static final String COLLECTION_PAYMENT_METHODS = "payment_methods";
-    public static final String COLLECTION_NOTIFICATIONS = "notifications";
-    public static final String COLLECTION_USER_PREFERENCES = "user_preferences";
-    public static final String COLLECTION_MESSAGES = "messages";
-    public static final String COLLECTION_USER_SESSIONS = "user_sessions";
+    public static final String COLLECTION_GUIDES = "guides";
+
+    // Nuevas colecciones usadas en la app
     public static final String COLLECTION_TOUR_OFFERS = "tour_offers";
+    public static final String COLLECTION_RESERVATIONS = "reservations";
+    public static final String COLLECTION_NOTIFICATIONS = "notifications";
+    public static final String COLLECTION_TOURS = "tours";
+
+    // Colecciones adicionales necesarias
+    public static final String COLLECTION_PAYMENT_METHODS = "payment_methods";
     public static final String COLLECTION_USER_ROLES = "user_roles";
-    public static final String COLLECTION_CONVERSATIONS = "conversations";
+    public static final String COLLECTION_USER_SESSIONS = "user_sessions";
+    public static final String COLLECTION_REVIEWS = "reviews";
 
     private FirestoreManager() {
-        this.db = FirebaseFirestore.getInstance();
+        db = FirebaseFirestore.getInstance();
     }
 
     public static synchronized FirestoreManager getInstance() {
-        if (instance == null) {
-            instance = new FirestoreManager();
-        }
+        if (instance == null) instance = new FirestoreManager();
         return instance;
     }
 
-    // ==================== USUARIOS ====================
+    // ==================== USERS ====================
 
-    /**
-     * Método auxiliar para mapear un documento a User manualmente cuando toObject() falla
-     * Útil para documentos legacy que tienen campos conflictivos (ej: userId dentro del documento)
-     * 
-     * ESTRATEGIA DE MIGRACIÓN DE CAMPOS LEGACY:
-     * - Lee tanto campos estándar como legacy para compatibilidad con documentos existentes
-     * - Prioriza campos estándar (phoneNumber, dateOfBirth, profileImageUrl, fullName, guideLanguages)
-     * - Si no encuentra campo estándar, lee campo legacy (phone, birthDate, photoURL, displayName, languages)
-     * - Al guardar (User.toMap()), solo se guardan campos estándar, migrando automáticamente documentos legacy
-     */
-    private User mapDocumentToUser(DocumentSnapshot document) {
-        User user = new User();
-        Map<String, Object> data = document.getData();
-        
-        if (data == null) {
-            return user;
-        }
-        
-        // Establecer userId desde el ID del documento (no desde el campo interno)
-        user.setUserId(document.getId());
-        
-        // Mapear campos básicos
-        if (data.get("email") != null) user.setEmail(String.valueOf(data.get("email")));
-        if (data.get("firstName") != null) user.setFirstName(String.valueOf(data.get("firstName")));
-        if (data.get("lastName") != null) user.setLastName(String.valueOf(data.get("lastName")));
-        if (data.get("fullName") != null) user.setFullName(String.valueOf(data.get("fullName")));
-        else if (data.get("displayName") != null) user.setFullName(String.valueOf(data.get("displayName")));
-        
-        // Phone: intentar phoneNumber primero, luego phone (legacy)
-        if (data.get("phoneNumber") != null) user.setPhoneNumber(String.valueOf(data.get("phoneNumber")));
-        else if (data.get("phone") != null) user.setPhoneNumber(String.valueOf(data.get("phone")));
-        
-        if (data.get("countryCode") != null) user.setCountryCode(String.valueOf(data.get("countryCode")));
-        if (data.get("documentType") != null) user.setDocumentType(String.valueOf(data.get("documentType")));
-        if (data.get("documentNumber") != null) user.setDocumentNumber(String.valueOf(data.get("documentNumber")));
-        
-        // Date of birth: intentar dateOfBirth primero, luego birthDate (legacy)
-        if (data.get("dateOfBirth") != null) user.setDateOfBirth(String.valueOf(data.get("dateOfBirth")));
-        else if (data.get("birthDate") != null) user.setDateOfBirth(String.valueOf(data.get("birthDate")));
-        
-        if (data.get("address") != null) user.setAddress(String.valueOf(data.get("address")));
-        if (data.get("userType") != null) user.setUserType(String.valueOf(data.get("userType")));
-        
-        // Profile image: intentar profileImageUrl primero, luego photoURL (legacy)
-        if (data.get("profileImageUrl") != null) user.setProfileImageUrl(String.valueOf(data.get("profileImageUrl")));
-        else if (data.get("photoURL") != null) user.setProfileImageUrl(String.valueOf(data.get("photoURL")));
-        else if (data.get("photoUrl") != null) user.setProfileImageUrl(String.valueOf(data.get("photoUrl")));
-        
-        // Campos de estado
-        if (data.get("isActive") instanceof Boolean) {
-            user.setActive((Boolean) data.get("isActive"));
-        } else if (data.get("status") != null) {
-            String status = String.valueOf(data.get("status"));
-            user.setStatus(status);
-            user.setActive("active".equalsIgnoreCase(status));
-        }
-        
-        if (data.get("isEmailVerified") instanceof Boolean) {
-            user.setEmailVerified((Boolean) data.get("isEmailVerified"));
-        }
-        
-        // Campos de metadatos
-        if (data.get("provider") != null) user.setProvider(String.valueOf(data.get("provider")));
-        if (data.get("customPhoto") instanceof Boolean) user.setCustomPhoto((Boolean) data.get("customPhoto"));
-        if (data.get("profileCompleted") instanceof Boolean) user.setProfileCompleted((Boolean) data.get("profileCompleted"));
-        if (data.get("profileCompletedAt") != null && data.get("profileCompletedAt") instanceof java.util.Date) {
-            user.setProfileCompletedAt((java.util.Date) data.get("profileCompletedAt"));
-        }
-        if (data.get("registeredBy") != null) user.setRegisteredBy(String.valueOf(data.get("registeredBy")));
-        
-        // Campos específicos para guías
-        if ("GUIDE".equals(user.getUserType())) {
-            if (data.get("isGuideApproved") instanceof Boolean) {
-                user.setGuideApproved((Boolean) data.get("isGuideApproved"));
-            }
-            if (data.get("guideRating") instanceof Number) {
-                user.setGuideRating(((Number) data.get("guideRating")).floatValue());
-            }
-            if (data.get("guideLanguages") instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<String> languages = (List<String>) data.get("guideLanguages");
-                user.setGuideLanguages(languages);
-            } else if (data.get("languages") instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<String> languages = (List<String>) data.get("languages");
-                user.setGuideLanguages(languages);
-            }
-            if (data.get("guideSpecialties") != null) {
-                user.setGuideSpecialties(String.valueOf(data.get("guideSpecialties")));
-            }
-        }
-        
-        // Campos específicos para admins
-        if ("ADMIN".equals(user.getUserType())) {
-            if (data.get("companyId") != null) user.setCompanyId(String.valueOf(data.get("companyId")));
-            if (data.get("companyBusinessName") != null) user.setCompanyBusinessName(String.valueOf(data.get("companyBusinessName")));
-            if (data.get("companyRuc") != null) user.setCompanyRuc(String.valueOf(data.get("companyRuc")));
-            if (data.get("companyCommercialName") != null) user.setCompanyCommercialName(String.valueOf(data.get("companyCommercialName")));
-            if (data.get("companyType") != null) user.setCompanyType(String.valueOf(data.get("companyType")));
-        }
-        
-        // Timestamps
-        if (data.get("createdAt") != null && data.get("createdAt") instanceof java.util.Date) {
-            user.setCreatedAt((java.util.Date) data.get("createdAt"));
-        }
-        if (data.get("updatedAt") != null && data.get("updatedAt") instanceof java.util.Date) {
-            user.setUpdatedAt((java.util.Date) data.get("updatedAt"));
-        }
-        
-        return user;
-    }
-
-    /**
-     * Validar estructura de datos de un objeto User antes de guardarlo
-     * @param user Objeto User a validar
-     * @return null si es válido, mensaje de error si hay problemas
-     */
-    private String validateUserData(User user) {
-        // Validar userId
-        if (user.getUserId() == null || user.getUserId().isEmpty()) {
-            return "User ID is required";
-        }
-
-        // Validar email
-        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
-            return "Email is required";
-        }
-        
-        // Validar formato de email básico
-        String email = user.getEmail().trim();
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            return "Invalid email format";
-        }
-
-        // Validar userType
-        if (user.getUserType() == null || user.getUserType().isEmpty()) {
-            return "User type is required";
-        }
-
-        String userType = user.getUserType().toUpperCase();
-        if (!userType.equals("CLIENT") && !userType.equals("GUIDE") && 
-            !userType.equals("ADMIN") && !userType.equals("SUPERADMIN")) {
-            return "Invalid user type. Must be CLIENT, GUIDE, ADMIN, or SUPERADMIN";
-        }
-
-        // Validar campos requeridos según el tipo de usuario
-        if (user.getFirstName() == null || user.getFirstName().trim().isEmpty()) {
-            return "First name is required";
-        }
-
-        if (user.getLastName() == null || user.getLastName().trim().isEmpty()) {
-            return "Last name is required";
-        }
-
-        // Validar campos específicos para ADMIN
-        if ("ADMIN".equals(userType)) {
-            if (user.getCompanyBusinessName() == null || user.getCompanyBusinessName().trim().isEmpty()) {
-                return "Company business name is required for ADMIN users";
-            }
-            if (user.getCompanyRuc() == null || user.getCompanyRuc().trim().isEmpty()) {
-                return "Company RUC is required for ADMIN users";
-            }
-        }
-
-        // Validar formato de teléfono si está presente
-        if (user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty()) {
-            String phone = user.getPhoneNumber().trim();
-            // Validar que tenga al menos 6 dígitos (sin contar código de país)
-            String digitsOnly = phone.replaceAll("[^0-9]", "");
-            if (digitsOnly.length() < 6) {
-                return "Phone number must have at least 6 digits";
-            }
-        }
-
-        // Validar formato de documento si está presente
-        if (user.getDocumentNumber() != null && !user.getDocumentNumber().trim().isEmpty()) {
-            String docNumber = user.getDocumentNumber().trim();
-            if (docNumber.length() < 4) {
-                return "Document number must have at least 4 characters";
-            }
-        }
-
-        return null; // Válido
-    }
-
-    /**
-     * Crear un nuevo usuario en Firestore
-     */
-    public void createUser(User user, FirestoreCallback callback) {
-        // Validar datos antes de guardar
-        String validationError = validateUserData(user);
-        if (validationError != null) {
-            Log.e(TAG, "Validation error: " + validationError);
-            callback.onFailure(new Exception(validationError));
+    public void upsertUser(User user, FirestoreCallback callback) {
+        String err = validateUser(user);
+        if (err != null) {
+            callback.onFailure(new Exception(err));
             return;
         }
 
-        String userId = user.getUserId();
+        // Asegurar fullName coherente si existe personalData
+        if (user.getPersonalData() != null) {
+            User.PersonalData pd = user.getPersonalData();
+            if (pd.getFirstName() != null && pd.getLastName() != null) {
+                pd.setFullName((pd.getFirstName() + " " + pd.getLastName()).trim());
+            }
+        }
+
         db.collection(COLLECTION_USERS)
-                .document(userId)
-                .set(user.toMap())
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User created successfully");
-                    callback.onSuccess(userId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating user", e);
-                    callback.onFailure(e);
-                });
+                .document(user.getUserId())
+                .set(user, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(user))
+                .addOnFailureListener(callback::onFailure);
     }
 
     /**
-     * Crear o actualizar usuario en Firestore usando merge (no sobrescribe datos existentes)
-     * Nota: Para actualizaciones, la validación es más flexible (solo valida campos presentes)
+     * Registrar un cliente (nuevo o existente): valida campos mínimos, asigna userId si hace falta,
+     * sube imagen de perfil (Bitmap o Uri) y guarda la URL en el documento antes de persistir el User.
+     *
+     * Nota: este método NO usa validateUser() porque ese método exige userId; aquí generamos uno si hace falta.
      */
-    public void createOrUpdateUser(User user, FirestoreCallback callback) {
-        // Validar datos básicos requeridos
-        String userId = user.getUserId();
-        if (userId == null || userId.isEmpty()) {
+    public void registerClient(User user, Uri profileImageUri, Bitmap profileBitmap, FirestoreCallback callback) {
+        if (user == null) {
+            callback.onFailure(new Exception("User is null"));
+            return;
+        }
+
+        // Forzar tipo CLIENT
+        user.setUserType("CLIENT");
+
+        // Validaciones mínimas
+        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+            callback.onFailure(new Exception("Email is required"));
+            return;
+        }
+        if (user.getPersonalData() == null) {
+            callback.onFailure(new Exception("personalData is required for CLIENT"));
+            return;
+        }
+        User.PersonalData pd = user.getPersonalData();
+        if (pd.getFirstName() == null || pd.getFirstName().trim().isEmpty()) {
+            callback.onFailure(new Exception("First name is required"));
+            return;
+        }
+        if (pd.getLastName() == null || pd.getLastName().trim().isEmpty()) {
+            callback.onFailure(new Exception("Last name is required"));
+            return;
+        }
+        if (pd.getDocumentType() == null || pd.getDocumentType().trim().isEmpty()) {
+            callback.onFailure(new Exception("Document type is required"));
+            return;
+        }
+        if (pd.getDocumentNumber() == null || pd.getDocumentNumber().trim().isEmpty()) {
+            callback.onFailure(new Exception("Document number is required"));
+            return;
+        }
+
+        // Crear o asegurar userId
+        DocumentReference userRef = (user.getUserId() == null || user.getUserId().trim().isEmpty())
+                ? db.collection(COLLECTION_USERS).document()
+                : db.collection(COLLECTION_USERS).document(user.getUserId());
+        user.setUserId(userRef.getId());
+
+        // Asegurar fullName
+        if (pd.getFirstName() != null && pd.getLastName() != null) {
+            pd.setFullName((pd.getFirstName() + " " + pd.getLastName()).trim());
+        }
+
+        // Helper para guardar el usuario final
+        final Runnable saveUser = () -> userRef.set(user, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(user))
+                .addOnFailureListener(callback::onFailure);
+
+        // Si se proporciona Bitmap
+        if (profileBitmap != null) {
+            UploadTask upload = ImageUploadManager.uploadUserProfileImage(user.getUserId(), profileBitmap);
+            if (upload == null) {
+                callback.onFailure(new Exception("Failed to start image upload"));
+                return;
+            }
+
+            ImageUploadManager.getDownloadUrl(upload, new ImageUploadManager.ImageUploadCallback() {
+                @Override
+                public void onSuccess(String downloadUrl) {
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("profileImageUrl", downloadUrl);
+                    userRef.set(updates, SetOptions.merge())
+                            .addOnSuccessListener(unused -> saveUser.run())
+                            .addOnFailureListener(callback::onFailure);
+                }
+
+                @Override
+                public void onFailure(Exception exception) {
+                    callback.onFailure(exception);
+                }
+            });
+            return;
+        }
+
+        // Si se proporciona Uri
+        if (profileImageUri != null) {
+            UploadTask upload = ImageUploadManager.uploadFromUri(profileImageUri, "profile_images", user.getUserId());
+            if (upload == null) {
+                callback.onFailure(new Exception("Failed to start image upload from Uri"));
+                return;
+            }
+
+            ImageUploadManager.getDownloadUrl(upload, new ImageUploadManager.ImageUploadCallback() {
+                @Override
+                public void onSuccess(String downloadUrl) {
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("profileImageUrl", downloadUrl);
+                    userRef.set(updates, SetOptions.merge())
+                            .addOnSuccessListener(unused -> saveUser.run())
+                            .addOnFailureListener(callback::onFailure);
+                }
+
+                @Override
+                public void onFailure(Exception exception) {
+                    callback.onFailure(exception);
+                }
+            });
+            return;
+        }
+
+        // Sin imagen: guardar usuario directamente
+        saveUser.run();
+    }
+
+    public void getUserById(String userId, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) {
             callback.onFailure(new Exception("User ID is required"));
             return;
         }
 
-        // Validar email si está presente
-        if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
-            String email = user.getEmail().trim();
-            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                callback.onFailure(new Exception("Invalid email format"));
-                return;
-            }
-        }
-
-        // Validar userType si está presente
-        if (user.getUserType() != null && !user.getUserType().isEmpty()) {
-            String userType = user.getUserType().toUpperCase();
-            if (!userType.equals("CLIENT") && !userType.equals("GUIDE") && 
-                !userType.equals("ADMIN") && !userType.equals("SUPERADMIN")) {
-                callback.onFailure(new Exception("Invalid user type. Must be CLIENT, GUIDE, ADMIN, or SUPERADMIN"));
-                return;
-            }
-        }
-
         db.collection(COLLECTION_USERS)
                 .document(userId)
-                .set(user.toMap(), SetOptions.merge())
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User created/updated successfully with merge");
-                    callback.onSuccess(userId);
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        callback.onFailure(new Exception("User not found"));
+                        return;
+                    }
+                    User user = doc.toObject(User.class);
+                    if (user != null && user.getUserId() == null) user.setUserId(doc.getId());
+                    callback.onSuccess(user);
                 })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating/updating user", e);
-                    callback.onFailure(e);
-                });
+                .addOnFailureListener(callback::onFailure);
     }
 
-    /**
-     * Obtener usuario por ID (alias)
-     */
-    public void getUser(String userId, FirestoreCallback callback) {
-        getUserById(userId, callback);
-    }
-    
-    /**
-     * Obtener usuario por ID
-     */
-    public void getUserById(String userId, FirestoreCallback callback) {
-        Log.d(TAG, "🔍 getUserById llamado con userId: '" + userId + "'");
-        Log.d(TAG, "🔍 Buscando en: " + COLLECTION_USERS + "/" + userId);
-        
-        if (userId == null || userId.isEmpty()) {
-            Log.e(TAG, "❌ userId es null o vacío");
-            callback.onFailure(new Exception("userId is null or empty"));
+    public void updateUserStatus(String userId, String status, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) {
+            callback.onFailure(new Exception("User ID is required"));
             return;
         }
-        
-        db.collection(COLLECTION_USERS)
-                .document(userId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    Log.d(TAG, "🔍 Respuesta de Firestore - exists: " + documentSnapshot.exists());
-                    if (documentSnapshot.exists()) {
-                        Log.d(TAG, "✅ Documento encontrado!");
-                        User user = null;
-                        try {
-                            // Intentar mapeo automático primero
-                            user = documentSnapshot.toObject(User.class);
-                            if (user != null) {
-                                // Asegurar que userId esté establecido desde el ID del documento
-                                user.setUserId(documentSnapshot.getId());
-                            }
-                        } catch (RuntimeException e) {
-                            // Si falla (por ejemplo, conflicto con @DocumentId o campos duplicados),
-                            // usar mapeo manual
-                            Log.w(TAG, "⚠️ Error en toObject(), usando mapeo manual: " + e.getMessage());
-                            user = mapDocumentToUser(documentSnapshot);
-                        }
-                        
-                        if (user == null) {
-                            user = new User();
-                            user.setUserId(documentSnapshot.getId());
-                        }
-                        
-                        Log.d(TAG, "✅ Usuario deserializado: " + (user.getEmail() != null ? user.getEmail() : "sin email"));
-                        callback.onSuccess(user);
-                    } else {
-                        Log.e(TAG, "❌ Documento NO existe en Firestore");
-                        Log.e(TAG, "❌ Ruta buscada: users/" + userId);
-                        callback.onFailure(new Exception("User not found in Firestore at path: users/" + userId));
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "❌ Error de red/permisos al obtener usuario", e);
-                    callback.onFailure(e);
-                });
-    }
+        if (status == null || status.trim().isEmpty()) {
+            callback.onFailure(new Exception("Status is required"));
+            return;
+        }
 
-    /**
-     * Actualizar usuario
-     */
-    public void updateUser(String userId, Map<String, Object> updates, FirestoreCallback callback) {
-        db.collection(COLLECTION_USERS)
-                .document(userId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User updated successfully");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating user", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener usuarios por tipo (CLIENT, GUIDE, ADMIN, SUPERADMIN)
-     */
-    public void getUsersByType(String userType, FirestoreCallback callback) {
-        db.collection(COLLECTION_USERS)
-                .whereEqualTo("userType", userType)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<User> users = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        User user = null;
-                        try {
-                            // Intentar mapeo automático primero
-                            user = document.toObject(User.class);
-                            if (user != null) {
-                                // Asegurar que userId esté establecido desde el ID del documento
-                                user.setUserId(document.getId());
-                            }
-                        } catch (RuntimeException e) {
-                            // Si falla (por ejemplo, conflicto con @DocumentId o campos duplicados),
-                            // usar mapeo manual
-                            Log.w(TAG, "⚠️ Error en toObject() para documento " + document.getId() + ", usando mapeo manual: " + e.getMessage());
-                            user = mapDocumentToUser(document);
-                        }
-                        
-                        if (user == null) {
-                            user = new User();
-                            user.setUserId(document.getId());
-                        }
-                        
-                        users.add(user);
-                    }
-                    callback.onSuccess(users);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting users by type", e);
-                    callback.onFailure(e);
-                });
-    }
-    
-    /**
-     * Actualizar URL de foto de perfil del usuario
-     */
-    public void updateUserPhotoUrl(String userId, String photoUrl, FirestoreCallback callback) {
-        db.collection(COLLECTION_USERS)
-                .document(userId)
-                .update("photoUrl", photoUrl)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User photo URL updated successfully");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating user photo URL", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    // ==================== EMPRESAS ====================
-
-    /**
-     * Crear una nueva empresa
-     */
-    public void createCompany(Company company, FirestoreCallback callback) {
-        db.collection(COLLECTION_COMPANIES)
-                .add(company.toMap())
-                .addOnSuccessListener(documentReference -> {
-                    String companyId = documentReference.getId();
-                    Log.d(TAG, "Company created with ID: " + companyId);
-                    callback.onSuccess(companyId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating company", e);
-                    callback.onFailure(e);
-                });
-    }
-    
-    /**
-     * Crear una nueva empresa con un ID específico
-     */
-    public void createCompanyWithId(String companyId, Company company, FirestoreCallback callback) {
-        db.collection(COLLECTION_COMPANIES)
-                .document(companyId)
-                .set(company.toMap())
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Company created with custom ID: " + companyId);
-                    callback.onSuccess(companyId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating company with ID", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener empresa por ID (alias)
-     */
-    public void getCompany(String companyId, FirestoreCallback callback) {
-        getCompanyById(companyId, callback);
-    }
-    
-    /**
-     * Obtener empresa por ID
-     */
-    public void getCompanyById(String companyId, FirestoreCallback callback) {
-        db.collection(COLLECTION_COMPANIES)
-                .document(companyId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        Company company = documentSnapshot.toObject(Company.class);
-                        callback.onSuccess(company);
-                    } else {
-                        callback.onFailure(new Exception("Company not found"));
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting company", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener todas las empresas activas
-     */
-    public void getAllActiveCompanies(FirestoreCallback callback) {
-        db.collection(COLLECTION_COMPANIES)
-                .whereEqualTo("isActive", true)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Company> companies = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Company company = document.toObject(Company.class);
-                        companies.add(company);
-                    }
-                    callback.onSuccess(companies);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting companies", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar empresa
-     */
-    public void updateCompany(String companyId, Map<String, Object> updates, FirestoreCallback callback) {
-        db.collection(COLLECTION_COMPANIES)
-                .document(companyId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Company updated successfully");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating company", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    // ==================== TOURS ====================
-
-    /**
-     * Crear un nuevo tour
-     */
-    public void createTour(Tour tour, FirestoreCallback callback) {
-        db.collection(COLLECTION_TOURS)
-                .add(tour.toMap())
-                .addOnSuccessListener(documentReference -> {
-                    String tourId = documentReference.getId();
-                    Log.d(TAG, "Tour created with ID: " + tourId);
-                    callback.onSuccess(tourId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating tour", e);
-                    callback.onFailure(e);
-                });
-    }
-    
-    /**
-     * Crear un nuevo tour con un ID específico
-     */
-    public void createTourWithId(String tourId, Tour tour, FirestoreCallback callback) {
-        db.collection(COLLECTION_TOURS)
-                .document(tourId)
-                .set(tour.toMap())
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Tour created with custom ID: " + tourId);
-                    callback.onSuccess(tourId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating tour with ID", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener tour por ID (alias)
-     */
-    public void getTour(String tourId, FirestoreCallback callback) {
-        getTourById(tourId, callback);
-    }
-    
-    /**
-     * Obtener todos los tours (sin filtro)
-     */
-    public void getTours(FirestoreCallback callback) {
-        db.collection(COLLECTION_TOURS)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Tour> tours = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Tour tour = document.toObject(Tour.class);
-                        tours.add(tour);
-                    }
-                    callback.onSuccess(tours);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting tours", e);
-                    callback.onFailure(e);
-                });
-    }
-    
-    /**
-     * Obtener empresas (sin filtro)
-     */
-    public void getCompanies(FirestoreCallback callback) {
-        db.collection(COLLECTION_COMPANIES)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Company> companies = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Company company = document.toObject(Company.class);
-                        companies.add(company);
-                    }
-                    callback.onSuccess(companies);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting companies", e);
-                    callback.onFailure(e);
-                });
-    }
-    
-    /**
-     * Obtener tour por ID
-     */
-    public void getTourById(String tourId, FirestoreCallback callback) {
-        db.collection(COLLECTION_TOURS)
-                .document(tourId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        Tour tour = documentSnapshot.toObject(Tour.class);
-                        callback.onSuccess(tour);
-                    } else {
-                        callback.onFailure(new Exception("Tour not found"));
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting tour", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener tours por empresa
-     */
-    public void getToursByCompany(String companyId, FirestoreCallback callback) {
-        db.collection(COLLECTION_TOURS)
-                .whereEqualTo("companyId", companyId)
-                .whereEqualTo("isActive", true)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Tour> tours = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Tour tour = document.toObject(Tour.class);
-                        tours.add(tour);
-                    }
-                    callback.onSuccess(tours);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting tours by company", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener tours destacados
-     */
-    public void getFeaturedTours(int limit, FirestoreCallback callback) {
-        db.collection(COLLECTION_TOURS)
-                .whereEqualTo("isFeatured", true)
-                .whereEqualTo("isActive", true)
-                .orderBy("averageRating", Query.Direction.DESCENDING)
-                .limit(limit)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Tour> tours = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Tour tour = document.toObject(Tour.class);
-                        tours.add(tour);
-                    }
-                    callback.onSuccess(tours);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting featured tours", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar tour
-     */
-    public void updateTour(String tourId, Map<String, Object> updates, FirestoreCallback callback) {
-        db.collection(COLLECTION_TOURS)
-                .document(tourId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Tour updated successfully");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating tour", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    // ==================== RESERVAS ====================
-
-    /**
-     * Crear una nueva reserva
-     */
-    public void createReservation(Reservation reservation, FirestoreCallback callback) {
-        db.collection(COLLECTION_RESERVATIONS)
-                .add(reservation.toMap())
-                .addOnSuccessListener(documentReference -> {
-                    String reservationId = documentReference.getId();
-                    Log.d(TAG, "Reservation created with ID: " + reservationId);
-                    callback.onSuccess(reservationId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating reservation", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener reserva por ID
-     */
-    public void getReservationById(String reservationId, FirestoreCallback callback) {
-        db.collection(COLLECTION_RESERVATIONS)
-                .document(reservationId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        Reservation reservation = documentSnapshot.toObject(Reservation.class);
-                        callback.onSuccess(reservation);
-                    } else {
-                        callback.onFailure(new Exception("Reservation not found"));
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting reservation", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener reservas por usuario
-     * Nota: No usamos orderBy en Firestore para evitar requerir índice compuesto
-     */
-    public void getReservationsByUser(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_RESERVATIONS)
-                .whereEqualTo("userId", userId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Reservation> reservations = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Reservation reservation = document.toObject(Reservation.class);
-                        reservations.add(reservation);
-                    }
-                    
-                    // Ordenar en el cliente por fecha (más reciente primero)
-                    reservations.sort((a, b) -> {
-                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
-                            return b.getCreatedAt().compareTo(a.getCreatedAt());
-                        }
-                        return 0;
-                    });
-                    
-                    callback.onSuccess(reservations);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting reservations by user", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Verificar si el usuario ya tiene una reserva confirmada para un tour específico
-     */
-    public void hasConfirmedReservation(String userId, String tourId, FirestoreCallback callback) {
-        db.collection(COLLECTION_RESERVATIONS)
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("tourId", tourId)
-                .whereEqualTo("status", "CONFIRMADA")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    boolean hasReservation = !querySnapshot.isEmpty();
-                    callback.onSuccess(hasReservation);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error checking reservation", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener reservas por guía
-     */
-    public void getReservationsByGuide(String guideId, FirestoreCallback callback) {
-        db.collection(COLLECTION_RESERVATIONS)
-                .whereEqualTo("guideId", guideId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Reservation> reservations = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Reservation reservation = document.toObject(Reservation.class);
-                        reservations.add(reservation);
-                    }
-                    
-                    // Ordenar en el cliente por fecha (más reciente primero)
-                    reservations.sort((a, b) -> {
-                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
-                            return b.getCreatedAt().compareTo(a.getCreatedAt());
-                        }
-                        return 0;
-                    });
-                    
-                    Log.d(TAG, "Reservations by guide: " + reservations.size());
-                    callback.onSuccess(reservations);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting reservations by guide", e);
-                    callback.onFailure(e);
-                });
-    }
-    
-    /**
-     * Obtener reservas por empresa
-     */
-    public void getReservationsByCompany(String companyId, FirestoreCallback callback) {
-        db.collection(COLLECTION_RESERVATIONS)
-                .whereEqualTo("companyId", companyId)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Reservation> reservations = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Reservation reservation = document.toObject(Reservation.class);
-                        reservations.add(reservation);
-                    }
-                    callback.onSuccess(reservations);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting reservations by company", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar reserva
-     */
-    public void updateReservation(String reservationId, Map<String, Object> updates, FirestoreCallback callback) {
-        db.collection(COLLECTION_RESERVATIONS)
-                .document(reservationId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Reservation updated successfully");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating reservation", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    // ==================== OFERTAS DE TOURS ====================
-
-    /**
-     * Crear oferta de tour
-     */
-    public void createTourOffer(com.example.droidtour.models.TourOffer offer, FirestoreCallback callback) {
-        db.collection(COLLECTION_TOUR_OFFERS)
-                .add(offer.toMap())
-                .addOnSuccessListener(documentReference -> {
-                    String offerId = documentReference.getId();
-                    Log.d(TAG, "Tour offer created with ID: " + offerId);
-                    callback.onSuccess(offerId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating tour offer", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener ofertas por guía
-     */
-    public void getOffersByGuide(String guideId, FirestoreCallback callback) {
-        db.collection(COLLECTION_TOUR_OFFERS)
-                .whereEqualTo("guideId", guideId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<com.example.droidtour.models.TourOffer> offers = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        com.example.droidtour.models.TourOffer offer = document.toObject(com.example.droidtour.models.TourOffer.class);
-                        offer.setOfferId(document.getId());
-                        offers.add(offer);
-                    }
-                    
-                    // Ordenar en el cliente por fecha (más reciente primero)
-                    offers.sort((a, b) -> {
-                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
-                            return b.getCreatedAt().compareTo(a.getCreatedAt());
-                        }
-                        return 0;
-                    });
-                    
-                    Log.d(TAG, "Offers by guide: " + offers.size());
-                    callback.onSuccess(offers);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting offers by guide", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar estado de oferta
-     */
-    public void updateOfferStatus(String offerId, String status, FirestoreCallback callback) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("status", status);
-        updates.put("respondedAt", new java.util.Date());
-        
-        db.collection(COLLECTION_TOUR_OFFERS)
-                .document(offerId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Offer status updated successfully: " + status);
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating offer status", e);
-                    callback.onFailure(e);
-                });
+
+        db.collection(COLLECTION_USERS)
+                .document(userId)
+                .set(updates, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
     }
 
-    // ==================== RESEÑAS ====================
+    public Query queryUsersByTypeAndStatus(String userType, String status) {
+        Query q = db.collection(COLLECTION_USERS);
+        if (userType != null) q = q.whereEqualTo("userType", userType);
+        if (status != null) q = q.whereEqualTo("status", status);
+        return q;
+    }
 
-    /**
-     * Crear reseña de un tour (versión simplificada)
-     */
-    public void createReview(String tourId, String userId, int rating, String comment, FirestoreCallback callback) {
-        getUserById(userId, new FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                User user = (User) result;
-                Review review = new Review();
-                review.setTourId(tourId);
-                review.setUserId(userId);
-                review.setUserName(user.getFirstName() + " " + user.getLastName());
-                review.setRating((float) rating);
-                review.setReviewText(comment);
-                createReview(review, callback);
+    private String validateUser(User user) {
+        if (user == null) return "User is null";
+        if (user.getUserId() == null || user.getUserId().trim().isEmpty()) return "User ID is required";
+        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) return "Email is required";
+        if (user.getUserType() == null || user.getUserType().trim().isEmpty()) return "User type is required";
+
+        String t = user.getUserType().trim().toUpperCase();
+        if (!t.equals("CLIENT") && !t.equals("GUIDE") && !t.equals("COMPANY_ADMIN") && !t.equals("SUPERADMIN")) {
+            return "Invalid userType. Use CLIENT, GUIDE, COMPANY_ADMIN or SUPERADMIN";
+        }
+
+        // CLIENT / GUIDE requieren personalData
+        if (t.equals("CLIENT") || t.equals("GUIDE")) {
+            if (user.getPersonalData() == null) return "personalData is required for CLIENT/GUIDE";
+            User.PersonalData pd = user.getPersonalData();
+            if (pd.getFirstName() == null || pd.getFirstName().trim().isEmpty()) return "First name is required";
+            if (pd.getLastName() == null || pd.getLastName().trim().isEmpty()) return "Last name is required";
+            if (pd.getDocumentType() == null || pd.getDocumentType().trim().isEmpty()) return "Document type is required";
+            if (pd.getDocumentNumber() == null || pd.getDocumentNumber().trim().isEmpty()) return "Document number is required";
+        }
+
+        // COMPANY_ADMIN requiere companyId
+        if (t.equals("COMPANY_ADMIN")) {
+            if (user.getCompanyId() == null || user.getCompanyId().trim().isEmpty()) return "companyId is required for COMPANY_ADMIN";
+        }
+
+        // status default si viene vacío
+        if (user.getStatus() == null || user.getStatus().trim().isEmpty()) {
+            // no lo forzamos aquí, pero sería ideal setearlo antes de llamar upsertUser
+            Log.w(TAG, "User status is empty; consider setting active/pending_approval");
+        }
+
+        return null;
+    }
+
+    // ==================== GUIDES ====================
+
+    public void upsertGuide(Guide guide, FirestoreCallback callback) {
+        if (guide == null) {
+            callback.onFailure(new Exception("Guide is null"));
+            return;
+        }
+        if (guide.getGuideId() == null || guide.getGuideId().trim().isEmpty()) {
+            callback.onFailure(new Exception("guideId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_GUIDES)
+                .document(guide.getGuideId())
+                .set(guide, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(guide))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    public void approveGuide(String userId, FirestoreCallback callback) {
+        // 1) user.status = active
+        updateUserStatus(userId, "active", new FirestoreCallback() {
+            @Override public void onSuccess(Object result) {
+                // 2) guides/{uid}.isApproved = true
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("approved", true);   // OJO: tu getter es getApproved() / setApproved()
+                updates.put("isApproved", true); // para evitar inconsistencia por nombre
+
+                db.collection(COLLECTION_GUIDES)
+                        .document(userId)
+                        .set(updates, SetOptions.merge())
+                        .addOnSuccessListener(unused -> callback.onSuccess(true))
+                        .addOnFailureListener(callback::onFailure);
             }
-            
-            @Override
-            public void onFailure(Exception e) {
+
+            @Override public void onFailure(Exception e) {
                 callback.onFailure(e);
             }
         });
     }
-    
+
+    // ==================== COMPANIES ====================
+
+    public void createCompany(Company company, FirestoreCallback callback) {
+        if (company == null) {
+            callback.onFailure(new Exception("Company is null"));
+            return;
+        }
+        if (company.getBusinessName() == null || company.getBusinessName().trim().isEmpty()) {
+            callback.onFailure(new Exception("businessName is required"));
+            return;
+        }
+        if (company.getRuc() == null || company.getRuc().trim().isEmpty()) {
+            callback.onFailure(new Exception("ruc is required"));
+            return;
+        }
+        if (company.getAdminUserId() == null || company.getAdminUserId().trim().isEmpty()) {
+            callback.onFailure(new Exception("adminUserId is required"));
+            return;
+        }
+
+        // Si no tienes companyId, crea doc nuevo
+        DocumentReference ref = (company.getCompanyId() == null || company.getCompanyId().trim().isEmpty())
+                ? db.collection(COLLECTION_COMPANIES).document()
+                : db.collection(COLLECTION_COMPANIES).document(company.getCompanyId());
+
+        company.setCompanyId(ref.getId());
+
+        ref.set(company, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(company))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    public void getCompanyById(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_COMPANIES)
+                .document(companyId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        callback.onFailure(new Exception("Company not found"));
+                        return;
+                    }
+                    Company c = doc.toObject(Company.class);
+                    if (c != null && c.getCompanyId() == null) c.setCompanyId(doc.getId());
+                    callback.onSuccess(c);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    // ==================== NUEVOS MÉTODOS ====================
+
     /**
-     * Obtener reseñas por usuario
+     * Obtener ofertas dirigidas a un guía
      */
-    public void getReviewsByUser(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_REVIEWS)
-                .whereEqualTo("userId", userId)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
+    public void getOffersByGuide(String guideId, FirestoreCallback callback) {
+        if (guideId == null || guideId.trim().isEmpty()) {
+            callback.onFailure(new Exception("guideId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_TOUR_OFFERS)
+                .whereEqualTo("guideId", guideId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    List<Review> reviews = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Review review = document.toObject(Review.class);
-                        reviews.add(review);
+                    List<TourOffer> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        TourOffer t = doc.toObject(TourOffer.class);
+                        if (t != null && (t.getOfferId() == null || t.getOfferId().isEmpty())) t.setOfferId(doc.getId());
+                        list.add(t);
                     }
-                    callback.onSuccess(reviews);
+                    callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting reviews by user", e);
-                    callback.onFailure(e);
-                });
+                .addOnFailureListener(callback::onFailure);
     }
 
     /**
-     * Crear una nueva reseña
+     * Obtener reservas asociadas a un guía
      */
-    public void createReview(Review review, FirestoreCallback callback) {
-        db.collection(COLLECTION_REVIEWS)
-                .add(review.toMap())
-                .addOnSuccessListener(documentReference -> {
-                    String reviewId = documentReference.getId();
-                    Log.d(TAG, "Review created with ID: " + reviewId);
-                    
-                    // Actualizar estadísticas del tour
-                    updateTourRatingStats(review.getTourId());
-                    
-                    callback.onSuccess(reviewId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating review", e);
-                    callback.onFailure(e);
-                });
-    }
+    public void getReservationsByGuide(String guideId, FirestoreCallback callback) {
+        if (guideId == null || guideId.trim().isEmpty()) {
+            callback.onFailure(new Exception("guideId is required"));
+            return;
+        }
 
-    /**
-     * Obtener reseñas por tour
-     */
-    public void getReviewsByTour(String tourId, FirestoreCallback callback) {
-        db.collection(COLLECTION_REVIEWS)
-                .whereEqualTo("tourId", tourId)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
+        db.collection(COLLECTION_RESERVATIONS)
+                .whereEqualTo("guideId", guideId)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    List<Review> reviews = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Review review = document.toObject(Review.class);
-                        reviews.add(review);
+                    List<Reservation> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Reservation r = doc.toObject(Reservation.class);
+                        if (r != null && (r.getReservationId() == null || r.getReservationId().isEmpty())) r.setReservationId(doc.getId());
+                        list.add(r);
                     }
-                    callback.onSuccess(reviews);
+                    callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting reviews by tour", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar estadísticas de rating de un tour
-     */
-    private void updateTourRatingStats(String tourId) {
-        getReviewsByTour(tourId, new FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                @SuppressWarnings("unchecked")
-                List<Review> reviews = (List<Review>) result;
-                
-                if (!reviews.isEmpty()) {
-                    float totalRating = 0;
-                    for (Review review : reviews) {
-                        totalRating += review.getRating();
-                    }
-                    double averageRating = totalRating / reviews.size();
-                    
-                    Map<String, Object> updates = new java.util.HashMap<>();
-                    updates.put("averageRating", averageRating);
-                    updates.put("totalReviews", reviews.size());
-                    
-                    updateTour(tourId, updates, new FirestoreCallback() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            Log.d(TAG, "Tour rating stats updated");
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            Log.e(TAG, "Error updating tour rating stats", e);
-                        }
-                    });
-                }
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error getting reviews for rating update", e);
-            }
-        });
-    }
-
-    // ==================== MÉTODOS DE PAGO (CLIENTE) ====================
-
-    /**
-     * Agregar método de pago (tarjeta) para un cliente
-     */
-    public void addPaymentMethod(PaymentMethod paymentMethod, FirestoreCallback callback) {
-        db.collection(COLLECTION_PAYMENT_METHODS)
-                .add(paymentMethod.toMap())
-                .addOnSuccessListener(documentReference -> {
-                    String paymentMethodId = documentReference.getId();
-                    Log.d(TAG, "Payment method added with ID: " + paymentMethodId);
-                    callback.onSuccess(paymentMethodId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error adding payment method", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener métodos de pago de un cliente
-     */
-    public void getPaymentMethodsByUser(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_PAYMENT_METHODS)
-                .whereEqualTo("userId", userId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<PaymentMethod> paymentMethods = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        PaymentMethod pm = document.toObject(PaymentMethod.class);
-                        paymentMethods.add(pm);
-                    }
-                    
-                    // Ordenar por isDefault (principal primero) y luego por fecha
-                    paymentMethods.sort((a, b) -> {
-                        // Null-safe: considerar null como false
-                        Boolean aIsDefault = a.getIsDefault() != null ? a.getIsDefault() : false;
-                        Boolean bIsDefault = b.getIsDefault() != null ? b.getIsDefault() : false;
-                        
-                        // Primero, la tarjeta principal
-                        if (aIsDefault && !bIsDefault) return -1;
-                        if (!aIsDefault && bIsDefault) return 1;
-                        
-                        // Luego, ordenar por fecha de creación (más reciente primero)
-                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
-                            return b.getCreatedAt().compareTo(a.getCreatedAt());
-                        }
-                        return 0;
-                    });
-                    
-                    callback.onSuccess(paymentMethods);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting payment methods", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar método de pago
-     */
-    public void updatePaymentMethod(String paymentMethodId, Map<String, Object> updates, FirestoreCallback callback) {
-        db.collection(COLLECTION_PAYMENT_METHODS)
-                .document(paymentMethodId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Payment method updated");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating payment method", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Eliminar método de pago
-     */
-    public void deletePaymentMethod(String paymentMethodId, FirestoreCallback callback) {
-        db.collection(COLLECTION_PAYMENT_METHODS)
-                .document(paymentMethodId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Payment method deleted");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error deleting payment method", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Establecer tarjeta como predeterminada
-     */
-    public void setDefaultPaymentMethod(String userId, String paymentMethodId, FirestoreCallback callback) {
-        // Primero, quitar el flag de default de todas las tarjetas del usuario
-        db.collection(COLLECTION_PAYMENT_METHODS)
-                .whereEqualTo("userId", userId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        document.getReference().update("isDefault", false);
-                    }
-                    
-                    // Luego, establecer la nueva tarjeta como default
-                    Map<String, Object> updates = new java.util.HashMap<>();
-                    updates.put("isDefault", true);
-                    updatePaymentMethod(paymentMethodId, updates, callback);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error setting default payment method", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    // ==================== NOTIFICACIONES (CLIENTE) ====================
-
-    /**
-     * Crear notificación
-     */
-    public void createNotification(Notification notification, FirestoreCallback callback) {
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .add(notification.toMap())
-                .addOnSuccessListener(documentReference -> {
-                    String notificationId = documentReference.getId();
-                    Log.d(TAG, "Notification created with ID: " + notificationId);
-                    callback.onSuccess(notificationId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating notification", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar una notificación
-     */
-    public void updateNotification(String notificationId, Map<String, Object> updates, FirestoreCallback callback) {
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .document(notificationId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Notification updated successfully: " + notificationId);
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating notification", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Eliminar una notificación
-     */
-    public void deleteNotification(String notificationId, FirestoreCallback callback) {
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .document(notificationId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Notification deleted successfully: " + notificationId);
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error deleting notification", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener notificaciones de un usuario
-     */
-    public void getNotificationsByUser(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .whereEqualTo("userId", userId)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Notification> notifications = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Notification notification = document.toObject(Notification.class);
-                        notifications.add(notification);
-                    }
-                    
-                    // Ordenar por fecha (más reciente primero) en el cliente
-                    notifications.sort((a, b) -> {
-                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
-                            return b.getCreatedAt().compareTo(a.getCreatedAt());
-                        }
-                        return 0;
-                    });
-                    
-                    callback.onSuccess(notifications);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting notifications", e);
-                    callback.onFailure(e);
-                });
+                .addOnFailureListener(callback::onFailure);
     }
 
     /**
      * Obtener notificaciones no leídas de un usuario
-     * Nota: No usamos orderBy en Firestore para evitar requerir índice compuesto
      */
     public void getUnreadNotifications(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("isRead", false)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Notification> notifications = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Notification notification = document.toObject(Notification.class);
-                        notifications.add(notification);
-                    }
-                    
-                    // Ordenar en el cliente por fecha (más reciente primero)
-                    notifications.sort((a, b) -> {
-                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
-                            return b.getCreatedAt().compareTo(a.getCreatedAt());
-                        }
-                        return 0;
-                    });
-                    
-                    callback.onSuccess(notifications);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting unread notifications", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener notificaciones importantes de un usuario
-     */
-    public void getImportantNotifications(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("isImportant", true)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<Notification> notifications = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Notification notification = document.toObject(Notification.class);
-                        notifications.add(notification);
-                    }
-                    callback.onSuccess(notifications);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting important notifications", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Marcar notificación como leída
-     */
-    public void markNotificationAsRead(String notificationId, FirestoreCallback callback) {
-        Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("isRead", true);
-        updates.put("readAt", new java.util.Date());
-        
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .document(notificationId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Notification marked as read");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error marking notification as read", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Marcar todas las notificaciones como leídas
-     */
-    public void markAllNotificationsAsRead(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("isRead", false)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Map<String, Object> updates = new java.util.HashMap<>();
-                        updates.put("isRead", true);
-                        updates.put("readAt", new java.util.Date());
-                        document.getReference().update(updates);
-                    }
-                    Log.d(TAG, "All notifications marked as read");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error marking all notifications as read", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Contar notificaciones no leídas
-     */
-    public void countUnreadNotifications(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_NOTIFICATIONS)
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("isRead", false)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    int count = querySnapshot.size();
-                    Log.d(TAG, "Unread notifications count: " + count);
-                    callback.onSuccess(count);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error counting unread notifications", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    // ==================== PREFERENCIAS DE USUARIO (CLIENTE) ====================
-
-    /**
-     * Crear preferencias de usuario
-     */
-    public void createUserPreferences(UserPreferences preferences, FirestoreCallback callback) {
-        db.collection(COLLECTION_USER_PREFERENCES)
-                .add(preferences.toMap())
-                .addOnSuccessListener(documentReference -> {
-                    String preferencesId = documentReference.getId();
-                    Log.d(TAG, "User preferences created with ID: " + preferencesId);
-                    callback.onSuccess(preferencesId);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating user preferences", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Obtener preferencias de un usuario
-     */
-    public void getUserPreferences(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_USER_PREFERENCES)
-                .whereEqualTo("userId", userId)
-                .limit(1)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (!querySnapshot.isEmpty()) {
-                        UserPreferences prefs = querySnapshot.getDocuments().get(0).toObject(UserPreferences.class);
-                        callback.onSuccess(prefs);
-                    } else {
-                        // Si no existe, crear preferencias por defecto
-                        UserPreferences defaultPrefs = new UserPreferences(userId);
-                        createUserPreferences(defaultPrefs, new FirestoreCallback() {
-                            @Override
-                            public void onSuccess(Object result) {
-                                callback.onSuccess(defaultPrefs);
-                            }
-                            
-                            @Override
-                            public void onFailure(Exception e) {
-                                callback.onFailure(e);
-                            }
-                        });
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting user preferences", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar preferencias de usuario
-     */
-    public void updateUserPreferences(String preferencesId, Map<String, Object> updates, FirestoreCallback callback) {
-        db.collection(COLLECTION_USER_PREFERENCES)
-                .document(preferencesId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User preferences updated");
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating user preferences", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    /**
-     * Actualizar preferencia específica por userId
-     */
-    public void updateUserPreferenceByUserId(String userId, String preferenceKey, Object value, FirestoreCallback callback) {
-        db.collection(COLLECTION_USER_PREFERENCES)
-                .whereEqualTo("userId", userId)
-                .limit(1)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (!querySnapshot.isEmpty()) {
-                        String docId = querySnapshot.getDocuments().get(0).getId();
-                        Map<String, Object> updates = new java.util.HashMap<>();
-                        updates.put(preferenceKey, value);
-                        updateUserPreferences(docId, updates, callback);
-                    } else {
-                        callback.onFailure(new Exception("Preferences not found for user"));
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error finding user preferences", e);
-                    callback.onFailure(e);
-                });
-    }
-
-    // ==================== MENSAJES (CHAT) ====================
-
-    /**
-     * Enviar mensaje
-     */
-    public void sendMessage(String senderId, String senderName, String receiverId, 
-                           String receiverName, String senderType, String messageText, 
-                           String conversationId, FirestoreCallback callback) {
-        String messageId = db.collection(COLLECTION_MESSAGES).document().getId();
-        Map<String, Object> message = new java.util.HashMap<>();
-        message.put("messageId", messageId);
-        message.put("senderId", senderId);
-        message.put("senderName", senderName);
-        message.put("receiverId", receiverId);
-        message.put("receiverName", receiverName);
-        message.put("senderType", senderType);
-        message.put("messageText", messageText);
-        message.put("timestamp", new java.util.Date());
-        message.put("isRead", false);
-        message.put("conversationId", conversationId);
-        
-        db.collection(COLLECTION_MESSAGES).document(messageId).set(message)
-            .addOnSuccessListener(aVoid -> {
-                Log.d(TAG, "Message sent with ID: " + messageId);
-                callback.onSuccess(messageId);
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error sending message", e);
-                callback.onFailure(e);
-            });
-    }
-
-    /**
-     * Obtener mensajes de una conversación en tiempo real
-     */
-    public void getConversationMessages(String conversationId, FirestoreCallback callback) {
-        db.collection(COLLECTION_MESSAGES)
-            .whereEqualTo("conversationId", conversationId)
-            .addSnapshotListener((value, error) -> {
-                if (error != null) {
-                    Log.e(TAG, "Error listening to messages", error);
-                    callback.onFailure(error);
-                    return;
-                }
-                List<Map<String, Object>> messages = new java.util.ArrayList<>();
-                if (value != null) {
-                    for (QueryDocumentSnapshot doc : value) {
-                        messages.add(doc.getData());
-                    }
-                }
-                
-                // Ordenar por timestamp (más antiguo primero) en el cliente
-                messages.sort((a, b) -> {
-                    Object timeA = a.get("timestamp");
-                    Object timeB = b.get("timestamp");
-                    if (timeA instanceof java.util.Date && timeB instanceof java.util.Date) {
-                        return ((java.util.Date) timeA).compareTo((java.util.Date) timeB);
-                    }
-                    return 0;
-                });
-                
-                callback.onSuccess(messages);
-            });
-    }
-
-    /**
-     * Marcar mensajes como leídos
-     */
-    public void markMessagesAsRead(String conversationId, String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_MESSAGES)
-            .whereEqualTo("conversationId", conversationId)
-            .whereEqualTo("receiverId", userId)
-            .whereEqualTo("isRead", false)
-            .get()
-            .addOnSuccessListener(querySnapshot -> {
-                WriteBatch batch = db.batch();
-                for (QueryDocumentSnapshot doc : querySnapshot) {
-                    batch.update(doc.getReference(), "isRead", true);
-                }
-                batch.commit()
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "Messages marked as read");
-                        callback.onSuccess(null);
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Error marking messages as read", e);
-                        callback.onFailure(e);
-                    });
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error getting messages to mark as read", e);
-                callback.onFailure(e);
-            });
-    }
-
-    // ==================== SESIONES DE USUARIO ====================
-
-    /**
-     * Crear una nueva sesión de usuario al iniciar sesión
-     */
-    public void createUserSession(UserSession session, FirestoreCallback callback) {
-        db.collection(COLLECTION_USER_SESSIONS)
-            .add(session.toMap())
-            .addOnSuccessListener(documentReference -> {
-                String sessionId = documentReference.getId();
-                Log.d(TAG, "Session created with ID: " + sessionId);
-                callback.onSuccess(sessionId);
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error creating session", e);
-                callback.onFailure(e);
-            });
-    }
-
-    /**
-     * Obtener sesión activa de un usuario
-     */
-    public void getActiveUserSession(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_USER_SESSIONS)
-            .whereEqualTo("userId", userId)
-            .whereEqualTo("isActive", true)
-            .orderBy("loginTime", Query.Direction.DESCENDING)
-            .limit(1)
-            .get()
-            .addOnSuccessListener(querySnapshot -> {
-                if (!querySnapshot.isEmpty()) {
-                    UserSession session = querySnapshot.getDocuments().get(0).toObject(UserSession.class);
-                    callback.onSuccess(session);
-                } else {
-                    callback.onFailure(new Exception("No active session found"));
-                }
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error getting active session", e);
-                callback.onFailure(e);
-            });
-    }
-
-    /**
-     * Obtener todas las sesiones de un usuario (para gestión de dispositivos)
-     */
-    public void getUserSessions(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_USER_SESSIONS)
-            .whereEqualTo("userId", userId)
-            .orderBy("loginTime", Query.Direction.DESCENDING)
-            .get()
-            .addOnSuccessListener(querySnapshot -> {
-                List<UserSession> sessions = new ArrayList<>();
-                for (QueryDocumentSnapshot document : querySnapshot) {
-                    UserSession session = document.toObject(UserSession.class);
-                    sessions.add(session);
-                }
-                callback.onSuccess(sessions);
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error getting user sessions", e);
-                callback.onFailure(e);
-            });
-    }
-
-    /**
-     * Actualizar actividad de la sesión (mantener sesión viva)
-     */
-    public void updateSessionActivity(String sessionId, FirestoreCallback callback) {
-        Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("lastAccessTime", new java.util.Date());
-        
-        db.collection(COLLECTION_USER_SESSIONS)
-            .document(sessionId)
-            .update(updates)
-            .addOnSuccessListener(aVoid -> {
-                Log.d(TAG, "Session activity updated");
-                callback.onSuccess(true);
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error updating session activity", e);
-                callback.onFailure(e);
-            });
-    }
-
-    /**
-     * Cerrar sesión (marcar como inactiva)
-     */
-    public void closeUserSession(String sessionId, FirestoreCallback callback) {
-        Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("isActive", false);
-        updates.put("logoutTime", new java.util.Date());
-        
-        db.collection(COLLECTION_USER_SESSIONS)
-            .document(sessionId)
-            .update(updates)
-            .addOnSuccessListener(aVoid -> {
-                Log.d(TAG, "Session closed");
-                callback.onSuccess(true);
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error closing session", e);
-                callback.onFailure(e);
-            });
-    }
-
-    /**
-     * Cerrar todas las sesiones activas de un usuario (útil para "cerrar sesión en todos los dispositivos")
-     */
-    public void closeAllUserSessions(String userId, FirestoreCallback callback) {
-        db.collection(COLLECTION_USER_SESSIONS)
-            .whereEqualTo("userId", userId)
-            .whereEqualTo("isActive", true)
-            .get()
-            .addOnSuccessListener(querySnapshot -> {
-                WriteBatch batch = db.batch();
-                for (QueryDocumentSnapshot document : querySnapshot) {
-                    Map<String, Object> updates = new java.util.HashMap<>();
-                    updates.put("isActive", false);
-                    updates.put("logoutTime", new java.util.Date());
-                    batch.update(document.getReference(), updates);
-                }
-                batch.commit()
-                    .addOnSuccessListener(aVoid -> {
-                        Log.d(TAG, "All sessions closed for user: " + userId);
-                        callback.onSuccess(true);
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Error closing all sessions", e);
-                        callback.onFailure(e);
-                    });
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error finding sessions to close", e);
-                callback.onFailure(e);
-            });
-    }
-
-    // ==================== USER ROLES ====================
-
-    /**
-     * Guardar o actualizar rol de usuario en user_roles collection
-     * Usa merge para preservar otros roles existentes
-     */
-    public void saveUserRole(String userId, String userType, String status, FirestoreCallback callback) {
-        saveUserRole(userId, userType, status, null, callback);
-    }
-
-    /**
-     * Guardar o actualizar rol de usuario en user_roles collection con campos adicionales
-     * Usa merge para preservar otros roles existentes
-     * 
-     * Estructura estándar de user_roles:
-     * {
-     *   "{userType}": {
-     *     "status": "active" | "pending" | "inactive",
-     *     "updatedAt": Date,
-     *     "activatedAt": Date (solo si status = "active"),
-     *     "appliedAt": Date (solo si status = "pending"),
-     *     ...additionalFields
-     *   }
-     * }
-     * 
-     * @param userId ID del usuario
-     * @param userType Tipo de usuario (CLIENT, GUIDE, ADMIN, etc.) - se convertirá a lowercase
-     * @param status Estado del rol: "active", "pending", "inactive"
-     * @param additionalFields Campos adicionales específicos del rol (ej: assignedBy, company, companyRuc para ADMIN)
-     * @param callback Callback para el resultado
-     */
-    public void saveUserRole(String userId, String userType, String status, Map<String, Object> additionalFields, FirestoreCallback callback) {
-        if (userId == null || userId.isEmpty()) {
-            callback.onFailure(new Exception("User ID is required"));
-            return;
-        }
-        
-        if (userType == null || userType.isEmpty()) {
-            callback.onFailure(new Exception("User type is required"));
+        if (userId == null || userId.trim().isEmpty()) {
+            callback.onFailure(new Exception("userId is required"));
             return;
         }
 
-        Map<String, Object> roleData = new HashMap<>();
-        roleData.put("status", status);
-        roleData.put("updatedAt", new java.util.Date());
-
-        // Estructura estándar según el estado:
-        // - "active" -> incluye "activatedAt"
-        // - "pending" -> incluye "appliedAt"
-        // - "inactive" -> solo status y updatedAt
-        if ("active".equals(status)) {
-            roleData.put("activatedAt", new java.util.Date());
-        } else if ("pending".equals(status)) {
-            roleData.put("appliedAt", new java.util.Date());
-        }
-        // Para "inactive" no agregamos campos adicionales de fecha
-
-        // Agregar campos adicionales si existen (ej: assignedBy, company, companyRuc para ADMIN)
-        if (additionalFields != null && !additionalFields.isEmpty()) {
-            roleData.putAll(additionalFields);
-        }
-
-        // Crear el mapa completo de roles usando merge para preservar otros roles
-        Map<String, Object> roleUpdate = new HashMap<>();
-        roleUpdate.put(userType.toLowerCase(), roleData);
-
-        db.collection(COLLECTION_USER_ROLES)
-                .document(userId)
-                .set(roleUpdate, SetOptions.merge())
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User role saved successfully: " + userType + " -> " + status);
-                    callback.onSuccess(true);
+        db.collection(COLLECTION_NOTIFICATIONS)
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isRead", false)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Notification> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Notification n = doc.toObject(Notification.class);
+                        if (n != null && (n.getNotificationId() == null || n.getNotificationId().isEmpty())) n.setNotificationId(doc.getId());
+                        list.add(n);
+                    }
+                    callback.onSuccess(list);
                 })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error saving user role", e);
-                    callback.onFailure(e);
-                });
+                .addOnFailureListener(callback::onFailure);
     }
 
     /**
-     * Obtener datos de user_roles para un usuario
-     * @param userId ID del usuario
-     * @param callback Callback que recibe un Map<String, Object> con los roles del usuario
+     * Actualizar estado de una oferta (ACEPTADA / RECHAZADA)
      */
+    public void updateOfferStatus(String offerId, String status, FirestoreCallback callback) {
+        if (offerId == null || offerId.trim().isEmpty()) {
+            callback.onFailure(new Exception("offerId is required"));
+            return;
+        }
+        if (status == null || status.trim().isEmpty()) {
+            callback.onFailure(new Exception("status is required"));
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", status);
+        updates.put("respondedAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+        db.collection(COLLECTION_TOUR_OFFERS)
+                .document(offerId)
+                .set(updates, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener un tour por id
+     */
+    public void getTour(String tourId, FirestoreCallback callback) {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_TOURS)
+                .document(tourId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        callback.onFailure(new Exception("Tour not found"));
+                        return;
+                    }
+                    Tour t = doc.toObject(Tour.class);
+                    if (t != null && t.getTourId() == null) t.setTourId(doc.getId());
+                    callback.onSuccess(t);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Verificar si un usuario ya tiene una reserva confirmada para un tour
+     */
+    public void hasConfirmedReservation(String userId, String tourId, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) {
+            callback.onFailure(new Exception("userId is required"));
+            return;
+        }
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_RESERVATIONS)
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("tourId", tourId)
+                .whereEqualTo("status", "CONFIRMADA")
+                .limit(1)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    boolean exists = !qs.isEmpty();
+                    callback.onSuccess(exists);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    // ==================== PAGOS / MÉTODOS DE PAGO ====================
+
+    public void getPaymentMethodsByUser(String userId, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) {
+            callback.onFailure(new Exception("userId is required"));
+            return;
+        }
+        db.collection(COLLECTION_PAYMENT_METHODS)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<PaymentMethod> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        PaymentMethod pm = doc.toObject(PaymentMethod.class);
+                        if (pm != null && (pm.getPaymentMethodId() == null || pm.getPaymentMethodId().isEmpty())) pm.setPaymentMethodId(doc.getId());
+                        list.add(pm);
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    public void setDefaultPaymentMethod(String userId, String paymentMethodId, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) { callback.onFailure(new Exception("userId is required")); return; }
+        if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) { callback.onFailure(new Exception("paymentMethodId is required")); return; }
+
+        // 1) actualizar campo defaultPaymentMethodId en el documento del usuario
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("defaultPaymentMethodId", paymentMethodId);
+
+        db.collection(COLLECTION_USERS).document(userId).set(updates, SetOptions.merge())
+                .addOnSuccessListener(unused -> {
+                    // 2) marcar todos los métodos del usuario como isDefault=false y luego el elegido como true
+                    db.collection(COLLECTION_PAYMENT_METHODS).whereEqualTo("userId", userId).get()
+                            .addOnSuccessListener(qs -> {
+                                for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                                    Map<String, Object> upd = new HashMap<>();
+                                    boolean isDefault = paymentMethodId.equals(doc.getId());
+                                    upd.put("isDefault", isDefault);
+                                    db.collection(COLLECTION_PAYMENT_METHODS).document(doc.getId()).set(upd, SetOptions.merge());
+                                }
+                                callback.onSuccess(true);
+                            })
+                            .addOnFailureListener(callback::onFailure);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    public void deletePaymentMethod(String paymentMethodId, FirestoreCallback callback) {
+        if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) { callback.onFailure(new Exception("paymentMethodId is required")); return; }
+        db.collection(COLLECTION_PAYMENT_METHODS).document(paymentMethodId).delete()
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    // ==================== COMPANIES & TOURS ====================
+
+    public void getCompanies(FirestoreCallback callback) {
+        db.collection(COLLECTION_COMPANIES).get()
+                .addOnSuccessListener(qs -> {
+                    List<Company> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Company c = doc.toObject(Company.class);
+                        if (c != null && (c.getCompanyId() == null || c.getCompanyId().isEmpty())) c.setCompanyId(doc.getId());
+                        list.add(c);
+                    }
+                    callback.onSuccess(list);
+                }).addOnFailureListener(callback::onFailure);
+    }
+
+    public void getCompany(String companyId, FirestoreCallback callback) {
+        getCompanyById(companyId, callback);
+    }
+
+    public void getToursByCompany(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) { callback.onFailure(new Exception("companyId is required")); return; }
+        db.collection(COLLECTION_TOURS).whereEqualTo("companyId", companyId).get()
+                .addOnSuccessListener(qs -> {
+                    List<Tour> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Tour t = doc.toObject(Tour.class);
+                        if (t != null && (t.getTourId() == null || t.getTourId().isEmpty())) t.setTourId(doc.getId());
+                        list.add(t);
+                    }
+                    callback.onSuccess(list);
+                }).addOnFailureListener(callback::onFailure);
+    }
+
+    // ==================== CREAR/ACTUALIZAR USUARIOS & ROLES ====================
+
+    public void createUser(User user, FirestoreCallback callback) {
+        if (user == null) { callback.onFailure(new Exception("User is null")); return; }
+        // Similar a upsertUser pero permite generar id
+        DocumentReference ref = (user.getUserId() == null || user.getUserId().trim().isEmpty())
+                ? db.collection(COLLECTION_USERS).document()
+                : db.collection(COLLECTION_USERS).document(user.getUserId());
+        user.setUserId(ref.getId());
+        ref.set(user, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(user))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    public void createOrUpdateUser(User user, FirestoreCallback callback) {
+        createUser(user, callback);
+    }
+
+    public void saveUserRole(String userId, String userType, String roleStatus, FirestoreCallback callback) {
+        saveUserRole(userId, userType, roleStatus, null, callback);
+    }
+
+    public void saveUserRole(String userId, String userType, String roleStatus, Map<String, Object> extraFields, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) { callback.onFailure(new Exception("userId is required")); return; }
+        Map<String, Object> data = new HashMap<>();
+        data.put("userType", userType);
+        data.put("status", roleStatus);
+        if (extraFields != null) data.putAll(extraFields);
+        db.collection(COLLECTION_USER_ROLES).document(userId).set(data, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+
     public void getUserRoles(String userId, FirestoreCallback callback) {
-        if (userId == null || userId.isEmpty()) {
-            callback.onFailure(new Exception("User ID is required"));
-            return;
-        }
+        if (userId == null || userId.trim().isEmpty()) { callback.onFailure(new Exception("userId is required")); return; }
+        db.collection(COLLECTION_USER_ROLES).document(userId).get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) { callback.onFailure(new Exception("User roles not found")); return; }
+                    callback.onSuccess(doc.getData());
+                }).addOnFailureListener(callback::onFailure);
+    }
 
-        db.collection(COLLECTION_USER_ROLES)
-                .document(userId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        Map<String, Object> rolesData = documentSnapshot.getData();
-                        Log.d(TAG, "User roles retrieved successfully for: " + userId);
-                        callback.onSuccess(rolesData);
-                    } else {
-                        Log.d(TAG, "No user roles found for: " + userId);
-                        callback.onSuccess(new HashMap<>()); // Retornar mapa vacío si no existe
+    // ==================== NOTIFICACIONES ====================
+
+    public void getNotificationsByUser(String userId, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) { callback.onFailure(new Exception("userId is required")); return; }
+        db.collection(COLLECTION_NOTIFICATIONS).whereEqualTo("userId", userId).get()
+                .addOnSuccessListener(qs -> {
+                    List<Notification> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Notification n = doc.toObject(Notification.class);
+                        if (n != null && (n.getNotificationId() == null || n.getNotificationId().isEmpty())) n.setNotificationId(doc.getId());
+                        list.add(n);
                     }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error retrieving user roles", e);
-                    callback.onFailure(e);
-                });
+                    callback.onSuccess(list);
+                }).addOnFailureListener(callback::onFailure);
+    }
+
+    public void updateNotification(String notificationId, Map<String, Object> updates, FirestoreCallback callback) {
+        if (notificationId == null || notificationId.trim().isEmpty()) { callback.onFailure(new Exception("notificationId is required")); return; }
+        db.collection(COLLECTION_NOTIFICATIONS).document(notificationId).set(updates, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    public void deleteNotification(String notificationId, FirestoreCallback callback) {
+        if (notificationId == null || notificationId.trim().isEmpty()) { callback.onFailure(new Exception("notificationId is required")); return; }
+        db.collection(COLLECTION_NOTIFICATIONS).document(notificationId).delete()
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    // ==================== SESSIONS, RESERVAS, REVIEWS ====================
+
+    public void createUserSession(UserSession session, FirestoreCallback callback) {
+        if (session == null) { callback.onFailure(new Exception("session is null")); return; }
+        DocumentReference ref = (session.getSessionId() == null || session.getSessionId().isEmpty())
+                ? db.collection(COLLECTION_USER_SESSIONS).document()
+                : db.collection(COLLECTION_USER_SESSIONS).document(session.getSessionId());
+        session.setSessionId(ref.getId());
+        ref.set(session, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(session))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    public void getReservationsByUser(String userId, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) { callback.onFailure(new Exception("userId is required")); return; }
+        db.collection(COLLECTION_RESERVATIONS).whereEqualTo("userId", userId).get()
+                .addOnSuccessListener(qs -> {
+                    List<Reservation> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Reservation r = doc.toObject(Reservation.class);
+                        if (r != null && (r.getReservationId() == null || r.getReservationId().isEmpty())) r.setReservationId(doc.getId());
+                        list.add(r);
+                    }
+                    callback.onSuccess(list);
+                }).addOnFailureListener(callback::onFailure);
+    }
+
+    public void createReservation(Reservation reservation, FirestoreCallback callback) {
+        if (reservation == null) { callback.onFailure(new Exception("reservation is null")); return; }
+        DocumentReference ref = (reservation.getReservationId() == null || reservation.getReservationId().isEmpty())
+                ? db.collection(COLLECTION_RESERVATIONS).document()
+                : db.collection(COLLECTION_RESERVATIONS).document(reservation.getReservationId());
+        reservation.setReservationId(ref.getId());
+        ref.set(reservation, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(reservation))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    public void updateReservation(String reservationId, Map<String, Object> updates, FirestoreCallback callback) {
+        if (reservationId == null || reservationId.trim().isEmpty()) { callback.onFailure(new Exception("reservationId is required")); return; }
+        db.collection(COLLECTION_RESERVATIONS).document(reservationId).set(updates, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    // ==================== REVIEWS ====================
+
+    public void createReview(String tourId, String userId, int rating, String comment, FirestoreCallback callback) {
+        Review review = new Review();
+        review.setTourId(tourId);
+        review.setUserId(userId);
+        // convertir a Float
+        review.setRating((float) rating);
+        review.setComment(comment);
+        // Guardar con id generado
+        DocumentReference ref = db.collection(COLLECTION_REVIEWS).document();
+        ref.set(review, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    // ==================== ALIAS / COMPATIBILIDAD ====================
+
+    public void getUser(String userId, FirestoreCallback callback) {
+        getUserById(userId, callback);
+    }
+
+    public void getTour(String tourId) {
+        // placeholder - existing getTour(String, FirestoreCallback) should be used
     }
 
     // ==================== CALLBACK ====================
@@ -1840,4 +759,3 @@ public class FirestoreManager {
         void onFailure(Exception e);
     }
 }
-

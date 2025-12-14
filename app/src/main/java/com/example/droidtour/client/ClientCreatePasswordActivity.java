@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,19 +16,14 @@ import com.example.droidtour.models.UserSession;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import android.os.Build;
 import android.provider.Settings;
-import android.util.Log;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class ClientCreatePasswordActivity extends AppCompatActivity {
     private static final String TAG = "ClientCreatePassword";
-    
+
     private TextInputEditText etPassword, etRepeatPassword;
     private TextView tvPasswordError;
     private MaterialButton btnSiguiente;
@@ -141,7 +137,7 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
 
     private void registerUser() {
         btnSiguiente.setEnabled(false);
-        btnSiguiente.setText("Creando cuenta..."); // Feedback visual
+        btnSiguiente.setText("Creando cuenta...");
 
         String password = etPassword.getText().toString().trim();
 
@@ -157,7 +153,6 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
                             handleRegistrationError("Error al obtener usuario");
                         }
                     } else {
-                        // MEJOR MANEJO DE ERRORES ESPECÍFICOS
                         String errorMessage = "Error en el registro";
                         if (task.getException() != null) {
                             String exceptionMessage = task.getException().getMessage();
@@ -176,9 +171,8 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
 
     private void handleRegistrationError(String errorMessage) {
         btnSiguiente.setEnabled(true);
-        btnSiguiente.setText("Siguiente"); // Restaurar texto
+        btnSiguiente.setText("Siguiente");
 
-        // Mostrar error en el TextView en lugar de solo Toast
         tvPasswordError.setText(errorMessage);
         tvPasswordError.setVisibility(TextView.VISIBLE);
 
@@ -187,69 +181,45 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
 
     private void saveUserToFirestore(FirebaseUser user) {
         String userId = user.getUid();
-        String fullName = nombres + " " + apellidos;
 
-        // 3. Crear objeto User usando el modelo
+        // 3. Crear objeto User usando el modelo CORREGIDO
         User newUser = new User();
-        newUser.setUserId(userId); // Establecer userId para el modelo
+        newUser.setUserId(userId);
         newUser.setEmail(correo);
-        newUser.setFirstName(nombres);
-        newUser.setLastName(apellidos);
-        newUser.setFullName(fullName);
-        newUser.setDocumentType(tipoDocumento);
-        newUser.setDocumentNumber(numeroDocumento);
-        newUser.setDateOfBirth(fechaNacimiento);
-        newUser.setPhoneNumber(telefono);
         newUser.setUserType("CLIENT");
-        newUser.setProvider("email");
         newUser.setStatus("active");
-        newUser.setActive(true);
-        newUser.setProfileCompleted(true);
-        newUser.setProfileCompletedAt(new java.util.Date());
+
+        // Crear PersonalData
+        User.PersonalData personalData = new User.PersonalData(
+                nombres,
+                apellidos,
+                tipoDocumento,
+                numeroDocumento,
+                fechaNacimiento,
+                telefono
+        );
 
         // Agregar foto si existe
         if (photoUri != null && !photoUri.isEmpty()) {
-            newUser.setProfileImageUrl(photoUri);
-            newUser.setCustomPhoto(true);
+            personalData.setProfileImageUrl(photoUri);
         }
 
-        // 4. GUARDAR EN FIRESTORE usando FirestoreManager
+        newUser.setPersonalData(personalData);
+
+        // 4. GUARDAR EN FIRESTORE usando FirestoreManager (DESCOMENTADO)
         FirestoreManager firestoreManager = FirestoreManager.getInstance();
-        firestoreManager.createUser(newUser, new FirestoreManager.FirestoreCallback() {
+        firestoreManager.upsertUser(newUser, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 Log.d(TAG, "Usuario guardado exitosamente en Firestore");
-                // 5. GUARDAR ROL DEL USUARIO (CLIENTE ACTIVO DIRECTAMENTE)
-                saveUserRole(userId);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error al guardar usuario en Firestore para userId: " + userId, e);
-                handleRegistrationError("Error al guardar datos: " + e.getMessage());
-            }
-        });
-    }
-
-    private void saveUserRole(String userId) {
-        FirestoreManager firestoreManager = FirestoreManager.getInstance();
-        firestoreManager.saveUserRole(userId, "CLIENT", "active", new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                Log.d(TAG, "Rol de cliente guardado exitosamente");
-                // 6. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
+                // 5. GUARDAR EN PREFERENCES
                 saveToPreferencesManager(userId);
-
-                Toast.makeText(ClientCreatePasswordActivity.this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
-
-                // 7. REDIRIGIR AL DASHBOARD DEL CLIENTE
-                redirectToMainActivity();
             }
 
             @Override
             public void onFailure(Exception e) {
-                Log.e(TAG, "Error al guardar rol de cliente", e);
-                handleRegistrationError("Error al guardar rol: " + e.getMessage());
+                Log.e(TAG, "Error al guardar usuario en Firestore: " + e.getMessage());
+                handleRegistrationError("Error al guardar datos: " + e.getMessage());
             }
         });
     }
@@ -261,40 +231,43 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
         prefsManager.saveUserData(userId, fullName, correo, telefono, "CLIENT");
         prefsManager.guardarUltimoLogin(System.currentTimeMillis());
         prefsManager.marcarPrimeraVezCompletada();
-        
-        // 🔥 Guardar sesión en Firestore
+
+        // Guardar sesión en Firestore
         saveSessionToFirestore(userId, correo, fullName);
+
+        // Redirigir al dashboard
+        Toast.makeText(this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+        redirectToMainActivity();
     }
-    
-    /**
-     * Guardar sesión en Firestore para persistencia multi-dispositivo
-     */
+
     private void saveSessionToFirestore(String userId, String email, String name) {
         // Obtener información del dispositivo
         String deviceId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         String deviceModel = Build.MANUFACTURER + " " + Build.MODEL;
         String deviceOS = "Android " + Build.VERSION.RELEASE;
         String appVersion = "1.0.0";
-        
+
         // Crear sesión
-        UserSession session = new UserSession(userId, email, name, "CLIENT", 
-                                            deviceId, deviceModel, deviceOS, appVersion);
-        
+        UserSession session = new UserSession(userId, email, name, "CLIENT",
+                deviceId, deviceModel, deviceOS, appVersion);
+
         // Guardar en Firestore
         FirestoreManager firestoreManager = FirestoreManager.getInstance();
         firestoreManager.createUserSession(session, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                String sessionId = (String) result;
+                String sessionId = result instanceof UserSession ?
+                        ((UserSession) result).getSessionId() : "unknown";
+
                 PreferencesManager prefs = new PreferencesManager(ClientCreatePasswordActivity.this);
                 prefs.guardar("session_id", sessionId);
                 Log.d(TAG, "Sesión guardada en Firestore: " + sessionId);
             }
-            
+
             @Override
             public void onFailure(Exception e) {
-                Log.e(TAG, "Error guardando sesión en Firestore para userId: " + userId + " (no crítico)", e);
-                // No bloquear el flujo si falla guardar la sesión
+                Log.e(TAG, "Error guardando sesión en Firestore: " + e.getMessage());
+                // No bloquear el flujo si falla
             }
         });
     }
@@ -305,5 +278,4 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
     }
-
 }

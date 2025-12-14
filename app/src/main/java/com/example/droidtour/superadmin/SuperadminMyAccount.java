@@ -160,6 +160,11 @@ public class SuperadminMyAccount extends AppCompatActivity {
     }
 
     private void updateUIWithUserData(User user) {
+
+        if (user == null) {
+            loadFallbackData();
+            return;
+        }
         // Obtener nombre completo desde el objeto User
         String fullName = user.getFullName();
         if (fullName == null || fullName.isEmpty()) {
@@ -176,7 +181,10 @@ public class SuperadminMyAccount extends AppCompatActivity {
         String email = user.getEmail();
         
         // Obtener foto de perfil desde el objeto User
-        String profileImageUrl = user.getProfileImageUrl();
+        String profileImageUrl = null;
+        if (user.getPersonalData() != null) {
+            profileImageUrl = user.getPersonalData().getProfileImageUrl();
+        }
 
         // Actualizar UI
         if (tvUserName != null) {
@@ -202,7 +210,10 @@ public class SuperadminMyAccount extends AppCompatActivity {
         }
 
         // Actualizar PreferencesManager con los datos más recientes
-        String phoneNumber = user.getPhoneNumber();
+        String phoneNumber = null;
+        if (user.getPersonalData() != null) {
+            phoneNumber = user.getPersonalData().getPhoneNumber();
+        }
         String userType = user.getUserType();
         
         if (userType != null && !userType.isEmpty()) {

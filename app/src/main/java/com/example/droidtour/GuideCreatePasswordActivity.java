@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class GuideCreatePasswordActivity extends AppCompatActivity {
+    private static final String TAG = "GuideCreatePassword";
+
     private TextInputEditText etPassword, etRepeatPassword;
     private TextView tvPasswordError;
     private MaterialButton btnSiguiente;
@@ -177,78 +179,118 @@ public class GuideCreatePasswordActivity extends AppCompatActivity {
 
     private void saveUserToFirestore(FirebaseUser user) {
         String userId = user.getUid();
-        String fullName = nombres + " " + apellidos;
+        String fullName = (nombres + " " + apellidos).trim();
 
-        // 3. Crear objeto User usando el modelo
+        // 3. Crear objeto User usando el modelo con PersonalData
         User newUser = new User();
-        newUser.setUserId(userId); // Establecer userId para el modelo
+        newUser.setUserId(userId);
         newUser.setEmail(correo);
-        newUser.setFirstName(nombres);
-        newUser.setLastName(apellidos);
-        newUser.setFullName(fullName);
-        newUser.setDocumentType(tipoDocumento);
-        newUser.setDocumentNumber(numeroDocumento);
-        newUser.setDateOfBirth(fechaNacimiento);
-        newUser.setPhoneNumber(telefono);
         newUser.setUserType("GUIDE");
-        newUser.setProvider("email");
-        newUser.setStatus("pending_approval");
-        newUser.setActive(false); // Pendiente de aprobación
-        newUser.setProfileCompleted(true);
-        newUser.setProfileCompletedAt(new java.util.Date());
+        newUser.setStatus("pending"); // Estado pendiente de aprobación
 
-        // ✅ Campos específicos para guías
-        newUser.setGuideApproved(false); // Requiere aprobación de superadmin
-        newUser.setGuideRating(4.8f); // Calificación inicial del guía
-        
-        // Agregar idiomas como guideLanguages
-        if (idiomasSeleccionados != null && !idiomasSeleccionados.isEmpty()) {
-            newUser.setGuideLanguages(idiomasSeleccionados);
-        }
+        // Crear y configurar PersonalData
+        User.PersonalData personalData = new User.PersonalData();
+        personalData.setFirstName(nombres);
+        personalData.setLastName(apellidos);
+        personalData.setFullName(fullName);
+        personalData.setDocumentType(tipoDocumento);
+        personalData.setDocumentNumber(numeroDocumento);
+        personalData.setDateOfBirth(fechaNacimiento);
+        personalData.setPhoneNumber(telefono);
 
         // Agregar foto si existe
         if (photoUri != null && !photoUri.isEmpty()) {
-            newUser.setProfileImageUrl(photoUri);
-            newUser.setCustomPhoto(true);
+            personalData.setProfileImageUrl(photoUri);
         }
+
+        newUser.setPersonalData(personalData);
 
         // 4. GUARDAR EN FIRESTORE usando FirestoreManager
         FirestoreManager firestoreManager = FirestoreManager.getInstance();
         firestoreManager.createUser(newUser, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                Log.d("GuideCreatePassword", "Guía guardado exitosamente en Firestore");
-                // 5. GUARDAR ROL DEL USUARIO
-                saveUserRole(userId);
+                Log.d(TAG, "Guía guardado exitosamente en Firestore");
+                // 5. GUARDAR ROL DEL USUARIO con idiomas
+                saveUserRoleWithLanguages(userId);
             }
 
             @Override
             public void onFailure(Exception e) {
-                Log.e("GuideCreatePassword", "Error al guardar guía en Firestore para userId: " + userId, e);
+                Log.e(TAG, "Error al guardar guía en Firestore para userId: " + userId, e);
                 handleRegistrationError("Error al guardar datos: " + e.getMessage());
             }
         });
     }
 
-    private void saveUserRole(String userId) {
+    /**
+     * Guardar el rol de guía con idiomas en user_roles
+     */
+    private void saveUserRoleWithLanguages(String userId) {
         FirestoreManager firestoreManager = FirestoreManager.getInstance();
-        firestoreManager.saveUserRole(userId, "GUIDE", "pending", new FirestoreManager.FirestoreCallback() {
+
+        // Crear campos extra para el rol de guía
+        Map<String, Object> extraFields = new HashMap<>();
+
+        // Agregar idiomas si existen
+        if (idiomasSeleccionados != null && !idiomasSeleccionados.isEmpty()) {
+            extraFields.put("languages", idiomasSeleccionados);
+        }
+
+        // Agregar campos adicionales para guías
+        extraFields.put("approved", false); // Requiere aprobación
+        extraFields.put("rating", 0.0f); // Calificación inicial
+
+        firestoreManager.saveUserRole(userId, "GUIDE", "pending", extraFields, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                Log.d("GuideCreatePassword", "Rol de guía guardado exitosamente");
-                // 6. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
+                Log.d(TAG, "Rol de guía guardado exitosamente");
+                // 6. CREAR DOCUMENTO EN COLECCIÓN GUIDES (opcional)
+                saveGuideDocument(userId);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al guardar rol de guía para userId: " + userId, e);
+                handleRegistrationError("Error al guardar rol: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Guardar documento en colección guides (opcional, para información adicional)
+     */
+    private void saveGuideDocument(String userId) {
+        // Crear documento Guide usando el modelo Guide
+        com.example.droidtour.models.Guide guide = new com.example.droidtour.models.Guide();
+        guide.setGuideId(userId);
+        guide.setLanguages(idiomasSeleccionados);
+        guide.setApproved(false); // Pendiente de aprobación
+        guide.setRating(0.0f); // Sin calificación aún
+
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.upsertGuide(guide, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "Documento de guía creado exitosamente");
+                // 7. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
                 saveToPreferencesManager(userId);
 
-                Toast.makeText(GuideCreatePasswordActivity.this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(GuideCreatePasswordActivity.this,
+                        "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
 
-                // 7. REDIRIGIR A PANTALLA DE ESPERA
+                // 8. REDIRIGIR A PANTALLA DE ESPERA
                 redirectToApprovalPending();
             }
 
             @Override
             public void onFailure(Exception e) {
-                Log.e("GuideCreatePassword", "Error al guardar rol de guía para userId: " + userId, e);
-                handleRegistrationError("Error al guardar rol: " + e.getMessage());
+                Log.e(TAG, "Error al crear documento de guía para userId: " + userId, e);
+                // Continuar de todas formas, el documento Guide es opcional
+                saveToPreferencesManager(userId);
+                Toast.makeText(GuideCreatePasswordActivity.this,
+                        "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+                redirectToApprovalPending();
             }
         });
     }
@@ -257,7 +299,7 @@ public class GuideCreatePasswordActivity extends AppCompatActivity {
         com.example.droidtour.utils.PreferencesManager prefsManager =
                 new com.example.droidtour.utils.PreferencesManager(this);
 
-        String fullName = nombres + " " + apellidos;
+        String fullName = (nombres + " " + apellidos).trim();
         prefsManager.saveUserData(userId, fullName, correo, telefono, "GUIDE");
         prefsManager.guardarUltimoLogin(System.currentTimeMillis());
         prefsManager.marcarPrimeraVezCompletada();
@@ -271,7 +313,7 @@ public class GuideCreatePasswordActivity extends AppCompatActivity {
     }
 
     private void handleRegistrationError(String errorMessage) {
-        Log.e("GuideCreatePassword", "Error en registro: " + errorMessage);
+        Log.e(TAG, "Error en registro: " + errorMessage);
         btnSiguiente.setEnabled(true);
         btnSiguiente.setText("Siguiente"); // Restaurar texto
 

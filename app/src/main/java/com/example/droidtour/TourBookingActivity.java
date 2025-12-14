@@ -11,6 +11,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.droidtour.models.PaymentMethod;
+import com.example.droidtour.models.Reservation;
 import com.example.droidtour.utils.NotificationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -284,7 +285,7 @@ public class TourBookingActivity extends AppCompatActivity {
             public void onSuccess(Object result) {
                 com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
                 
-                com.example.droidtour.models.Reservation reservation = new com.example.droidtour.models.Reservation(
+                Reservation reservation = new Reservation(
                     currentUserId,
                     user.getFirstName() + " " + user.getLastName(),
                     user.getEmail(),

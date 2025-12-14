@@ -20,6 +20,8 @@ import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.managers.PrefsManager;
 import com.example.droidtour.models.Notification;
+import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.TourOffer;
 import com.example.droidtour.utils.NotificationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -47,7 +49,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private FirestoreManager firestoreManager;
     private FirebaseAuthManager authManager;
     private String currentUserId;
-    private com.example.droidtour.models.Reservation activeTourReservation;
+    private Reservation activeTourReservation;
     
     // Toolbar menu elements
     private FrameLayout notificationActionLayout, avatarActionLayout;
@@ -240,8 +242,14 @@ public class TourGuideMainActivity extends AppCompatActivity {
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, GuideProfileActivity.class));
             } else if (id == R.id.nav_init_test_data) {
-                // Abrir actividad de inicialización de datos
-                startActivity(new Intent(this, com.example.droidtour.firebase.InitializeTestDataActivity.class));
+                // Intent por nombre de clase para evitar referencia a clase inexistente en tiempo de compilación
+                try {
+                    Intent intent = new Intent();
+                    intent.setClassName(getPackageName(), "com.example.droidtour.firebase.InitializeTestDataActivity");
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Toast.makeText(this, "Inicializador de datos no disponible", Toast.LENGTH_SHORT).show();
+                }
             } else if (id == R.id.nav_logout) {
                 // Handle logout - limpiar sesión correctamente
                 prefsManager.cerrarSesion();
@@ -286,12 +294,12 @@ public class TourGuideMainActivity extends AppCompatActivity {
         firestoreManager.getOffersByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                List<com.example.droidtour.models.TourOffer> allOffers = 
-                    (List<com.example.droidtour.models.TourOffer>) result;
-                
+                @SuppressWarnings("unchecked")
+                List<TourOffer> allOffers = (List<TourOffer>) result;
+
                 // Filtrar solo ofertas pendientes
-                List<com.example.droidtour.models.TourOffer> pendingOffers = new java.util.ArrayList<>();
-                for (com.example.droidtour.models.TourOffer offer : allOffers) {
+                List<TourOffer> pendingOffers = new java.util.ArrayList<>();
+                for (TourOffer offer : allOffers) {
                     if ("PENDIENTE".equals(offer.getStatus())) {
                         pendingOffers.add(offer);
                     }
@@ -323,12 +331,12 @@ public class TourGuideMainActivity extends AppCompatActivity {
         firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                List<com.example.droidtour.models.Reservation> allReservations = 
-                    (List<com.example.droidtour.models.Reservation>) result;
-                
+                @SuppressWarnings("unchecked")
+                List<Reservation> allReservations = (List<Reservation>) result;
+
                 // Filtrar solo reservas programadas/confirmadas
-                List<com.example.droidtour.models.Reservation> upcomingTours = new java.util.ArrayList<>();
-                for (com.example.droidtour.models.Reservation reservation : allReservations) {
+                List<Reservation> upcomingTours = new java.util.ArrayList<>();
+                for (Reservation reservation : allReservations) {
                     if ("CONFIRMADA".equals(reservation.getStatus()) || "PROGRAMADA".equals(reservation.getStatus())) {
                         upcomingTours.add(reservation);
                     }
@@ -429,19 +437,21 @@ public class TourGuideMainActivity extends AppCompatActivity {
     }
     
     // ==================== STORAGE LOCAL ====================
-    
+
     private void loadUserData() {
         if (currentUserId == null || currentUserId.isEmpty()) {
             android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
             return;
         }
-        
-        // Cargar datos reales del usuario desde Firebase
+
         firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
-                
+
+                // Extraer nombre desde personalData
+                String fullName = extractFullName(user);
+
                 // Actualizar nombre en el header del drawer
                 NavigationView navigationView = findViewById(R.id.nav_view);
                 if (navigationView != null) {
@@ -449,18 +459,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
                     if (headerView != null) {
                         TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
                         if (tvUserNameHeader != null) {
-                            String fullName = user.getFullName() != null ? user.getFullName() : 
-                                            (user.getFirstName() + " " + user.getLastName());
-                            // Mostrar nombre + apellido (dos primeros tokens) en el header
-                            String displayName = fullName != null ? fullName.trim() : "";
-                            String[] parts = displayName.split("\\s+");
-                            if (parts.length >= 2) {
-                                displayName = parts[0] + " " + parts[1];
-                            } else if (parts.length == 1) {
-                                displayName = parts[0];
-                            } else {
-                                displayName = "Usuario";
-                            }
+                            String displayName = getDisplayName(fullName);
                             tvUserNameHeader.setText(displayName);
                         }
                     }
@@ -468,27 +467,181 @@ public class TourGuideMainActivity extends AppCompatActivity {
 
                 android.util.Log.d("TourGuideMain", "✅ Nombre del drawer actualizado desde Firebase");
             }
-            
+
             @Override
             public void onFailure(Exception e) {
                 android.util.Log.e("TourGuideMain", "❌ Error cargando usuario para drawer", e);
                 // Fallback a PreferencesManager
-                NavigationView navigationView = findViewById(R.id.nav_view);
-                if (navigationView != null) {
-                    View headerView = navigationView.getHeaderView(0);
-                    if (headerView != null) {
-                        TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
-                        if (tvUserNameHeader != null) {
-                            String userName = prefsManager.obtenerUsuario();
-                            tvUserNameHeader.setText(userName != null && !userName.isEmpty() ? userName : "Usuario");
-                        }
-                    }
-                }
+                updateHeaderFromPrefs();
             }
         });
     }
-    
-    // Métodos de SQLite eliminados - ahora se usa FirestoreManager directamente
+    private String extractFullName(com.example.droidtour.models.User user) {
+        if (user.getPersonalData() != null) {
+            String fullName = user.getPersonalData().getFullName();
+            if (fullName != null && !fullName.isEmpty()) {
+                return fullName;
+            }
+
+            String firstName = user.getPersonalData().getFirstName();
+            String lastName = user.getPersonalData().getLastName();
+            if (firstName != null || lastName != null) {
+                return ((firstName != null ? firstName : "") + " " +
+                        (lastName != null ? lastName : "")).trim();
+            }
+        }
+        return "Usuario";
+    }
+
+    private String getDisplayName(String fullName) {
+        if (fullName == null || fullName.isEmpty()) {
+            return "Usuario";
+        }
+
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length >= 2) {
+            return parts[0] + " " + parts[1]; // Nombre + Apellido
+        } else if (parts.length == 1) {
+            return parts[0];
+        }
+        return "Usuario";
+    }
+
+    // MÉTODO HELPER PARA FALLBACK:
+    private void updateHeaderFromPrefs() {
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        if (navigationView != null) {
+            View headerView = navigationView.getHeaderView(0);
+            if (headerView != null) {
+                TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+                if (tvUserNameHeader != null) {
+                    String userName = prefsManager.obtenerUsuario();
+                    tvUserNameHeader.setText(userName != null && !userName.isEmpty() ? userName : "Usuario");
+                }
+            }
+        }
+    }
+
+    // MÉTODO loadGuideStats() CORREGIDO:
+    private void loadGuideStats() {
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
+            return;
+        }
+
+        // 1. Cargar rating desde user_roles o guides (ya que User no tiene guideRating)
+        loadGuideRatingFromFirebase();
+
+        // 2. Cargar reservas para calcular tours completados y ganancias
+        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<Reservation> allReservations = (List<Reservation>) result;
+
+                int completedCount = 0;
+                double totalEarnings = 0.0;
+
+                for (Reservation reservation : allReservations) {
+                    if ("COMPLETADA".equals(reservation.getStatus())) {
+                        completedCount++;
+                        Double price = reservation.getTotalPrice();
+                        if (price != null) {
+                            totalEarnings += price;
+                        }
+                    }
+                }
+
+                // Actualizar UI
+                tvCompletedTours.setText(completedCount + " Tours");
+                tvMonthlyEarnings.setText(String.format("S/. %.0f", totalEarnings));
+                tvGuideStatus.setText("Estado: APROBADO");
+
+                android.util.Log.d("TourGuideMain", "✅ Stats: " + completedCount + " tours, S/. " + totalEarnings);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "❌ Error cargando reservas", e);
+                tvCompletedTours.setText("0 Tours");
+                tvMonthlyEarnings.setText("S/. 0");
+                tvGuideStatus.setText("Estado: APROBADO");
+            }
+        });
+    }
+
+    // NUEVO MÉTODO PARA CARGAR RATING:
+    private void loadGuideRatingFromFirebase() {
+        com.google.firebase.firestore.FirebaseFirestore db = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+
+        // Intentar cargar desde user_roles primero
+        db.collection(FirestoreManager.COLLECTION_USER_ROLES)
+                .document(currentUserId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc != null && doc.exists()) {
+                        Float rating = null;
+                        Integer toursCount = 0;
+
+                        // Extraer rating de diferentes estructuras posibles
+                        if (doc.contains("rating")) {
+                            Object ratingObj = doc.get("rating");
+                            if (ratingObj instanceof Number) {
+                                rating = ((Number) ratingObj).floatValue();
+                            }
+                        } else if (doc.contains("guide")) {
+                            Object guideObj = doc.get("guide");
+                            if (guideObj instanceof java.util.Map) {
+                                java.util.Map<String, Object> guideMap = (java.util.Map<String, Object>) guideObj;
+                                Object ratingObj = guideMap.get("rating");
+                                if (ratingObj instanceof Number) {
+                                    rating = ((Number) ratingObj).floatValue();
+                                }
+                            }
+                        }
+
+                        // Actualizar UI con el rating
+                        if (rating != null && rating > 0) {
+                            tvGuideRating.setText(String.format("Calificación: ⭐ %.1f", rating));
+                        } else {
+                            tvGuideRating.setText("Calificación: ⭐ 0.0");
+                        }
+                    } else {
+                        // Si no existe en user_roles, intentar desde guides
+                        loadRatingFromGuides();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.w("TourGuideMain", "Error cargando rating desde user_roles: " + e.getMessage());
+                    loadRatingFromGuides();
+                });
+    }
+
+    // MÉTODO FALLBACK PARA RATING DESDE GUIDES:
+    private void loadRatingFromGuides() {
+        com.google.firebase.firestore.FirebaseFirestore db = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+        db.collection(FirestoreManager.COLLECTION_GUIDES)
+                .document(currentUserId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc != null && doc.exists()) {
+                        Object ratingObj = doc.get("rating");
+                        if (ratingObj instanceof Number) {
+                            float rating = ((Number) ratingObj).floatValue();
+                            tvGuideRating.setText(String.format("Calificación: ⭐ %.1f", rating));
+                        } else {
+                            tvGuideRating.setText("Calificación: ⭐ 0.0");
+                        }
+                    } else {
+                        tvGuideRating.setText("Calificación: ⭐ 0.0");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.w("TourGuideMain", "Error cargando rating desde guides: " + e.getMessage());
+                    tvGuideRating.setText("Calificación: ⭐ 0.0");
+                });
+    }
+
     
     // ==================== NOTIFICACIONES ====================
     
@@ -503,6 +656,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
         firestoreManager.getUnreadNotifications(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
                 List<Notification> unreadNotifications = (List<Notification>) result;
                 notificationCount = unreadNotifications.size();
                 updateNotificationBadge();
@@ -525,94 +679,6 @@ public class TourGuideMainActivity extends AppCompatActivity {
         );
     }
     
-    // ==================== ESTADÍSTICAS DEL GUÍA ====================
-    
-    /**
-     * Cargar estadísticas del guía desde Firebase
-     */
-    private void loadGuideStats() {
-        if (currentUserId == null || currentUserId.isEmpty()) {
-            android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
-            return;
-        }
-        
-        // 1. Cargar rating del guía
-        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
-                Float rating = user.getGuideRating();
-                
-                if (rating != null && rating > 0) {
-                    tvGuideStatus.setText("Estado: APROBADO");
-                    // El número de tours se cargará desde las reservas
-                } else {
-                    tvGuideStatus.setText("Estado: APROBADO");
-                    tvGuideRating.setText("Calificación: ⭐ 0.0 (0 tours)");
-                }
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                android.util.Log.e("TourGuideMain", "❌ Error cargando usuario", e);
-            }
-        });
-        
-        // 2. Cargar reservas para calcular tours completados y ganancias
-        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                List<com.example.droidtour.models.Reservation> allReservations = 
-                    (List<com.example.droidtour.models.Reservation>) result;
-                
-                final int[] completedCount = {0};
-                double totalEarnings = 0.0;
-                
-                for (com.example.droidtour.models.Reservation reservation : allReservations) {
-                    if ("COMPLETADA".equals(reservation.getStatus())) {
-                        completedCount[0]++;
-                        Double price = reservation.getTotalPrice();
-                        if (price != null) {
-                            totalEarnings += price;
-                        }
-                    }
-                }
-                
-                // Actualizar UI
-                tvCompletedTours.setText(completedCount[0] + " Tours");
-                tvMonthlyEarnings.setText(String.format("S/. %.0f", totalEarnings));
-                
-                // Actualizar rating con el número real de tours
-                firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
-                    @Override
-                    public void onSuccess(Object result) {
-                        com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
-                        Float rating = user.getGuideRating();
-                        if (rating != null && rating > 0) {
-                            tvGuideRating.setText(String.format("Calificación: ⭐ %.1f (%d tours)", rating, completedCount[0]));
-                        } else {
-                            tvGuideRating.setText(String.format("Calificación: ⭐ 0.0 (%d tours)", completedCount[0]));
-                        }
-                    }
-                    
-                    @Override
-                    public void onFailure(Exception e) {
-                        tvGuideRating.setText(String.format("Calificación: ⭐ 0.0 (%d tours)", completedCount[0]));
-                    }
-                });
-                
-                android.util.Log.d("TourGuideMain", "✅ Stats: " + completedCount[0] + " tours, S/. " + totalEarnings);
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                android.util.Log.e("TourGuideMain", "❌ Error cargando reservas", e);
-                tvCompletedTours.setText("0 Tours");
-                tvMonthlyEarnings.setText("S/. 0");
-            }
-        });
-    }
-    
     /**
      * Cargar tour activo (EN_PROGRESO) desde Firebase
      */
@@ -625,19 +691,19 @@ public class TourGuideMainActivity extends AppCompatActivity {
         firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                List<com.example.droidtour.models.Reservation> allReservations = 
-                    (List<com.example.droidtour.models.Reservation>) result;
+                List<Reservation> allReservations =
+                    (List<Reservation>) result;
                 
                 // Buscar tour EN_PROGRESO
-                com.example.droidtour.models.Reservation activeTour = null;
-                for (com.example.droidtour.models.Reservation reservation : allReservations) {
+                Reservation activeTour = null;
+                for (Reservation reservation : allReservations) {
                     if ("EN_PROGRESO".equals(reservation.getStatus())) {
                         activeTour = reservation;
                         break;
                     }
                 }
                 
-                final com.example.droidtour.models.Reservation finalActiveTour = activeTour;
+                final Reservation finalActiveTour = activeTour;
                 
                 if (finalActiveTour != null) {
                     activeTourReservation = finalActiveTour;
@@ -691,9 +757,9 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private class PendingOffersAdapterFirebase extends RecyclerView.Adapter<PendingOffersAdapterFirebase.ViewHolder> {
         
         private final OnOfferClickListener listener;
-        private final List<com.example.droidtour.models.TourOffer> offers;
+        private final List<TourOffer> offers;
 
-        PendingOffersAdapterFirebase(List<com.example.droidtour.models.TourOffer> offers, OnOfferClickListener listener) {
+        PendingOffersAdapterFirebase(List<TourOffer> offers, OnOfferClickListener listener) {
             this.offers = offers;
             this.listener = listener;
         }
@@ -707,7 +773,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            com.example.droidtour.models.TourOffer offer = offers.get(position);
+            TourOffer offer = offers.get(position);
             
             holder.tvTourName.setText(offer.getTourName() != null ? offer.getTourName() : "Tour");
             holder.tvCompanyName.setText(offer.getCompanyName() != null ? offer.getCompanyName() : "Empresa");
@@ -796,9 +862,9 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private class UpcomingToursAdapterFirebase extends RecyclerView.Adapter<UpcomingToursAdapterFirebase.ViewHolder> {
         
         private final OnTourClickListener listener;
-        private final List<com.example.droidtour.models.Reservation> tours;
+        private final List<Reservation> tours;
 
-        UpcomingToursAdapterFirebase(List<com.example.droidtour.models.Reservation> tours, OnTourClickListener listener) {
+        UpcomingToursAdapterFirebase(List<Reservation> tours, OnTourClickListener listener) {
             this.tours = tours;
             this.listener = listener;
         }
@@ -812,7 +878,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            com.example.droidtour.models.Reservation tour = tours.get(position);
+            Reservation tour = tours.get(position);
             
             holder.tvTourName.setText(tour.getTourName() != null ? tour.getTourName() : "Tour");
             holder.tvCompanyName.setText(tour.getCompanyName() != null ? tour.getCompanyName() : "Empresa");

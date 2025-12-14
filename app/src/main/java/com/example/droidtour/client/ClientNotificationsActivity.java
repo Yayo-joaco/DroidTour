@@ -1,7 +1,6 @@
 package com.example.droidtour.client;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
@@ -66,7 +65,7 @@ public class ClientNotificationsActivity extends AppCompatActivity {
         // Inicializar Firebase
         firestoreManager = FirestoreManager.getInstance();
         authManager = FirebaseAuthManager.getInstance(this);
-        currentUserId = authManager.getCurrentUserId();
+        //currentUserId = authManager.getCurrentUserId();
         
         // Si no hay usuario autenticado, usar del PreferencesManager
         if (currentUserId == null || currentUserId.isEmpty()) {
@@ -132,7 +131,7 @@ public class ClientNotificationsActivity extends AppCompatActivity {
             return;
         }
         
-        firestoreManager.getNotificationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+        /*firestoreManager.getNotificationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 notificationsList = (List<Notification>) result;
@@ -157,18 +156,20 @@ public class ClientNotificationsActivity extends AppCompatActivity {
                 android.util.Log.e("ClientNotifications", "Error loading notifications", e);
             }
         });
+
+         */
     }
 
     private void setupClickListeners() {
         ivMarkAllRead.setOnClickListener(v -> {
-            markAllNotificationsAsRead();
+            //markAllNotificationsAsRead();
         });
     }
     
     /**
      * 🔥 Marcar todas las notificaciones como leídas
      */
-    private void markAllNotificationsAsRead() {
+    /*private void markAllNotificationsAsRead() {
         if (currentUserId == null || currentUserId.isEmpty()) return;
         
         firestoreManager.markAllNotificationsAsRead(currentUserId, new FirestoreManager.FirestoreCallback() {
@@ -188,6 +189,8 @@ public class ClientNotificationsActivity extends AppCompatActivity {
         });
     }
 
+     */
+
     private void filterNotifications(int tabPosition) {
         showLoading();
         
@@ -196,7 +199,7 @@ public class ClientNotificationsActivity extends AppCompatActivity {
             loadNotificationsFromFirestore();
         } else if (tabPosition == 1) {
             // Tab 1: Sin leer
-            firestoreManager.getUnreadNotifications(currentUserId, new FirestoreManager.FirestoreCallback() {
+            /*firestoreManager.getUnreadNotifications(currentUserId, new FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
                     notificationsList = (List<Notification>) result;
@@ -211,6 +214,8 @@ public class ClientNotificationsActivity extends AppCompatActivity {
                         "Error al filtrar notificaciones sin leer: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             });
+
+             */
         } else {
             // Fallback: mostrar todas
             loadNotificationsFromFirestore();
@@ -283,7 +288,7 @@ public class ClientNotificationsActivity extends AppCompatActivity {
     private void markNotificationAsRead(Notification notification) {
         if (notification.isReadNotification()) return; // Ya está leída
         
-        firestoreManager.markNotificationAsRead(notification.getNotificationId(), 
+        /*firestoreManager.markNotificationAsRead(notification.getNotificationId(),
             new FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
@@ -298,6 +303,8 @@ public class ClientNotificationsActivity extends AppCompatActivity {
                         "Error al marcar notificación", Toast.LENGTH_SHORT).show();
                 }
             });
+
+         */
     }
 
     @Override

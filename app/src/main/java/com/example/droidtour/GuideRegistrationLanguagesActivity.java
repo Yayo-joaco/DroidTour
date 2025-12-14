@@ -1,6 +1,7 @@
 package com.example.droidtour;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -12,6 +13,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.droidtour.firebase.FirebaseStorageManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Guide;
+import com.example.droidtour.models.User;
 import com.example.droidtour.utils.NavigationUtils;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
@@ -291,13 +297,90 @@ public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
                 additionalData.put("customPhoto", false);
             }
 
-            // Guardar en Firestore CON idiomas
-            com.example.droidtour.utils.FirebaseUtils.saveGoogleGuideToFirestore(
-                    firebaseUser,
-                    "GUIDE",
-                    additionalData,
-                    languagesList
+            FirestoreManager firestore = FirestoreManager.getInstance();
+            FirebaseStorageManager storage = FirebaseStorageManager.getInstance();
+
+            User user = User.createGuide(
+                    firebaseUser.getEmail(),
+                    nombres != null ? nombres : "",
+                    apellidos != null ? apellidos : "",
+                    tipoDocumento,
+                    numeroDocumento,
+                    fechaNacimiento,
+                    telefono
             );
+            user.setUserId(firebaseUser.getUid());
+            user.setStatus("pending_approval"); // guía pendiente
+
+            Guide guide = new Guide(firebaseUser.getUid(), languagesList);
+            guide.setApproved(false);
+
+// Si hay foto local (photoUri viene como String):
+            if (photoUri != null && !photoUri.isEmpty()) {
+                Uri localUri = Uri.parse(photoUri);
+
+                storage.uploadProfileImage(firebaseUser.getUid(), localUri, new FirebaseStorageManager.StorageCallback() {
+                    @Override public void onSuccess(String downloadUrl) {
+                        user.getPersonalData().setProfileImageUrl(downloadUrl);
+
+                        firestore.upsertUser(user, new FirestoreManager.FirestoreCallback() {
+                            @Override public void onSuccess(Object result) {
+                                firestore.upsertGuide(guide, new FirestoreManager.FirestoreCallback() {
+                                    @Override public void onSuccess(Object result) {
+                                        saveToPreferencesManager(firebaseUser.getUid(), fullName, firebaseUser.getEmail(), telefono, "GUIDE");
+                                        Toast.makeText(GuideRegistrationLanguagesActivity.this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+                                        redirectToApprovalPending();
+                                    }
+
+                                    @Override public void onFailure(Exception e) {
+                                        btnSiguiente.setEnabled(true);
+                                        Toast.makeText(GuideRegistrationLanguagesActivity.this, "Error guardando guía: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                            }
+
+                            @Override public void onFailure(Exception e) {
+                                btnSiguiente.setEnabled(true);
+                                Toast.makeText(GuideRegistrationLanguagesActivity.this, "Error guardando usuario: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                    @Override public void onFailure(Exception e) {
+                        btnSiguiente.setEnabled(true);
+                        Toast.makeText(GuideRegistrationLanguagesActivity.this, "Error subiendo foto: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override public void onProgress(int progress) { }
+                });
+
+            } else {
+                String googlePhoto = (firebaseUser.getPhotoUrl() != null) ? firebaseUser.getPhotoUrl().toString() : userPhoto;
+                user.getPersonalData().setProfileImageUrl(googlePhoto);
+
+                firestore.upsertUser(user, new FirestoreManager.FirestoreCallback() {
+                    @Override public void onSuccess(Object result) {
+                        firestore.upsertGuide(guide, new FirestoreManager.FirestoreCallback() {
+                            @Override public void onSuccess(Object result) {
+                                saveToPreferencesManager(firebaseUser.getUid(), fullName, firebaseUser.getEmail(), telefono, "GUIDE");
+                                Toast.makeText(GuideRegistrationLanguagesActivity.this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
+                                redirectToApprovalPending();
+                            }
+
+                            @Override public void onFailure(Exception e) {
+                                btnSiguiente.setEnabled(true);
+                                Toast.makeText(GuideRegistrationLanguagesActivity.this, "Error guardando guía: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                    @Override public void onFailure(Exception e) {
+                        btnSiguiente.setEnabled(true);
+                        Toast.makeText(GuideRegistrationLanguagesActivity.this, "Error guardando usuario: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+
 
             // Guardar en PreferencesManager para la sesión actual
             saveToPreferencesManager(firebaseUser.getUid(), fullName, firebaseUser.getEmail(), telefono, "GUIDE");

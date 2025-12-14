@@ -167,16 +167,21 @@ public class SuperadminProfileActivity extends AppCompatActivity {
         Log.d(TAG, "email: " + email);
         
         // Obtener teléfono
-        String phoneNumber = user.getPhoneNumber();
+        String phoneNumber = user.getPersonalData().getPhoneNumber();
         Log.d(TAG, "phoneNumber: " + phoneNumber);
         
         // Obtener documento
-        String documentType = user.getDocumentType();
-        String documentNumber = user.getDocumentNumber();
+        String documentType = user.getPersonalData().getDocumentType();
+        String documentNumber = user.getPersonalData().getDocumentNumber();
         Log.d(TAG, "documentType: " + documentType + ", documentNumber: " + documentNumber);
+
+
         
         // Obtener foto de perfil
-        String profileImageUrl = user.getProfileImageUrl();
+        String profileImageUrl = null;
+        if (user != null && user.getPersonalData() != null) {
+            profileImageUrl = user.getPersonalData().getProfileImageUrl();
+        }
         Log.d(TAG, "profileImageUrl encontrada: " + profileImageUrl);
 
         // Actualizar UI

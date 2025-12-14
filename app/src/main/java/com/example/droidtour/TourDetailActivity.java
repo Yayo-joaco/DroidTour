@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.droidtour.client.CompanyChatActivity;
+import com.example.droidtour.models.Tour;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 
@@ -24,7 +25,7 @@ public class TourDetailActivity extends AppCompatActivity {
 
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private com.example.droidtour.firebase.FirebaseAuthManager authManager;
-    private com.example.droidtour.models.Tour currentTour;
+    private Tour currentTour;
     private String tourId, tourName, companyName, companyId, imageUrl;
     private String currentUserId;
     private double price;
@@ -83,7 +84,7 @@ public class TourDetailActivity extends AppCompatActivity {
             firestoreManager.getTour(tourId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
-                    currentTour = (com.example.droidtour.models.Tour) result;
+                    currentTour = (Tour) result;
                     displayTourData();
                 }
                 

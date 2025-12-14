@@ -2,6 +2,8 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -15,6 +17,12 @@ import com.example.droidtour.admin.CompanyInfoActivity;
 import com.example.droidtour.admin.CreateServiceActivity;
 import com.example.droidtour.admin.CreateTourActivity;
 import com.example.droidtour.admin.TourManagementActivity;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Company;
+import com.example.droidtour.models.Message;
+import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.User;
+import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -24,8 +32,12 @@ import android.widget.Toast;
 import com.example.droidtour.managers.PrefsManager;
 import com.example.droidtour.managers.FileManager;
 
+import java.util.List;
+
 public class TourAdminMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
+    private static final String TAG = "TourAdminMainActivity";
+    
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle toggle;
     private TextView tvWelcomeAdmin, tvCompanyName, tvPendingAlertsCount, tvActiveChatCount;
@@ -37,6 +49,12 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     // Storage
     private PrefsManager prefsManager;
     private FileManager fileManager;
+    
+    // Firebase
+    private FirestoreManager firestoreManager;
+    private PreferencesManager preferencesManager;
+    private String currentCompanyId;
+    private String currentUserName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,15 +64,20 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         // Inicializar storage
         prefsManager = new PrefsManager(this);
         fileManager = new FileManager(this);
+        
+        // Inicializar Firebase
+        firestoreManager = FirestoreManager.getInstance();
+        preferencesManager = new PreferencesManager(this);
 
         initViews();
         setupToolbar();
         setupDrawer();
         setupCardClickListeners();
-        loadUserData();
-        loadNavHeaderData();
         initializeNotificationCounters();
         setupFab();
+        
+        // Cargar datos desde Firebase
+        loadUserDataFromFirebase();
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawer_layout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -150,21 +173,92 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
 
 
 
-    private void loadUserData() {
-        // Obtener datos del usuario desde PrefsManager
+    private void loadUserDataFromFirebase() {
+        String userId = preferencesManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            // Fallback a datos locales
+            loadUserDataFromLocal();
+            return;
+        }
+        
+        firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                User user = (User) result;
+                if (user != null) {
+                    currentUserName = user.getFullName();
+                    currentCompanyId = user.getCompanyId();
+                    
+                    // Actualizar UI con nombre del usuario
+                    if (currentUserName != null && !currentUserName.isEmpty()) {
+                        String firstName = currentUserName.split(" ")[0];
+                        tvWelcomeAdmin.setText("¡Hola, " + firstName + "!");
+                    } else {
+                        tvWelcomeAdmin.setText("¡Hola, Admin!");
+                    }
+                    
+                    // Cargar nombre de la empresa
+                    if (currentCompanyId != null && !currentCompanyId.isEmpty()) {
+                        loadCompanyName();
+                        loadDashboardDataFromFirebase();
+                    } else {
+                        tvCompanyName.setText("Sin empresa asignada");
+                    }
+                    
+                    // Actualizar header del drawer
+                    loadNavHeaderData();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando usuario desde Firebase", e);
+                loadUserDataFromLocal();
+            }
+        });
+    }
+    
+    private void loadCompanyName() {
+        firestoreManager.getCompanyById(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Company company = (Company) result;
+                if (company != null) {
+                    String companyName = company.getCommercialName();
+                    if (companyName == null || companyName.isEmpty()) {
+                        companyName = company.getBusinessName();
+                    }
+                    tvCompanyName.setText(companyName != null ? companyName : "Empresa de Tours");
+                    
+                    // Actualizar también en el header
+                    if (tvCompanyNameHeader != null) {
+                        tvCompanyNameHeader.setText(companyName != null ? companyName : "Empresa de Tours");
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando empresa", e);
+                tvCompanyName.setText("Empresa de Tours");
+            }
+        });
+    }
+    
+    private void loadUserDataFromLocal() {
+        // Fallback a PrefsManager
         String userName = prefsManager.obtenerUsuario();
-        String userType = prefsManager.obtenerTipoUsuario();
 
         if (userName != null && !userName.isEmpty()) {
-            // Extraer solo el primer nombre si hay varios nombres
             String firstName = userName.split(" ")[0];
             tvWelcomeAdmin.setText("¡Hola, " + firstName + "!");
+            currentUserName = userName;
         } else {
             tvWelcomeAdmin.setText("¡Hola, Admin!");
         }
 
-        // Mostrar nombre de empresa (por ahora genérico)
         tvCompanyName.setText("Empresa de Tours");
+        loadNavHeaderData();
     }
 
     private void loadNavHeaderData() {
@@ -177,16 +271,71 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
             tvCompanyNameHeader = headerView.findViewById(R.id.tv_company_name_header);
 
             // Cargar datos del usuario
-            String userName = prefsManager.obtenerUsuario();
-            if (userName != null && !userName.isEmpty()) {
-                tvAdminNameHeader.setText(userName);
+            if (currentUserName != null && !currentUserName.isEmpty()) {
+                if (tvAdminNameHeader != null) tvAdminNameHeader.setText(currentUserName);
             } else {
-                tvAdminNameHeader.setText("Admin Usuario");
+                String userName = prefsManager.obtenerUsuario();
+                if (tvAdminNameHeader != null) {
+                    tvAdminNameHeader.setText(userName != null && !userName.isEmpty() ? userName : "Admin Usuario");
+                }
             }
 
-            // Mostrar nombre de empresa
-            tvCompanyNameHeader.setText("Empresa de Tours");
+            // El nombre de empresa se actualiza en loadCompanyName
+            if (tvCompanyNameHeader != null && tvCompanyNameHeader.getText().toString().isEmpty()) {
+                tvCompanyNameHeader.setText("Empresa de Tours");
+            }
         }
+    }
+    
+    private void loadDashboardDataFromFirebase() {
+        if (currentCompanyId == null) return;
+        
+        // Cargar conteo de alertas pendientes (reservaciones confirmadas)
+        firestoreManager.getReservationsByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Reservation> reservations = (List<Reservation>) result;
+                int pendingCount = 0;
+                if (reservations != null) {
+                    for (Reservation r : reservations) {
+                        if ("CONFIRMADA".equals(r.getStatus())) {
+                            pendingCount++;
+                        }
+                    }
+                }
+                updatePendingAlertsCount(pendingCount);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando alertas", e);
+                updatePendingAlertsCount(0);
+            }
+        });
+        
+        // Cargar conteo de chats activos
+        firestoreManager.getMessagesByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Message> messages = (List<Message>) result;
+                // Contar mensajes no leídos
+                int unreadCount = 0;
+                if (messages != null) {
+                    for (Message msg : messages) {
+                        if (!msg.getIsRead()) {
+                            unreadCount++;
+                        }
+                    }
+                }
+                updateActiveChatCount(unreadCount);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando chats", e);
+                updateActiveChatCount(0);
+            }
+        });
     }
     
     private void setupFab() {
@@ -198,10 +347,25 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     }
     
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.top_app_bar_general, menu);
+        return true;
+    }
+    
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (toggle.onOptionsItemSelected(item)) {
             return true;
         }
+        
+        int id = item.getItemId();
+        if (id == R.id.action_profile) {
+            // Abrir pantalla de Mi Cuenta del Admin
+            Intent intent = new Intent(this, AdminMyAccountActivity.class);
+            startActivity(intent);
+            return true;
+        }
+        
         return super.onOptionsItemSelected(item);
     }
     
@@ -248,10 +412,14 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     }
     
     private void loadDashboardData() {
-        // TODO: Cargar datos reales desde base de datos
-        // Por ahora mostrar datos de prueba
-        updatePendingAlertsCount(3);
-        updateActiveChatCount(2);
+        // Cargar datos desde Firebase
+        if (currentCompanyId != null) {
+            loadDashboardDataFromFirebase();
+        } else {
+            // Si no hay companyId, mostrar 0
+            updatePendingAlertsCount(0);
+            updateActiveChatCount(0);
+        }
     }
     
     private void updatePendingAlertsCount(int count) {

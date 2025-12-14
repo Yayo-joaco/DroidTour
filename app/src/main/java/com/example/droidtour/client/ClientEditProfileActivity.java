@@ -142,12 +142,12 @@ public class ClientEditProfileActivity extends AppCompatActivity {
                         countryCodePicker.setFullNumber(phone);
                         // Extraer solo el número local para el campo de texto
                         String localNumber = phone.substring(phone.indexOf(" ") + 1);
-                        etPhone.setText(localNumber);
+                        etPhone.setText(formatPhoneNumber(localNumber));
                     } catch (Exception e) {
-                        etPhone.setText(phone);
+                        etPhone.setText(formatPhoneNumber(phone));
                     }
                 } else {
-                    etPhone.setText(phone);
+                    etPhone.setText(formatPhoneNumber(phone));
                 }
             }
         }
@@ -211,6 +211,72 @@ public class ClientEditProfileActivity extends AppCompatActivity {
         countryCodePicker.setOnCountryChangeListener(() -> {
             Log.d(TAG, "País seleccionado: " + countryCodePicker.getSelectedCountryName() +
                     " Código: " + countryCodePicker.getSelectedCountryCodeWithPlus());
+        });
+        
+        setupPhoneFormatter();
+    }
+
+    /**
+     * Formatea un número de teléfono local agregando espacios cada 3 dígitos
+     */
+    private String formatPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.isEmpty()) {
+            return "";
+        }
+        String digitsOnly = phoneNumber.replaceAll("[^0-9]", "");
+        StringBuilder formatted = new StringBuilder();
+        for (int i = 0; i < digitsOnly.length(); i++) {
+            if (i > 0 && i % 3 == 0) {
+                formatted.append(" ");
+            }
+            formatted.append(digitsOnly.charAt(i));
+        }
+        return formatted.toString();
+    }
+
+    private void setupPhoneFormatter() {
+        etPhone.addTextChangedListener(new android.text.TextWatcher() {
+            private boolean isFormatting = false;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                if (isFormatting) return;
+
+                isFormatting = true;
+                String text = s.toString().replaceAll("\\s+", ""); // Remover espacios
+                
+                // Solo permitir dígitos
+                text = text.replaceAll("[^0-9]", "");
+                
+                // Formatear con espacios cada 3 dígitos
+                StringBuilder formatted = new StringBuilder();
+                for (int i = 0; i < text.length(); i++) {
+                    if (i > 0 && i % 3 == 0) {
+                        formatted.append(" ");
+                    }
+                    formatted.append(text.charAt(i));
+                }
+                
+                // Actualizar el texto
+                int cursorPosition = etPhone.getSelectionStart();
+                int lengthBefore = s.length();
+                s.clear();
+                s.append(formatted.toString());
+                
+                // Ajustar la posición del cursor
+                int lengthAfter = formatted.length();
+                int cursorOffset = lengthAfter - lengthBefore;
+                int newCursorPosition = Math.max(0, Math.min(formatted.length(), cursorPosition + cursorOffset));
+                etPhone.setSelection(newCursorPosition);
+                
+                isFormatting = false;
+            }
         });
     }
 
@@ -332,14 +398,16 @@ public class ClientEditProfileActivity extends AppCompatActivity {
 
         // Validar teléfono (opcional)
         if (!phone.isEmpty()) {
-            if (phone.length() < 6) {
-                etPhone.setError("Número de teléfono muy corto");
+            // Validar que el número tenga exactamente 9 dígitos (solo el número local, sin código de país)
+            String telefonoSinEspacios = phone.replaceAll("\\s+", "");
+            if (telefonoSinEspacios.length() != 9) {
+                etPhone.setError("El número de teléfono debe tener 9 dígitos");
                 return false;
             }
 
-            // Validar que solo contenga números y espacios
-            if (!phone.matches("[0-9\\s]+")) {
-                etPhone.setError("Solo se permiten números y espacios");
+            // Validar que solo contenga dígitos
+            if (!telefonoSinEspacios.matches("\\d{9}")) {
+                etPhone.setError("El número de teléfono solo debe contener dígitos");
                 return false;
             }
         }

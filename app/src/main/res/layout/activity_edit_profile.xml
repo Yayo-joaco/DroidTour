@@ -172,11 +172,12 @@
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
                                     android:inputType="phone"
+                                    android:maxLength="11"
                                     android:maxLines="1"
                                     android:textSize="16sp"
                                     android:textColor="#000000"
-                                    android:paddingStart="110dp"
-                                    android:text="987 654 321"/>
+                                    android:gravity="start|center_vertical"
+                                    android:paddingStart="110dp"/>
                             </com.google.android.material.textfield.TextInputLayout>
 
                             <com.hbb20.CountryCodePicker

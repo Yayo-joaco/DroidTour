@@ -386,6 +386,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="textPersonName"
+                                android:maxLength="40"
                                 android:textSize="16sp"
                                 android:textColor="#000000" />
                         </com.google.android.material.textfield.TextInputLayout>
@@ -409,6 +410,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="textPersonName"
+                                android:maxLength="40"
                                 android:textSize="16sp"
                                 android:textColor="#000000" />
                         </com.google.android.material.textfield.TextInputLayout>
@@ -466,8 +468,10 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="phone"
+                                android:maxLength="11"
                                 android:textSize="16sp"
                                 android:textColor="#000000"
+                                android:gravity="start|center_vertical"
                                 android:paddingStart="110dp"/>
                         </com.google.android.material.textfield.TextInputLayout>
 

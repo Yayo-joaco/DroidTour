@@ -92,6 +92,7 @@ public class AdminRegistrationActivity extends AppCompatActivity {
         setupDropdowns();
 
         // Configurar listener del botón de registro
+        setupPhoneFormatter();
         setupRegisterButton();
     }
 
@@ -145,6 +146,53 @@ public class AdminRegistrationActivity extends AppCompatActivity {
         });
     }
 
+    private void setupPhoneFormatter() {
+        ccpAdmin.registerCarrierNumberEditText(etAdminPhone);
+        etAdminPhone.addTextChangedListener(new android.text.TextWatcher() {
+            private boolean isFormatting = false;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                if (isFormatting) return;
+
+                isFormatting = true;
+                String text = s.toString().replaceAll("\\s+", ""); // Remover espacios
+                
+                // Solo permitir dígitos
+                text = text.replaceAll("[^0-9]", "");
+                
+                // Formatear con espacios cada 3 dígitos
+                StringBuilder formatted = new StringBuilder();
+                for (int i = 0; i < text.length(); i++) {
+                    if (i > 0 && i % 3 == 0) {
+                        formatted.append(" ");
+                    }
+                    formatted.append(text.charAt(i));
+                }
+                
+                // Actualizar el texto
+                int cursorPosition = etAdminPhone.getSelectionStart();
+                int lengthBefore = s.length();
+                s.clear();
+                s.append(formatted.toString());
+                
+                // Ajustar la posición del cursor
+                int lengthAfter = formatted.length();
+                int cursorOffset = lengthAfter - lengthBefore;
+                int newCursorPosition = Math.max(0, Math.min(formatted.length(), cursorPosition + cursorOffset));
+                etAdminPhone.setSelection(newCursorPosition);
+                
+                isFormatting = false;
+            }
+        });
+    }
+
     private boolean validateForm() {
         boolean isValid = true;
 
@@ -160,13 +208,21 @@ public class AdminRegistrationActivity extends AppCompatActivity {
         }
 
         // Validar datos del administrador
-        if (TextUtils.isEmpty(etAdminFirstName.getText())) {
+        String firstName = etAdminFirstName.getText().toString().trim();
+        if (TextUtils.isEmpty(firstName)) {
             etAdminFirstName.setError("Nombres son obligatorios");
+            isValid = false;
+        } else if (firstName.length() > 40) {
+            etAdminFirstName.setError("Los nombres no pueden exceder 40 caracteres");
             isValid = false;
         }
 
-        if (TextUtils.isEmpty(etAdminLastName.getText())) {
+        String lastName = etAdminLastName.getText().toString().trim();
+        if (TextUtils.isEmpty(lastName)) {
             etAdminLastName.setError("Apellidos son obligatorios");
+            isValid = false;
+        } else if (lastName.length() > 40) {
+            etAdminLastName.setError("Los apellidos no pueden exceder 40 caracteres");
             isValid = false;
         }
 
@@ -179,6 +235,19 @@ public class AdminRegistrationActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(etAdminDocNumber.getText())) {
             etAdminDocNumber.setError("Número de documento es obligatorio");
             isValid = false;
+        }
+
+        // Validar teléfono (si está presente)
+        String phone = etAdminPhone.getText().toString().trim();
+        if (!TextUtils.isEmpty(phone)) {
+            String telefonoSinEspacios = phone.replaceAll("\\s+", "");
+            if (telefonoSinEspacios.length() != 9) {
+                etAdminPhone.setError("El número de teléfono debe tener 9 dígitos");
+                isValid = false;
+            } else if (!telefonoSinEspacios.matches("\\d{9}")) {
+                etAdminPhone.setError("El número de teléfono solo debe contener dígitos");
+                isValid = false;
+            }
         }
 
         // Validar contraseñas

@@ -9,15 +9,20 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.bumptech.glide.Glide;
 import com.example.droidtour.R;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Reservation;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.google.firebase.firestore.FirebaseFirestore;
+import java.util.List;
 
 public class UserProfileBottomSheet extends BottomSheetDialogFragment {
 
@@ -89,6 +94,8 @@ public class UserProfileBottomSheet extends BottomSheetDialogFragment {
         TextView tvToursCount = view.findViewById(R.id.tv_tours_count);
         TextView tvRating = view.findViewById(R.id.tv_rating);
         TextView tvMemberYear = view.findViewById(R.id.tv_member_year);
+        LinearLayout layoutRating = view.findViewById(R.id.layout_rating);
+        View cardStatistics = view.findViewById(R.id.card_statistics);
 
         View btnEdit = view.findViewById(R.id.btn_edit_profile);
         View btnMessage = view.findViewById(R.id.btn_send_message);
@@ -108,7 +115,7 @@ public class UserProfileBottomSheet extends BottomSheetDialogFragment {
         tvName.setText(fullName != null && !fullName.isEmpty() ? fullName : "Sin nombre");
         tvEmail.setText(email != null ? email : "-");
         tvPhone.setText(phone != null ? phone : "-");
-        chipRole.setText(userType != null ? userType : "-");
+        chipRole.setText(getUserTypeDisplayName(userType));
         chipStatus.setText(status != null ? status : "-");
 
         if (createdAt > 0) {
@@ -117,7 +124,11 @@ public class UserProfileBottomSheet extends BottomSheetDialogFragment {
             tvMemberYear.setText(new java.text.SimpleDateFormat("yyyy", java.util.Locale.getDefault()).format(new java.util.Date(createdAt)));
         } else {
             tvRegistration.setText("-");
+            tvMemberYear.setText("-");
         }
+
+        // Configurar estadísticas según el tipo de usuario
+        setupStatistics(userId, userType, tvToursCount, tvRating, tvMemberYear, layoutRating, cardStatistics);
 
         // Avatar
         if (avatar != null && !avatar.isEmpty()) {
@@ -164,5 +175,199 @@ public class UserProfileBottomSheet extends BottomSheetDialogFragment {
     public void onDetach() {
         super.onDetach();
         actionListener = null;
+    }
+
+    /**
+     * Convierte el tipo de usuario a un nombre legible para mostrar
+     */
+    private String getUserTypeDisplayName(String userType) {
+        if (userType == null) return "Sin tipo";
+
+        switch (userType) {
+            case "SUPERADMIN": return "Super Admin";
+            case "ADMIN": return "Administrador";
+            case "COMPANY_ADMIN": return "Administrador de empresa";
+            case "GUIDE": return "Guía Turístico";
+            case "CLIENT": return "Cliente";
+            default: return userType;
+        }
+    }
+
+    /**
+     * Configura las estadísticas según el tipo de usuario
+     */
+    private void setupStatistics(String userId, String userType, TextView tvToursCount, 
+                                 TextView tvRating, TextView tvMemberYear, 
+                                 LinearLayout layoutRating, View cardStatistics) {
+        if (userId == null || userId.isEmpty()) {
+            // Ocultar estadísticas si no hay userId
+            if (cardStatistics != null) {
+                cardStatistics.setVisibility(View.GONE);
+            }
+            return;
+        }
+
+        // Solo mostrar estadísticas para GUIDE y CLIENT
+        if (!"GUIDE".equals(userType) && !"CLIENT".equals(userType)) {
+            if (cardStatistics != null) {
+                cardStatistics.setVisibility(View.GONE);
+            }
+            return;
+        }
+
+        // Mostrar la tarjeta de estadísticas
+        if (cardStatistics != null) {
+            cardStatistics.setVisibility(View.VISIBLE);
+        }
+
+        // Para CLIENT: ocultar Rating
+        // Para GUIDE: mostrar Rating
+        if (layoutRating != null) {
+            layoutRating.setVisibility("GUIDE".equals(userType) ? View.VISIBLE : View.GONE);
+        }
+
+        // Cargar número de tours desde la base de datos
+        loadToursCount(userId, userType, tvToursCount);
+
+        // Cargar rating solo para GUIDE
+        if ("GUIDE".equals(userType)) {
+            loadGuideRating(userId, tvRating);
+        } else {
+            // Para CLIENT, ocultar o dejar vacío
+            if (tvRating != null) {
+                tvRating.setText("0.0");
+            }
+        }
+    }
+
+    /**
+     * Carga el número de tours desde la base de datos
+     */
+    private void loadToursCount(String userId, String userType, TextView tvToursCount) {
+        if (tvToursCount == null) return;
+
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+
+        if ("GUIDE".equals(userType)) {
+            // Para guía: contar todas las reservas donde guideId = userId
+            firestoreManager.getReservationsByGuide(userId, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    if (result instanceof List) {
+                        List<Reservation> reservations = (List<Reservation>) result;
+                        tvToursCount.setText(String.valueOf(reservations.size()));
+                    } else {
+                        tvToursCount.setText("0");
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    tvToursCount.setText("0");
+                }
+            });
+        } else if ("CLIENT".equals(userType)) {
+            // Para cliente: contar todas las reservas donde userId = userId
+            firestoreManager.getReservationsByUser(userId, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    if (result instanceof List) {
+                        List<Reservation> reservations = (List<Reservation>) result;
+                        tvToursCount.setText(String.valueOf(reservations.size()));
+                    } else {
+                        tvToursCount.setText("0");
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    tvToursCount.setText("0");
+                }
+            });
+        } else {
+            tvToursCount.setText("0");
+        }
+    }
+
+    /**
+     * Carga el rating del guía desde la base de datos
+     */
+    private void loadGuideRating(String userId, TextView tvRating) {
+        if (tvRating == null || userId == null || userId.isEmpty()) {
+            return;
+        }
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        // Intentar cargar desde user_roles primero
+        db.collection(FirestoreManager.COLLECTION_USER_ROLES)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc != null && doc.exists()) {
+                        Float rating = null;
+
+                        // Extraer rating de diferentes estructuras posibles
+                        if (doc.contains("rating")) {
+                            Object ratingObj = doc.get("rating");
+                            if (ratingObj instanceof Number) {
+                                rating = ((Number) ratingObj).floatValue();
+                            }
+                        } else if (doc.contains("guide")) {
+                            Object guideObj = doc.get("guide");
+                            if (guideObj instanceof java.util.Map) {
+                                java.util.Map<String, Object> guideMap = (java.util.Map<String, Object>) guideObj;
+                                Object ratingObj = guideMap.get("rating");
+                                if (ratingObj instanceof Number) {
+                                    rating = ((Number) ratingObj).floatValue();
+                                }
+                            }
+                        }
+
+                        // Actualizar UI con el rating
+                        if (rating != null && rating > 0) {
+                            tvRating.setText(String.format("%.1f", rating));
+                        } else {
+                            tvRating.setText("0.0");
+                        }
+                    } else {
+                        // Si no existe en user_roles, intentar desde guides
+                        loadRatingFromGuides(userId, tvRating);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    // Si falla, intentar desde guides
+                    loadRatingFromGuides(userId, tvRating);
+                });
+    }
+
+    /**
+     * Método fallback para cargar rating desde la colección guides
+     */
+    private void loadRatingFromGuides(String userId, TextView tvRating) {
+        if (tvRating == null || userId == null || userId.isEmpty()) {
+            return;
+        }
+
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection(FirestoreManager.COLLECTION_GUIDES)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (doc != null && doc.exists()) {
+                        Object ratingObj = doc.get("rating");
+                        if (ratingObj instanceof Number) {
+                            float rating = ((Number) ratingObj).floatValue();
+                            tvRating.setText(String.format("%.1f", rating));
+                        } else {
+                            tvRating.setText("0.0");
+                        }
+                    } else {
+                        tvRating.setText("0.0");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    tvRating.setText("0.0");
+                });
     }
 }

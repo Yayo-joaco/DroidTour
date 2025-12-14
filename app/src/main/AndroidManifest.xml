@@ -326,8 +326,13 @@
 
         <activity
             android:name=".superadmin.AdminRegistrationActivity"
-            android:exported="true"
+            android:exported="false"
             android:parentActivityName=".RoleSelectionActivity" />
+
+        <activity
+            android:name=".superadmin.UserEditActivity"
+            android:exported="false"
+            android:parentActivityName=".superadmin.SuperadminUsersActivity" />
 
         <activity
             android:name=".client.ClientChatActivity"

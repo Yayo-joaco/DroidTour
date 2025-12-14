@@ -72,11 +72,6 @@
             android:name=".client.ClientMainActivity"
             android:exported="false" />
 
-        <!-- 🔥 Activity para inicializar datos de prueba en Firestore (solo desarrollo) -->
-        <activity
-            android:name=".firebase.InitializeTestDataActivity"
-            android:exported="false"
-            android:parentActivityName=".client.ClientMainActivity" />
 
         <activity
             android:name=".superadmin.SuperadminUsersActivity"

@@ -116,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
                     finish();
                     break;
                 case "ADMIN":
+                case "COMPANY_ADMIN":
                     startActivity(new Intent(this, TourAdminMainActivity.class));
                     finish();
                     break;

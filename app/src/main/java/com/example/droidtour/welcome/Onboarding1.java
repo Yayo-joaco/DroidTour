@@ -37,6 +37,7 @@ public class Onboarding1 extends AppCompatActivity {
                     startActivity(new Intent(this, SuperadminMainActivity.class));
                     break;
                 case "ADMIN":
+                case "COMPANY_ADMIN":
                     startActivity(new Intent(this, TourAdminMainActivity.class));
                     break;
                 case "GUIDE":

@@ -65,7 +65,7 @@ public class CompanyInfoActivity extends AppCompatActivity implements OnMapReady
 
         // Validar que el usuario sea ADMIN
         String userType = prefsManager.getUserType();
-        if (userType == null || !userType.equals("ADMIN")) {
+        if (userType == null || (!userType.equals("ADMIN") && !userType.equals("COMPANY_ADMIN"))) {
             redirectToLogin();
             finish();
             return;

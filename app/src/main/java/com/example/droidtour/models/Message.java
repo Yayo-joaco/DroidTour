@@ -1,6 +1,7 @@
 package com.example.droidtour.models;
 
 import com.google.firebase.Timestamp;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,9 +13,12 @@ public class Message {
     private String receiverName;
     private String senderType; // "CLIENT", "COMPANY", "GUIDE", "ADMIN"
     private String messageText;
+    private String content; // Alias de messageText
     private Timestamp timestamp;
+    private Timestamp createdAt; // Alias de timestamp
     private boolean isRead;
     private String conversationId; // Para agrupar mensajes
+    private String companyId;
 
     public Message() {}
 
@@ -58,7 +62,19 @@ public class Message {
     public String getMessageText() { return messageText; }
     public Timestamp getTimestamp() { return timestamp; }
     public boolean isRead() { return isRead; }
+    public boolean getIsRead() { return isRead; }
     public String getConversationId() { return conversationId; }
+    public String getCompanyId() { return companyId; }
+    
+    // Alias getters
+    public String getContent() { 
+        return content != null ? content : messageText; 
+    }
+    public Date getCreatedAt() { 
+        if (createdAt != null) return createdAt.toDate();
+        if (timestamp != null) return timestamp.toDate();
+        return null; 
+    }
 
     // Setters
     public void setMessageId(String messageId) { this.messageId = messageId; }
@@ -70,5 +86,9 @@ public class Message {
     public void setMessageText(String messageText) { this.messageText = messageText; }
     public void setTimestamp(Timestamp timestamp) { this.timestamp = timestamp; }
     public void setRead(boolean read) { isRead = read; }
+    public void setIsRead(boolean isRead) { this.isRead = isRead; }
     public void setConversationId(String conversationId) { this.conversationId = conversationId; }
+    public void setCompanyId(String companyId) { this.companyId = companyId; }
+    public void setContent(String content) { this.content = content; this.messageText = content; }
+    public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; this.timestamp = createdAt; }
 }

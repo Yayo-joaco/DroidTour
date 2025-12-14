@@ -2,21 +2,37 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Message;
 import com.google.android.material.appbar.MaterialToolbar;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class AdminChatListActivity extends AppCompatActivity {
     
+    private static final String TAG = "AdminChatListActivity";
     private RecyclerView rvClientChats;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private FirestoreManager firestoreManager;
+    private String currentCompanyId;
+    private List<ClientChat> clientChatList = new ArrayList<>();
+    private AdminClientChatsAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +50,7 @@ public class AdminChatListActivity extends AppCompatActivity {
         
         // Validar que el usuario sea ADMIN
         String userType = prefsManager.getUserType();
-        if (userType == null || !userType.equals("ADMIN")) {
+        if (userType == null || (!userType.equals("ADMIN") && !userType.equals("COMPANY_ADMIN"))) {
             redirectToLogin();
             finish();
             return;
@@ -42,9 +58,81 @@ public class AdminChatListActivity extends AppCompatActivity {
         
         setContentView(R.layout.activity_admin_chat_list);
         
+        firestoreManager = FirestoreManager.getInstance();
+        
         setupToolbar();
         initializeViews();
         setupRecyclerView();
+        loadCompanyAndChats();
+    }
+    
+    private void loadCompanyAndChats() {
+        String userId = prefsManager.getUserId();
+        firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                if (user != null && user.getCompanyId() != null) {
+                    currentCompanyId = user.getCompanyId();
+                    loadClientChats();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al cargar usuario", e);
+            }
+        });
+    }
+    
+    private void loadClientChats() {
+        // Cargar mensajes de la empresa
+        firestoreManager.getMessagesByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Message> messages = (List<Message>) result;
+                
+                // Agrupar mensajes por cliente
+                Map<String, ClientChat> clientMap = new HashMap<>();
+                SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                
+                for (Message msg : messages) {
+                    String clientId = msg.getSenderId();
+                    String clientName = msg.getSenderName() != null ? msg.getSenderName() : "Cliente";
+                    
+                    ClientChat existing = clientMap.get(clientId);
+                    if (existing == null) {
+                        ClientChat chat = new ClientChat(
+                            clientId,
+                            clientName, 
+                            msg.getContent(), 
+                            msg.getCreatedAt() != null ? sdf.format(msg.getCreatedAt()) : "",
+                            !msg.getIsRead(),
+                            msg.getIsRead() ? 0 : 1
+                        );
+                        clientMap.put(clientId, chat);
+                    } else {
+                        // Actualizar con mensaje más reciente
+                        if (!msg.getIsRead()) {
+                            existing.unreadCount++;
+                            existing.hasUnreadMessages = true;
+                        }
+                    }
+                }
+                
+                clientChatList.clear();
+                clientChatList.addAll(clientMap.values());
+                adapter.updateData(clientChatList);
+                
+                Log.d(TAG, "Chats cargados: " + clientChatList.size());
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al cargar mensajes", e);
+                Toast.makeText(AdminChatListActivity.this, "Error al cargar chats", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
     
     private void setupToolbar() {
@@ -60,12 +148,23 @@ public class AdminChatListActivity extends AppCompatActivity {
     
     private void setupRecyclerView() {
         rvClientChats.setLayoutManager(new LinearLayoutManager(this));
-        rvClientChats.setAdapter(new AdminClientChatsAdapter(client -> {
+        adapter = new AdminClientChatsAdapter(clientChatList, client -> {
             // Abrir chat con cliente específico
             Intent intent = new Intent(this, AdminChatDetailActivity.class);
+            intent.putExtra("CLIENT_ID", client.clientId);
             intent.putExtra("CLIENT_NAME", client.name);
+            intent.putExtra("COMPANY_ID", currentCompanyId);
             startActivity(intent);
-        }));
+        });
+        rvClientChats.setAdapter(adapter);
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (currentCompanyId != null) {
+            loadClientChats();
+        }
     }
     
     @Override
@@ -86,13 +185,15 @@ public class AdminChatListActivity extends AppCompatActivity {
 
 // Clase para representar un cliente con chat
 class ClientChat {
+    public String clientId;
     public String name;
     public String lastMessage;
     public String timestamp;
     public boolean hasUnreadMessages;
     public int unreadCount;
 
-    public ClientChat(String name, String lastMessage, String timestamp, boolean hasUnreadMessages, int unreadCount) {
+    public ClientChat(String clientId, String name, String lastMessage, String timestamp, boolean hasUnreadMessages, int unreadCount) {
+        this.clientId = clientId;
         this.name = name;
         this.lastMessage = lastMessage;
         this.timestamp = timestamp;
@@ -106,17 +207,16 @@ class AdminClientChatsAdapter extends RecyclerView.Adapter<AdminClientChatsAdapt
     interface OnClientChatClick { void onClick(ClientChat client); }
     
     private final OnClientChatClick onClientChatClick;
-    private final ClientChat[] clientChats;
+    private List<ClientChat> clientChats;
 
-    AdminClientChatsAdapter(OnClientChatClick listener) {
+    AdminClientChatsAdapter(List<ClientChat> chats, OnClientChatClick listener) {
+        this.clientChats = chats != null ? chats : new ArrayList<>();
         this.onClientChatClick = listener;
-        // Datos mock de chats con clientes
-        this.clientChats = new ClientChat[] {
-            new ClientChat("María González", "¿A qué hora es el punto de encuentro?", "2:30 PM", true, 2),
-            new ClientChat("Carlos López", "Muchas gracias por el tour, fue excelente", "1:15 PM", false, 0),
-            new ClientChat("Ana Martínez", "¿Incluye almuerzo el tour?", "11:45 AM", true, 1),
-            new ClientChat("Pedro Rojas", "¿Puedo cancelar mi reserva?", "Ayer", false, 0)
-        };
+    }
+    
+    public void updateData(List<ClientChat> newData) {
+        this.clientChats = newData != null ? newData : new ArrayList<>();
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -129,16 +229,16 @@ class AdminClientChatsAdapter extends RecyclerView.Adapter<AdminClientChatsAdapt
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        ClientChat client = clientChats[position];
+        ClientChat client = clientChats.get(position);
         
         holder.tvClientName.setText(client.name);
         holder.tvLastMessage.setText(client.lastMessage);
         holder.tvTimestamp.setText(client.timestamp);
         
-        if (client.hasUnreadMessages) {
+        if (client.hasUnreadMessages && holder.tvUnreadCount != null) {
             holder.tvUnreadCount.setVisibility(View.VISIBLE);
             holder.tvUnreadCount.setText(String.valueOf(client.unreadCount));
-        } else {
+        } else if (holder.tvUnreadCount != null) {
             holder.tvUnreadCount.setVisibility(View.GONE);
         }
         
@@ -147,7 +247,7 @@ class AdminClientChatsAdapter extends RecyclerView.Adapter<AdminClientChatsAdapt
 
     @Override
     public int getItemCount() {
-        return clientChats.length;
+        return clientChats != null ? clientChats.size() : 0;
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {

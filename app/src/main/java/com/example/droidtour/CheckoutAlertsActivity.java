@@ -1,19 +1,40 @@
 package com.example.droidtour;
 
 import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Reservation;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public class CheckoutAlertsActivity extends AppCompatActivity {
     
+    private static final String TAG = "CheckoutAlertsActivity";
     private RecyclerView rvPendingCheckouts, rvProcessedCheckouts;
     private TextView tvPendingCount, tvProcessedCount;
     private TextView tvTotalProcessed, tvToursCompleted, tvPlatformCommission;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private FirestoreManager firestoreManager;
+    private String currentCompanyId;
+    
+    private List<Reservation> pendingCheckouts = new ArrayList<>();
+    private List<Reservation> processedCheckouts = new ArrayList<>();
+    private CheckoutAdapter pendingAdapter, processedAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,7 +52,7 @@ public class CheckoutAlertsActivity extends AppCompatActivity {
         
         // Validar que el usuario sea ADMIN
         String userType = prefsManager.getUserType();
-        if (userType == null || !userType.equals("ADMIN")) {
+        if (userType == null || (!userType.equals("ADMIN") && !userType.equals("COMPANY_ADMIN"))) {
             redirectToLogin();
             finish();
             return;
@@ -39,10 +60,34 @@ public class CheckoutAlertsActivity extends AppCompatActivity {
         
         setContentView(R.layout.activity_checkout_alerts);
         
+        firestoreManager = FirestoreManager.getInstance();
+        
         setupToolbar();
         initializeViews();
         setupRecyclerViews();
-        loadCheckoutData();
+        loadCompanyIdAndData();
+    }
+    
+    private void loadCompanyIdAndData() {
+        String userId = prefsManager.getUserId();
+        firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                if (user != null && user.getCompanyId() != null) {
+                    currentCompanyId = user.getCompanyId();
+                    loadCheckoutData();
+                } else {
+                    Toast.makeText(CheckoutAlertsActivity.this, "No se encontró empresa asociada", Toast.LENGTH_SHORT).show();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al cargar datos de usuario", e);
+                Toast.makeText(CheckoutAlertsActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
     
     private void setupToolbar() {
@@ -67,17 +112,133 @@ public class CheckoutAlertsActivity extends AppCompatActivity {
         rvPendingCheckouts.setLayoutManager(new LinearLayoutManager(this));
         rvProcessedCheckouts.setLayoutManager(new LinearLayoutManager(this));
         
-        // TODO: Configurar adapters para las listas de checkout
+        pendingAdapter = new CheckoutAdapter(pendingCheckouts, true, this::processCheckout);
+        processedAdapter = new CheckoutAdapter(processedCheckouts, false, null);
+        
+        rvPendingCheckouts.setAdapter(pendingAdapter);
+        rvProcessedCheckouts.setAdapter(processedAdapter);
     }
     
     private void loadCheckoutData() {
-        // TODO: Cargar datos reales desde base de datos
-        // Por ahora mostrar datos de prueba
-        tvPendingCount.setText("3");
-        tvProcessedCount.setText("8");
-        tvTotalProcessed.setText("S/. 1,250.00");
-        tvToursCompleted.setText("8");
-        tvPlatformCommission.setText("S/. 125.00");
+        if (currentCompanyId == null) return;
+        
+        Log.d(TAG, "Cargando reservaciones para companyId: " + currentCompanyId);
+        
+        // Cargar reservaciones de la empresa
+        firestoreManager.getReservationsByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Reservation> allReservations = (List<Reservation>) result;
+                
+                pendingCheckouts.clear();
+                processedCheckouts.clear();
+                
+                double totalProcessed = 0;
+                
+                for (Reservation reservation : allReservations) {
+                    String status = reservation.getStatus();
+                    if ("EN_PROGRESO".equals(status) || "CONFIRMADA".equals(status)) {
+                        pendingCheckouts.add(reservation);
+                    } else if ("COMPLETADA".equals(status)) {
+                        processedCheckouts.add(reservation);
+                        totalProcessed += reservation.getTotalPrice() != null ? reservation.getTotalPrice() : 0;
+                    }
+                }
+                
+                // Actualizar contadores
+                tvPendingCount.setText(String.valueOf(pendingCheckouts.size()));
+                tvProcessedCount.setText(String.valueOf(processedCheckouts.size()));
+                tvTotalProcessed.setText(String.format(Locale.getDefault(), "S/. %.2f", totalProcessed));
+                tvToursCompleted.setText(String.valueOf(processedCheckouts.size()));
+                tvPlatformCommission.setText(String.format(Locale.getDefault(), "S/. %.2f", totalProcessed * 0.10)); // 10% comisión
+                
+                // Actualizar adapters
+                pendingAdapter.notifyDataSetChanged();
+                processedAdapter.notifyDataSetChanged();
+                
+                Log.d(TAG, "Pendientes: " + pendingCheckouts.size() + ", Procesados: " + processedCheckouts.size());
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al cargar reservaciones", e);
+                Toast.makeText(CheckoutAlertsActivity.this, "Error al cargar datos", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    private void processCheckout(Reservation reservation) {
+        // Marcar como completada
+        firestoreManager.updateReservationStatus(reservation.getReservationId(), "COMPLETADA", 
+            new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Toast.makeText(CheckoutAlertsActivity.this, "✅ Checkout procesado", Toast.LENGTH_SHORT).show();
+                    loadCheckoutData(); // Recargar datos
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Toast.makeText(CheckoutAlertsActivity.this, "Error al procesar checkout", Toast.LENGTH_SHORT).show();
+                }
+            });
+    }
+    
+    // Adapter interno para checkouts
+    private static class CheckoutAdapter extends RecyclerView.Adapter<CheckoutAdapter.ViewHolder> {
+        private List<Reservation> reservations;
+        private boolean showActions;
+        private OnCheckoutAction actionListener;
+        
+        interface OnCheckoutAction {
+            void onProcess(Reservation reservation);
+        }
+        
+        CheckoutAdapter(List<Reservation> reservations, boolean showActions, OnCheckoutAction listener) {
+            this.reservations = reservations;
+            this.showActions = showActions;
+            this.actionListener = listener;
+        }
+        
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                .inflate(android.R.layout.simple_list_item_2, parent, false);
+            return new ViewHolder(view);
+        }
+        
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            Reservation reservation = reservations.get(position);
+            
+            holder.text1.setText(reservation.getTourName() != null ? reservation.getTourName() : "Tour");
+            
+            String details = String.format(Locale.getDefault(), 
+                "S/. %.2f - %s", 
+                reservation.getTotalPrice() != null ? reservation.getTotalPrice() : 0.0,
+                reservation.getStatus() != null ? reservation.getStatus() : "");
+            holder.text2.setText(details);
+            
+            if (showActions && actionListener != null) {
+                holder.itemView.setOnClickListener(v -> actionListener.onProcess(reservation));
+            }
+        }
+        
+        @Override
+        public int getItemCount() {
+            return reservations != null ? reservations.size() : 0;
+        }
+        
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            TextView text1, text2;
+            
+            ViewHolder(View v) {
+                super(v);
+                text1 = v.findViewById(android.R.id.text1);
+                text2 = v.findViewById(android.R.id.text2);
+            }
+        }
     }
     
     @Override

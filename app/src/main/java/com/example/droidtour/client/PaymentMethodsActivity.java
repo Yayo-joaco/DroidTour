@@ -120,7 +120,7 @@ public class PaymentMethodsActivity extends AppCompatActivity {
         
         Log.d(TAG, "🔄 Cargando reservas para userId: " + currentUserId);
         
-        /*firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
+        firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 userReservations = (List<Reservation>) result;
@@ -140,8 +140,6 @@ public class PaymentMethodsActivity extends AppCompatActivity {
                 loadPaymentMethodsFromFirestore();
             }
         });
-
-         */
     }
     
     /**

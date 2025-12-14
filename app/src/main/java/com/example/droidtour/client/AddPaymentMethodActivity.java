@@ -224,24 +224,22 @@ public class AddPaymentMethodActivity extends AppCompatActivity {
         btnSaveCard.setEnabled(false);
         btnSaveCard.setText("Guardando...");
 
-        /*firestoreManager.addPaymentMethod(paymentMethod, new FirestoreManager.FirestoreCallback() {
+        firestoreManager.addPaymentMethod(paymentMethod, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                Toast.makeText(AddPaymentMethodActivity.this, 
-                    "✅ Tarjeta agregada exitosamente", Toast.LENGTH_SHORT).show();
+                android.widget.Toast.makeText(AddPaymentMethodActivity.this, 
+                    "✅ Tarjeta agregada exitosamente", android.widget.Toast.LENGTH_SHORT).show();
                 finish();
             }
 
             @Override
             public void onFailure(Exception e) {
-                Toast.makeText(AddPaymentMethodActivity.this, 
-                    "❌ Error al agregar tarjeta: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                android.widget.Toast.makeText(AddPaymentMethodActivity.this, 
+                    "❌ Error al agregar tarjeta: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
                 btnSaveCard.setEnabled(true);
                 btnSaveCard.setText("Guardar Tarjeta");
             }
         });
-
-         */
     }
 
     /**

@@ -58,6 +58,7 @@ public class WelcomeActivity extends AppCompatActivity {
                 intent = new Intent(this, SuperadminMainActivity.class);
                 break;
             case "ADMIN":
+            case "COMPANY_ADMIN":
                 intent = new Intent(this, TourAdminMainActivity.class);
                 break;
             case "GUIDE":

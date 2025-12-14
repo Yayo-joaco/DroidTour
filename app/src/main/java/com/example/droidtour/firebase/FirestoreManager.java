@@ -6,6 +6,7 @@ import android.net.Uri;
 
 import com.example.droidtour.models.Company;
 import com.example.droidtour.models.Guide;
+import com.example.droidtour.models.Message;
 import com.example.droidtour.models.User;
 import com.example.droidtour.models.TourOffer;
 import com.example.droidtour.models.Reservation;
@@ -47,6 +48,7 @@ public class FirestoreManager {
     public static final String COLLECTION_USER_ROLES = "user_roles";
     public static final String COLLECTION_USER_SESSIONS = "user_sessions";
     public static final String COLLECTION_REVIEWS = "reviews";
+    public static final String COLLECTION_MESSAGES = "messages";
 
     private FirestoreManager() {
         db = FirebaseFirestore.getInstance();
@@ -58,6 +60,29 @@ public class FirestoreManager {
     }
 
     // ==================== USERS ====================
+
+    /**
+     * Obtener todos los usuarios de tipo GUIDE
+     */
+    public void getGuideUsers(FirestoreCallback callback) {
+        db.collection(COLLECTION_USERS)
+                .whereEqualTo("guide", true)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<User> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        User u = doc.toObject(User.class);
+                        if (u != null) {
+                            if (u.getUserId() == null || u.getUserId().isEmpty()) {
+                                u.setUserId(doc.getId());
+                            }
+                            list.add(u);
+                        }
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
 
     public void upsertUser(User user, FirestoreCallback callback) {
         String err = validateUser(user);
@@ -280,6 +305,28 @@ public class FirestoreManager {
 
     // ==================== GUIDES ====================
 
+    /**
+     * Obtener todos los guías de la colección guides
+     */
+    public void getAllGuides(FirestoreCallback callback) {
+        db.collection(COLLECTION_GUIDES)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<Guide> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Guide g = doc.toObject(Guide.class);
+                        if (g != null) {
+                            if (g.getGuideId() == null || g.getGuideId().isEmpty()) {
+                                g.setGuideId(doc.getId());
+                            }
+                            list.add(g);
+                        }
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
     public void upsertGuide(Guide guide, FirestoreCallback callback) {
         if (guide == null) {
             callback.onFailure(new Exception("Guide is null"));
@@ -391,6 +438,32 @@ public class FirestoreManager {
                     for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         TourOffer t = doc.toObject(TourOffer.class);
                         if (t != null && (t.getOfferId() == null || t.getOfferId().isEmpty())) t.setOfferId(doc.getId());
+                        list.add(t);
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener ofertas por companyId (para admin)
+     */
+    public void getOffersByCompany(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_TOUR_OFFERS)
+                .whereEqualTo("companyId", companyId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<TourOffer> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        TourOffer t = doc.toObject(TourOffer.class);
+                        if (t != null && (t.getOfferId() == null || t.getOfferId().isEmpty())) {
+                            t.setOfferId(doc.getId());
+                        }
                         list.add(t);
                     }
                     callback.onSuccess(list);
@@ -543,6 +616,82 @@ public class FirestoreManager {
                 .addOnFailureListener(callback::onFailure);
     }
 
+    /**
+     * Agregar un nuevo método de pago
+     */
+    public void addPaymentMethod(PaymentMethod paymentMethod, FirestoreCallback callback) {
+        if (paymentMethod == null) {
+            callback.onFailure(new Exception("PaymentMethod is null"));
+            return;
+        }
+        if (paymentMethod.getUserId() == null || paymentMethod.getUserId().trim().isEmpty()) {
+            callback.onFailure(new Exception("userId is required"));
+            return;
+        }
+
+        // Crear documento con ID automático
+        DocumentReference docRef = db.collection(COLLECTION_PAYMENT_METHODS).document();
+        paymentMethod.setPaymentMethodId(docRef.getId());
+
+        docRef.set(paymentMethod.toMap())
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "PaymentMethod added with ID: " + docRef.getId());
+                    callback.onSuccess(paymentMethod);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error adding PaymentMethod", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Actualizar un método de pago existente (con objeto PaymentMethod)
+     */
+    public void updatePaymentMethod(PaymentMethod paymentMethod, FirestoreCallback callback) {
+        if (paymentMethod == null || paymentMethod.getPaymentMethodId() == null) {
+            callback.onFailure(new Exception("PaymentMethod or paymentMethodId is null"));
+            return;
+        }
+
+        db.collection(COLLECTION_PAYMENT_METHODS)
+                .document(paymentMethod.getPaymentMethodId())
+                .set(paymentMethod.toMap(), SetOptions.merge())
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "PaymentMethod updated: " + paymentMethod.getPaymentMethodId());
+                    callback.onSuccess(paymentMethod);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating PaymentMethod", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Actualizar un método de pago existente (con Map de campos)
+     */
+    public void updatePaymentMethod(String paymentMethodId, Map<String, Object> updates, FirestoreCallback callback) {
+        if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) {
+            callback.onFailure(new Exception("paymentMethodId is required"));
+            return;
+        }
+        if (updates == null || updates.isEmpty()) {
+            callback.onFailure(new Exception("updates is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_PAYMENT_METHODS)
+                .document(paymentMethodId)
+                .update(updates)
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "PaymentMethod updated: " + paymentMethodId);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating PaymentMethod", e);
+                    callback.onFailure(e);
+                });
+    }
+
     public void setDefaultPaymentMethod(String userId, String paymentMethodId, FirestoreCallback callback) {
         if (userId == null || userId.trim().isEmpty()) { callback.onFailure(new Exception("userId is required")); return; }
         if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) { callback.onFailure(new Exception("paymentMethodId is required")); return; }
@@ -598,6 +747,86 @@ public class FirestoreManager {
     public void getToursByCompany(String companyId, FirestoreCallback callback) {
         if (companyId == null || companyId.trim().isEmpty()) { callback.onFailure(new Exception("companyId is required")); return; }
         db.collection(COLLECTION_TOURS).whereEqualTo("companyId", companyId).get()
+                .addOnSuccessListener(qs -> {
+                    List<Tour> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Tour t = doc.toObject(Tour.class);
+                        if (t != null && (t.getTourId() == null || t.getTourId().isEmpty())) t.setTourId(doc.getId());
+                        list.add(t);
+                    }
+                    callback.onSuccess(list);
+                }).addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Crear un nuevo tour
+     */
+    public void createTour(Tour tour, FirestoreCallback callback) {
+        if (tour == null) {
+            callback.onFailure(new Exception("Tour is null"));
+            return;
+        }
+
+        DocumentReference docRef = db.collection(COLLECTION_TOURS).document();
+        tour.setTourId(docRef.getId());
+
+        docRef.set(tour.toMap())
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Tour created with ID: " + docRef.getId());
+                    callback.onSuccess(tour);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error creating tour", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Actualizar un tour existente
+     */
+    public void updateTour(Tour tour, FirestoreCallback callback) {
+        if (tour == null || tour.getTourId() == null) {
+            callback.onFailure(new Exception("Tour or tourId is null"));
+            return;
+        }
+
+        db.collection(COLLECTION_TOURS)
+                .document(tour.getTourId())
+                .set(tour.toMap(), SetOptions.merge())
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Tour updated: " + tour.getTourId());
+                    callback.onSuccess(tour);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating tour", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Eliminar un tour
+     */
+    public void deleteTour(String tourId, FirestoreCallback callback) {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_TOURS)
+                .document(tourId)
+                .delete()
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Tour deleted: " + tourId);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener todos los tours (para admin)
+     */
+    public void getAllTours(FirestoreCallback callback) {
+        db.collection(COLLECTION_TOURS).get()
                 .addOnSuccessListener(qs -> {
                     List<Tour> list = new ArrayList<>();
                     for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
@@ -726,6 +955,54 @@ public class FirestoreManager {
                 .addOnFailureListener(callback::onFailure);
     }
 
+    /**
+     * Obtener reservaciones por companyId
+     */
+    public void getReservationsByCompany(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_RESERVATIONS)
+                .whereEqualTo("companyId", companyId)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<Reservation> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Reservation r = doc.toObject(Reservation.class);
+                        if (r != null && (r.getReservationId() == null || r.getReservationId().isEmpty())) {
+                            r.setReservationId(doc.getId());
+                        }
+                        list.add(r);
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Actualizar estado de una reservación
+     */
+    public void updateReservationStatus(String reservationId, String newStatus, FirestoreCallback callback) {
+        if (reservationId == null || reservationId.trim().isEmpty()) {
+            callback.onFailure(new Exception("reservationId is required"));
+            return;
+        }
+        
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", newStatus);
+        
+        db.collection(COLLECTION_RESERVATIONS)
+                .document(reservationId)
+                .update(updates)
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Reservation status updated: " + reservationId + " -> " + newStatus);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
     // ==================== REVIEWS ====================
 
     public void createReview(String tourId, String userId, int rating, String comment, FirestoreCallback callback) {
@@ -750,6 +1027,87 @@ public class FirestoreManager {
 
     public void getTour(String tourId) {
         // placeholder - existing getTour(String, FirestoreCallback) should be used
+    }
+
+    // ==================== MENSAJES ====================
+
+    /**
+     * Obtener mensajes por companyId (para admin)
+     */
+    public void getMessagesByCompany(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_MESSAGES)
+                .whereEqualTo("companyId", companyId)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<Message> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Message m = doc.toObject(Message.class);
+                        if (m != null) {
+                            if (m.getMessageId() == null || m.getMessageId().isEmpty()) {
+                                m.setMessageId(doc.getId());
+                            }
+                            list.add(m);
+                        }
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener mensajes entre un cliente y una empresa
+     */
+    public void getMessagesBetweenClientAndCompany(String clientId, String companyId, FirestoreCallback callback) {
+        if (clientId == null || companyId == null) {
+            callback.onFailure(new Exception("clientId and companyId are required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_MESSAGES)
+                .whereEqualTo("senderId", clientId)
+                .whereEqualTo("companyId", companyId)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<Message> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Message m = doc.toObject(Message.class);
+                        if (m != null) list.add(m);
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Enviar mensaje
+     */
+    public void sendMessage(Message message, FirestoreCallback callback) {
+        if (message == null) {
+            callback.onFailure(new Exception("Message is null"));
+            return;
+        }
+        
+        DocumentReference docRef = db.collection(COLLECTION_MESSAGES).document();
+        message.setMessageId(docRef.getId());
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("messageId", message.getMessageId());
+        data.put("senderId", message.getSenderId());
+        data.put("senderName", message.getSenderName());
+        data.put("receiverId", message.getReceiverId());
+        data.put("companyId", message.getCompanyId());
+        data.put("content", message.getContent());
+        data.put("isRead", false);
+        data.put("createdAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
+        
+        docRef.set(data)
+                .addOnSuccessListener(unused -> callback.onSuccess(message))
+                .addOnFailureListener(callback::onFailure);
     }
 
     // ==================== CALLBACK ====================

@@ -26,12 +26,12 @@ import com.example.droidtour.adapters.UsersAdapter;
 import com.example.droidtour.models.User;
 import com.example.droidtour.ui.UserProfileBottomSheet;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.SetOptions;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -210,26 +210,101 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         // Asegurarse que se ve el indicador de carga cuando se inicia una recarga manual
         if (!swipeRefresh.isRefreshing()) showLoading();
 
-         db.collection("users")
+         db.collection(FirestoreManager.COLLECTION_USERS)
                  .get()
                  .addOnCompleteListener(task -> {
                      if (task.isSuccessful()) {
                          userList.clear();
                          for (QueryDocumentSnapshot document : task.getResult()) {
-                             // Intentamos mapear al modelo User, pero normalizamos campos legacy/alternativos
-                             User user = document.toObject(User.class);
+                             // Intentamos mapear al modelo User, pero manejamos errores de documentos legacy
+                             User user = null;
+                             boolean manualMapping = false;
+                             try {
+                                 user = document.toObject(User.class);
+                             } catch (RuntimeException e) {
+                                 // Si hay error (por ejemplo, conflicto con @DocumentId o campos duplicados),
+                                 // crear usuario manualmente desde los datos del documento
+                                 android.util.Log.w("SuperadminUsersAct", "Error mapeando documento " + document.getId() + ": " + e.getMessage());
+                                 user = new User();
+                                 manualMapping = true; // Marcar que necesitamos mapeo manual completo
+                             }
 
                              // Always ensure user is not null
                              if (user == null) {
                                  user = new User();
+                                 manualMapping = true;
                              }
 
-                             // Document ID -> userId si falta
-                             if (user.getUserId() == null || user.getUserId().isEmpty()) {
-                                 user.setUserId(document.getId());
-                             }
+                             // Document ID -> userId (siempre establecer desde el ID del documento)
+                             user.setUserId(document.getId());
 
                              Map<String, Object> data = document.getData();
+                             
+                             // Si hubo error en toObject(), mapear todos los campos manualmente
+                             if (manualMapping) {
+                                 // Mapear campos básicos desde el Map
+                                 if (data.get("email") != null) user.setEmail(String.valueOf(data.get("email")));
+                                 if (data.get("firstName") != null) user.setFirstName(String.valueOf(data.get("firstName")));
+                                 if (data.get("lastName") != null) user.setLastName(String.valueOf(data.get("lastName")));
+                                 if (data.get("phoneNumber") != null) user.setPhoneNumber(String.valueOf(data.get("phoneNumber")));
+                                 else if (data.get("phone") != null) user.setPhoneNumber(String.valueOf(data.get("phone")));
+                                 if (data.get("userType") != null) user.setUserType(String.valueOf(data.get("userType")));
+                                 if (data.get("documentType") != null) user.setDocumentType(String.valueOf(data.get("documentType")));
+                                 if (data.get("documentNumber") != null) user.setDocumentNumber(String.valueOf(data.get("documentNumber")));
+                                 if (data.get("address") != null) user.setAddress(String.valueOf(data.get("address")));
+                                 
+                                 // Date of birth: intentar dateOfBirth primero, luego birthDate (legacy)
+                                 if (data.get("dateOfBirth") != null) user.setDateOfBirth(String.valueOf(data.get("dateOfBirth")));
+                                 else if (data.get("birthDate") != null) user.setDateOfBirth(String.valueOf(data.get("birthDate")));
+                                 
+                                 // Campos de metadatos
+                                 if (data.get("provider") != null) user.setProvider(String.valueOf(data.get("provider")));
+                                 if (data.get("customPhoto") instanceof Boolean) user.setCustomPhoto((Boolean) data.get("customPhoto"));
+                                 if (data.get("profileCompleted") instanceof Boolean) user.setProfileCompleted((Boolean) data.get("profileCompleted"));
+                                 if (data.get("profileCompletedAt") != null && data.get("profileCompletedAt") instanceof java.util.Date) {
+                                     user.setProfileCompletedAt((java.util.Date) data.get("profileCompletedAt"));
+                                 }
+                                 if (data.get("registeredBy") != null) user.setRegisteredBy(String.valueOf(data.get("registeredBy")));
+                                 
+                                 // Campos específicos para guías
+                                 if ("GUIDE".equals(user.getUserType())) {
+                                     if (data.get("isGuideApproved") instanceof Boolean) {
+                                         user.setGuideApproved((Boolean) data.get("isGuideApproved"));
+                                     }
+                                     if (data.get("guideRating") instanceof Number) {
+                                         user.setGuideRating(((Number) data.get("guideRating")).floatValue());
+                                     }
+                                     if (data.get("guideLanguages") instanceof java.util.List) {
+                                         @SuppressWarnings("unchecked")
+                                         java.util.List<String> languages = (java.util.List<String>) data.get("guideLanguages");
+                                         user.setGuideLanguages(languages);
+                                     } else if (data.get("languages") instanceof java.util.List) {
+                                         @SuppressWarnings("unchecked")
+                                         java.util.List<String> languages = (java.util.List<String>) data.get("languages");
+                                         user.setGuideLanguages(languages);
+                                     }
+                                     if (data.get("guideSpecialties") != null) {
+                                         user.setGuideSpecialties(String.valueOf(data.get("guideSpecialties")));
+                                     }
+                                 }
+                                 
+                                 // Campos específicos para admins
+                                 if ("ADMIN".equals(user.getUserType())) {
+                                     if (data.get("companyId") != null) user.setCompanyId(String.valueOf(data.get("companyId")));
+                                     if (data.get("companyBusinessName") != null) user.setCompanyBusinessName(String.valueOf(data.get("companyBusinessName")));
+                                     if (data.get("companyRuc") != null) user.setCompanyRuc(String.valueOf(data.get("companyRuc")));
+                                     if (data.get("companyCommercialName") != null) user.setCompanyCommercialName(String.valueOf(data.get("companyCommercialName")));
+                                     if (data.get("companyType") != null) user.setCompanyType(String.valueOf(data.get("companyType")));
+                                 }
+                                 
+                                 // Timestamps
+                                 if (data.get("createdAt") != null && data.get("createdAt") instanceof java.util.Date) {
+                                     user.setCreatedAt((java.util.Date) data.get("createdAt"));
+                                 }
+                                 if (data.get("updatedAt") != null && data.get("updatedAt") instanceof java.util.Date) {
+                                     user.setUpdatedAt((java.util.Date) data.get("updatedAt"));
+                                 }
+                             }
 
                              // Email fallback
                              if (user.getEmail() == null || user.getEmail().isEmpty()) {
@@ -311,7 +386,7 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                                      continue;
                                  }
 
-                                 db.collection("user_roles").document(uid).get()
+                                 db.collection(FirestoreManager.COLLECTION_USER_ROLES).document(uid).get()
                                          .addOnSuccessListener(doc -> {
                                              if (doc != null && doc.exists()) {
                                                  // Manejar varias estructuras: doc puede tener directamente 'guide' o 'guide' dentro de 'roles'
@@ -467,61 +542,54 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
             return;
         }
 
-        db.collection("users").document(user.getUserId())
+        db.collection(FirestoreManager.COLLECTION_USERS).document(user.getUserId())
                 .update("isActive", isActive)
                 .addOnSuccessListener(aVoid -> {
                     // Actualizar objeto local
                     user.setActive(isActive);
 
                     if (approveGuide) {
-                        // Actualizar user_roles para aprobar la solicitud del guía
-                        Map<String, Object> roleData = new HashMap<>();
-                        roleData.put("status", "active");
-                        roleData.put("updatedAt", new Date());
-                        roleData.put("activatedAt", new Date());
+                        // Actualizar user_roles para aprobar la solicitud del guía usando FirestoreManager
+                        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+                        firestoreManager.saveUserRole(user.getUserId(), "GUIDE", "active", null, new FirestoreManager.FirestoreCallback() {
+                            @Override
+                            public void onSuccess(Object result) {
+                                user.setStatus("active");
+                                user.setGuideApproved(true);
+                                Toast.makeText(SuperadminUsersActivity.this, "Usuario activado y guía aprobado", Toast.LENGTH_SHORT).show();
+                                int idx = userList.indexOf(user);
+                                if (idx >= 0) usersAdapter.notifyItemChanged(idx);
+                            }
 
-                        Map<String, Object> roleUpdate = new HashMap<>();
-                        roleUpdate.put("guide", roleData);
-
-                        db.collection("user_roles").document(user.getUserId())
-                                .set(roleUpdate, SetOptions.merge())
-                                .addOnSuccessListener(aVoid2 -> {
-                                    user.setStatus("active");
-                                    user.setGuideApproved(true);
-                                    Toast.makeText(this, "Usuario activado y guía aprobado", Toast.LENGTH_SHORT).show();
-                                    int idx = userList.indexOf(user);
-                                    if (idx >= 0) usersAdapter.notifyItemChanged(idx);
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(this, "Usuario activado pero no se pudo actualizar user_roles: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                                    int idx = userList.indexOf(user);
-                                    if (idx >= 0) usersAdapter.notifyItemChanged(idx);
-                                });
+                            @Override
+                            public void onFailure(Exception e) {
+                                Toast.makeText(SuperadminUsersActivity.this, "Usuario activado pero no se pudo actualizar user_roles: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                int idx = userList.indexOf(user);
+                                if (idx >= 0) usersAdapter.notifyItemChanged(idx);
+                            }
+                        });
 
                     } else {
-                        // Si no se aprueba, para guías que se desactivan dejamos el estado en user_roles como inactive (opcional)
+                        // Si no se aprueba, para guías que se desactivan dejamos el estado en user_roles como inactive
                         if (!isActive && "GUIDE".equals(user.getUserType())) {
-                            Map<String, Object> roleData = new HashMap<>();
-                            roleData.put("status", "inactive");
-                            roleData.put("updatedAt", new Date());
+                            FirestoreManager firestoreManager = FirestoreManager.getInstance();
+                            firestoreManager.saveUserRole(user.getUserId(), "GUIDE", "inactive", null, new FirestoreManager.FirestoreCallback() {
+                                @Override
+                                public void onSuccess(Object result) {
+                                    user.setStatus("inactive");
+                                    user.setGuideApproved(false);
+                                    Toast.makeText(SuperadminUsersActivity.this, "Usuario desactivado", Toast.LENGTH_SHORT).show();
+                                    int idx = userList.indexOf(user);
+                                    if (idx >= 0) usersAdapter.notifyItemChanged(idx);
+                                }
 
-                            Map<String, Object> roleUpdate = new HashMap<>();
-                            roleUpdate.put("guide", roleData);
-
-                            db.collection("user_roles").document(user.getUserId())
-                                    .set(roleUpdate, SetOptions.merge())
-                                    .addOnSuccessListener(aVoid2 -> {
-                                        user.setStatus("inactive");
-                                        user.setGuideApproved(false);
-                                        Toast.makeText(this, "Usuario desactivado", Toast.LENGTH_SHORT).show();
-                                        int idx = userList.indexOf(user);
-                                        if (idx >= 0) usersAdapter.notifyItemChanged(idx);
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        Toast.makeText(this, "Usuario desactivado pero no se pudo actualizar user_roles: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                                        int idx = userList.indexOf(user);
-                                        if (idx >= 0) usersAdapter.notifyItemChanged(idx);
-                                    });
+                                @Override
+                                public void onFailure(Exception e) {
+                                    Toast.makeText(SuperadminUsersActivity.this, "Usuario desactivado pero no se pudo actualizar user_roles: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                    int idx = userList.indexOf(user);
+                                    if (idx >= 0) usersAdapter.notifyItemChanged(idx);
+                                }
+                            });
                         } else {
                             String statusMsg = isActive ? "Usuario activado" : "Usuario desactivado";
                             Toast.makeText(this, statusMsg, Toast.LENGTH_SHORT).show();
@@ -544,7 +612,7 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
             return;
         }
 
-        db.collection("users").document(user.getUserId())
+        db.collection(FirestoreManager.COLLECTION_USERS).document(user.getUserId())
                 .delete()
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Usuario eliminado", Toast.LENGTH_SHORT).show();

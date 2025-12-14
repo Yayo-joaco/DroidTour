@@ -2,6 +2,7 @@ package com.example.droidtour.client;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -29,7 +30,6 @@ import com.example.droidtour.MyReservationsActivity;
 import com.example.droidtour.R;
 import com.example.droidtour.TourDetailActivity;
 import com.example.droidtour.ToursCatalogActivity;
-import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.utils.NotificationHelper;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -38,6 +38,7 @@ import com.google.android.material.navigation.NavigationView;
 import java.util.List;
 
 public class ClientMainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+    private static final String TAG = "ClientMainActivity";
 
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
@@ -51,8 +52,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private String currentUserId;
     
-    // Storage Local (deprecated - migrar a Firebase)
-    private DatabaseHelper dbHelper;
+    // Helpers
     private PreferencesManager prefsManager;
     private NotificationHelper notificationHelper;
     
@@ -103,8 +103,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             android.widget.Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", android.widget.Toast.LENGTH_LONG).show();
         }
         
-        // Inicializar helpers locales (deprecated)
-        dbHelper = new DatabaseHelper(this);
+        // Inicializar helpers
         notificationHelper = new NotificationHelper(this);
 
         initializeViews();
@@ -118,8 +117,8 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         // Cargar datos del usuario y actualizar vistas
         loadUserData();
         
-        // Cargar reservas de ejemplo
-        loadSampleReservations();
+        // Cargar reservas activas desde Firestore
+        updateActiveReservationsCount();
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawer_layout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -215,14 +214,25 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     }
 
     private void updateNotificationBadge() {
-        if (tvNotificationBadge != null && dbHelper != null) {
-            int unreadCount = dbHelper.getUnreadNotificationsCount();
-            if (unreadCount > 0) {
-                tvNotificationBadge.setVisibility(View.VISIBLE);
-                tvNotificationBadge.setText(String.valueOf(Math.min(unreadCount, 99)));
-            } else {
-                tvNotificationBadge.setVisibility(View.GONE);
-            }
+        if (tvNotificationBadge != null && currentUserId != null) {
+            firestoreManager.countUnreadNotifications(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    int unreadCount = (Integer) result;
+                    if (unreadCount > 0) {
+                        tvNotificationBadge.setVisibility(View.VISIBLE);
+                        tvNotificationBadge.setText(String.valueOf(Math.min(unreadCount, 99)));
+                    } else {
+                        tvNotificationBadge.setVisibility(View.GONE);
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error cargando contador de notificaciones (no crítico)", e);
+                    tvNotificationBadge.setVisibility(View.GONE);
+                }
+            });
         }
     }
 
@@ -366,6 +376,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
             @Override
             public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando tours destacados", e);
                 Toast.makeText(ClientMainActivity.this, "Error cargando tours", Toast.LENGTH_SHORT).show();
             }
         });
@@ -491,91 +502,48 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         }
     }
     
-    private void loadSampleReservations() {
-        // Cargar reservas de ejemplo solo si la BD está vacía
-        List<DatabaseHelper.Reservation> existingReservations = dbHelper.getAllReservations();
-        
-        if (existingReservations.isEmpty()) {
-            // Agregar reservas de ejemplo
-            dbHelper.addReservation(
-                "City Tour Lima Centro", 
-                "Lima Adventure Tours", 
-                "28 Oct", 
-                "09:00 AM",
-                "CONFIRMADA", 
-                150.0, 
-                2, 
-                "QR-2024-001"
-            );
-            
-            dbHelper.addReservation(
-                "Tour Machu Picchu", 
-                "Cusco Explorer", 
-                "02 Nov", 
-                "06:00 AM",
-                "CONFIRMADA", 
-                450.0, 
-                2, 
-                "QR-2024-002"
-            );
-            
-            Toast.makeText(this, "Reservas cargadas", Toast.LENGTH_SHORT).show();
-            
-            // Enviar notificación de confirmación
-            notificationHelper.sendReservationConfirmedNotification(
-                "City Tour Lima Centro", 
-                "28 Oct", 
-                "QR-2024-001"
-            );
-            
-            // Actualizar contador de reservas activas
-            updateActiveReservationsCount();
-        }
-    }
-    
     private void updateActiveReservationsCount() {
-        List<DatabaseHelper.Reservation> allReservations = dbHelper.getAllReservations();
-        int activeCount = 0;
-        
-        for (DatabaseHelper.Reservation res : allReservations) {
-            if (res.getStatus().equals("CONFIRMADA")) {
-                activeCount++;
-            }
+        if (currentUserId == null) {
+            tvActiveReservations.setText("0 reservas activas");
+            return;
         }
         
-        tvActiveReservations.setText(activeCount + " reservas activas");
-    }
-    
-    // Método para crear una nueva reserva
-    public void createReservation(String tourName, String company, String date, String time,
-                                  double price, int people) {
-        // Generar código QR único
-        String qrCode = "QR-" + System.currentTimeMillis();
-        
-        // Guardar en BD
-        dbHelper.addReservation(tourName, company, date, time, "CONFIRMADA", price, people, qrCode);
-        
-        // Enviar notificación
-        notificationHelper.sendReservationConfirmedNotification(tourName, date, qrCode);
-        
-        // Enviar notificación de pago
-        notificationHelper.sendPaymentConfirmedNotification(tourName, price);
-        
-        Toast.makeText(this, "¡Reserva confirmada! Código: " + qrCode, Toast.LENGTH_LONG).show();
-        
-        // Actualizar contador
-        updateActiveReservationsCount();
+        firestoreManager.getReservationsByUser(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<com.example.droidtour.models.Reservation> reservations = (List<com.example.droidtour.models.Reservation>) result;
+                int activeCount = 0;
+                
+                for (com.example.droidtour.models.Reservation res : reservations) {
+                    if (res.getStatus() != null && res.getStatus().equals("CONFIRMADA")) {
+                        activeCount++;
+                    }
+                }
+                
+                tvActiveReservations.setText(activeCount + " reservas activas");
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando contador de reservas activas (no crítico)", e);
+                tvActiveReservations.setText("0 reservas activas");
+            }
+        });
     }
     
     // ==================== NOTIFICACIONES ====================
     
     private void testClientNotifications() {
         // Método de prueba para enviar notificaciones de ejemplo
-        notificationHelper.sendTourReminderForClient(
-            "City Tour Lima Centro", 
-            "28 Oct", 
-            "09:00 AM"
-        );
+        if (currentUserId != null) {
+            notificationHelper.sendTourReminderForClient(
+                currentUserId,
+                "City Tour Lima Centro", 
+                "28 Oct", 
+                "09:00 AM"
+            );
+        }
     }
     
     // ==================== VALIDACIÓN DE SESIÓN ====================

@@ -15,8 +15,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import com.example.droidtour.database.DatabaseHelper;
-
 public class AllReviewsActivity extends AppCompatActivity {
     
     private RecyclerView rvReviews;
@@ -25,8 +23,34 @@ public class AllReviewsActivity extends AppCompatActivity {
     private TextView tvTourName, tvTotalReviews;
     
     private String tourName;
-    private List<DatabaseHelper.Review> allReviews;
-    private List<DatabaseHelper.Review> filteredReviews;
+    private List<Review> allReviews;
+    private List<Review> filteredReviews;
+    
+    // Clase Review simple para reemplazar DatabaseHelper.Review
+    static class Review {
+        private String userName;
+        private String userInitial;
+        private double rating;
+        private String reviewText;
+        private String reviewDate;
+        private String tourName;
+
+        public Review(String userName, String userInitial, double rating, String reviewText, String reviewDate, String tourName) {
+            this.userName = userName;
+            this.userInitial = userInitial;
+            this.rating = rating;
+            this.reviewText = reviewText;
+            this.reviewDate = reviewDate;
+            this.tourName = tourName;
+        }
+
+        public String getUserName() { return userName; }
+        public String getUserInitial() { return userInitial; }
+        public double getRating() { return rating; }
+        public String getReviewText() { return reviewText; }
+        public String getReviewDate() { return reviewDate; }
+        public String getTourName() { return tourName; }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,34 +109,34 @@ public class AllReviewsActivity extends AppCompatActivity {
         allReviews = new ArrayList<>();
         
         // Reseñas para diferentes tours
-        allReviews.add(new DatabaseHelper.Review("Ana García", "A", 5.0, 
+        allReviews.add(new Review("Ana García", "A", 5.0, 
             "Excelente tour, el guía muy conocedor y amable. Los lugares visitados fueron increíbles y la comida deliciosa.", 
             "Hace 2 semanas", tourName));
-        allReviews.add(new DatabaseHelper.Review("Carlos Mendoza", "C", 5.0, 
+        allReviews.add(new Review("Carlos Mendoza", "C", 5.0, 
             "Una experiencia inolvidable. La organización fue perfecta y aprendimos mucho sobre la historia de Lima.", 
             "Hace 1 mes", tourName));
-        allReviews.add(new DatabaseHelper.Review("María López", "M", 4.0, 
+        allReviews.add(new Review("María López", "M", 4.0, 
             "Muy recomendado. El tour cumplió todas nuestras expectativas y el precio es muy justo.", 
             "Hace 3 semanas", tourName));
-        allReviews.add(new DatabaseHelper.Review("Pedro Ramírez", "P", 4.5, 
+        allReviews.add(new Review("Pedro Ramírez", "P", 4.5, 
             "Increíble experiencia, el guía fue muy profesional y conocía todos los detalles históricos.", 
             "Hace 1 semana", tourName));
-        allReviews.add(new DatabaseHelper.Review("Laura Sánchez", "L", 3.5, 
+        allReviews.add(new Review("Laura Sánchez", "L", 3.5, 
             "Buen tour en general, aunque el tiempo en algunos lugares fue un poco corto.", 
             "Hace 2 meses", tourName));
-        allReviews.add(new DatabaseHelper.Review("Roberto Torres", "R", 5.0, 
+        allReviews.add(new Review("Roberto Torres", "R", 5.0, 
             "Perfecto desde el inicio hasta el final. Definitivamente lo recomiendo a todos.", 
             "Hace 5 días", tourName));
-        allReviews.add(new DatabaseHelper.Review("Carmen Vega", "C", 4.0, 
+        allReviews.add(new Review("Carmen Vega", "C", 4.0, 
             "Muy buena experiencia, aprendimos mucho sobre la cultura local.", 
             "Hace 1 mes", tourName));
-        allReviews.add(new DatabaseHelper.Review("Diego Flores", "D", 2.5, 
+        allReviews.add(new Review("Diego Flores", "D", 2.5, 
             "El tour estuvo bien pero esperaba más información histórica detallada.", 
             "Hace 3 meses", tourName));
-        allReviews.add(new DatabaseHelper.Review("Sofia Herrera", "S", 4.5, 
+        allReviews.add(new Review("Sofia Herrera", "S", 4.5, 
             "Excelente servicio y muy buena atención. Los lugares fueron espectaculares.", 
             "Hace 2 semanas", tourName));
-        allReviews.add(new DatabaseHelper.Review("Miguel Castro", "M", 5.0, 
+        allReviews.add(new Review("Miguel Castro", "M", 5.0, 
             "Una de las mejores experiencias de mi vida. El guía hizo que todo fuera muy interesante.", 
             "Hace 1 semana", tourName));
 
@@ -179,9 +203,9 @@ public class AllReviewsActivity extends AppCompatActivity {
 
 // Adaptador para todas las reseñas
 class AllReviewsAdapter extends RecyclerView.Adapter<AllReviewsAdapter.ViewHolder> {
-    private final List<DatabaseHelper.Review> reviews;
+    private final List<AllReviewsActivity.Review> reviews;
     
-    AllReviewsAdapter(List<DatabaseHelper.Review> reviews) { 
+    AllReviewsAdapter(List<AllReviewsActivity.Review> reviews) { 
         this.reviews = reviews; 
     }
 
@@ -194,7 +218,7 @@ class AllReviewsAdapter extends RecyclerView.Adapter<AllReviewsAdapter.ViewHolde
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        DatabaseHelper.Review review = reviews.get(position);
+        AllReviewsActivity.Review review = reviews.get(position);
         
         TextView userInitial = holder.itemView.findViewById(R.id.tv_user_initial);
         TextView userName = holder.itemView.findViewById(R.id.tv_user_name);

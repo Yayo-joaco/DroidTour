@@ -19,11 +19,12 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.hbb20.CountryCodePicker;
 import android.widget.AutoCompleteTextView;
 import com.example.droidtour.R;
+import com.example.droidtour.models.User;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +41,7 @@ public class AdminRegistrationActivity extends AppCompatActivity {
     private ExtendedFloatingActionButton btnRegisterAdmin;
 
     private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
+    private FirestoreManager firestoreManager;
     private PreferencesManager prefsManager;
 
     // Patterns para validación
@@ -74,7 +75,7 @@ public class AdminRegistrationActivity extends AppCompatActivity {
 
         // Inicializar Firebase
         mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
+        firestoreManager = FirestoreManager.getInstance();
 
         // Configurar Toolbar
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
@@ -229,64 +230,69 @@ public class AdminRegistrationActivity extends AppCompatActivity {
 
                         authTask.getResult().getUser().updateProfile(profileUpdates)
                                 .addOnCompleteListener(profileTask -> {
-                                    // 2. Guardar datos en Firestore
-                                    Map<String, Object> userData = new HashMap<>();
-                                    userData.put("userId", userId);
-                                    userData.put("email", email);
-                                    userData.put("firstName", firstName);
-                                    userData.put("lastName", lastName);
-                                    userData.put("fullName", fullName);
-                                    userData.put("phoneNumber", phone);
-                                    userData.put("userType", "ADMIN");
-                                    userData.put("isActive", true);
-                                    userData.put("createdAt", new java.util.Date());
-                                    userData.put("documentType", docType);
-                                    userData.put("documentNumber", docNumber);
+                                    // 2. Crear objeto User y guardar en Firestore usando el modelo
+                                    User newUser = new User();
+                                    newUser.setUserId(userId); // Establecer userId para el modelo
+                                    newUser.setEmail(email);
+                                    newUser.setFirstName(firstName);
+                                    newUser.setLastName(lastName);
+                                    newUser.setFullName(fullName);
+                                    newUser.setPhoneNumber(phone);
+                                    newUser.setUserType("ADMIN");
+                                    newUser.setActive(true);
+                                    newUser.setDocumentType(docType);
+                                    newUser.setDocumentNumber(docNumber);
+                                    
+                                    // Datos de empresa (campos específicos para ADMIN)
+                                    newUser.setCompanyBusinessName(businessName);
+                                    newUser.setCompanyRuc(ruc);
+                                    newUser.setCompanyCommercialName(commercialName);
+                                    newUser.setCompanyType(businessType);
+                                    newUser.setRegisteredBy(prefsManager.getUserId());
 
-                                    // Datos de empresa
-                                    userData.put("companyBusinessName", businessName);
-                                    userData.put("companyRuc", ruc);
-                                    userData.put("companyCommercialName", commercialName);
-                                    userData.put("companyType", businessType);
-                                    userData.put("registeredBy", prefsManager.getUserId());
+                                    // Guardar en Firestore usando FirestoreManager
+                                    firestoreManager.createUser(newUser, new FirestoreManager.FirestoreCallback() {
+                                        @Override
+                                        public void onSuccess(Object result) {
+                                            Log.d("AdminRegistration", "Administrador guardado exitosamente en Firestore");
+                                            // 3. Crear registro en user_roles para ADMIN con campos adicionales
+                                            Map<String, Object> adminAdditionalFields = new HashMap<>();
+                                            adminAdditionalFields.put("assignedAt", new java.util.Date());
+                                            adminAdditionalFields.put("assignedBy", prefsManager.getUserId());
+                                            adminAdditionalFields.put("company", businessName);
+                                            adminAdditionalFields.put("companyRuc", ruc);
 
-                                    // Guardar en colección users
-                                    db.collection("users").document(userId)
-                                            .set(userData)
-                                            .addOnSuccessListener(aVoid -> {
-                                                // 3. Crear registro en user_roles para ADMIN
-                                                Map<String, Object> roleData = new HashMap<>();
-                                                Map<String, Object> adminRole = new HashMap<>();
-                                                adminRole.put("status", "active");
-                                                adminRole.put("assignedAt", new java.util.Date());
-                                                adminRole.put("assignedBy", prefsManager.getUserId());
-                                                adminRole.put("company", businessName);
-                                                adminRole.put("companyRuc", ruc);
+                                            firestoreManager.saveUserRole(userId, "ADMIN", "active", adminAdditionalFields, new FirestoreManager.FirestoreCallback() {
+                                                @Override
+                                                public void onSuccess(Object result) {
+                                                    Log.d("AdminRegistration", "Rol de administrador guardado exitosamente");
+                                                    Toast.makeText(AdminRegistrationActivity.this,
+                                                            "Administrador registrado exitosamente", Toast.LENGTH_LONG).show();
 
-                                                roleData.put("admin", adminRole);
+                                                    // Enviar email de bienvenida (opcional)
+                                                    sendWelcomeEmail(email, fullName, password);
 
-                                                db.collection("user_roles").document(userId)
-                                                        .set(roleData)
-                                                        .addOnSuccessListener(aVoid2 -> {
-                                                            Toast.makeText(AdminRegistrationActivity.this,
-                                                                    "Administrador registrado exitosamente", Toast.LENGTH_LONG).show();
+                                                    // Regresar a la lista de usuarios
+                                                    Intent intent = new Intent();
+                                                    intent.putExtra("newAdminRegistered", true);
+                                                    setResult(RESULT_OK, intent);
+                                                    finish();
+                                                }
 
-                                                            // Enviar email de bienvenida (opcional)
-                                                            sendWelcomeEmail(email, fullName, password);
-
-                                                            // Regresar a la lista de usuarios
-                                                            Intent intent = new Intent();
-                                                            intent.putExtra("newAdminRegistered", true);
-                                                            setResult(RESULT_OK, intent);
-                                                            finish();
-                                                        })
-                                                        .addOnFailureListener(e -> {
-                                                            handleRegistrationError("Error al asignar rol: " + e.getMessage());
-                                                        });
-                                            })
-                                            .addOnFailureListener(e -> {
-                                                handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                                                @Override
+                                                public void onFailure(Exception e) {
+                                                    Log.e("AdminRegistration", "Error al guardar rol de administrador para userId: " + userId, e);
+                                                    handleRegistrationError("Error al asignar rol: " + e.getMessage());
+                                                }
                                             });
+                                        }
+
+                                        @Override
+                                        public void onFailure(Exception e) {
+                                            Log.e("AdminRegistration", "Error al guardar administrador en Firestore para userId: " + userId, e);
+                                            handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                                        }
+                                    });
                                 })
                                 .addOnFailureListener(e -> {
                                     handleRegistrationError("Error al actualizar perfil: " + e.getMessage());

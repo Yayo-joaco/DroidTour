@@ -1,6 +1,7 @@
 package com.example.droidtour.client;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ClientNotificationsActivity extends AppCompatActivity {
+    private static final String TAG = "ClientNotifications";
 
     private MaterialToolbar toolbar;
     private TabLayout tabLayout;
@@ -179,6 +181,7 @@ public class ClientNotificationsActivity extends AppCompatActivity {
             
             @Override
             public void onFailure(Exception e) {
+                Log.e(TAG, "Error al marcar notificaciones como leídas", e);
                 Toast.makeText(ClientNotificationsActivity.this, 
                     "Error al marcar notificaciones", Toast.LENGTH_SHORT).show();
             }
@@ -290,6 +293,7 @@ public class ClientNotificationsActivity extends AppCompatActivity {
                 
                 @Override
                 public void onFailure(Exception e) {
+                    Log.e(TAG, "Error al marcar notificación como leída para notificationId: " + notification.getNotificationId(), e);
                     Toast.makeText(ClientNotificationsActivity.this, 
                         "Error al marcar notificación", Toast.LENGTH_SHORT).show();
                 }

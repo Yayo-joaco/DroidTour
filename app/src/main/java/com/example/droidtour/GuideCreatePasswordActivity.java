@@ -12,7 +12,9 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.example.droidtour.models.User;
+import com.example.droidtour.firebase.FirestoreManager;
+import android.util.Log;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -177,77 +179,78 @@ public class GuideCreatePasswordActivity extends AppCompatActivity {
         String userId = user.getUid();
         String fullName = nombres + " " + apellidos;
 
-        // 3. PREPARAR DATOS PARA FIRESTORE
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("uid", userId);
-        userData.put("email", correo);
-        userData.put("firstName", nombres);
-        userData.put("lastName", apellidos);
-        userData.put("fullName", fullName);
-        userData.put("documentType", tipoDocumento);
-        userData.put("documentNumber", numeroDocumento);
-        userData.put("birthDate", fechaNacimiento);
-        userData.put("phone", telefono);
-        userData.put("userType", "GUIDE");
-        userData.put("provider", "email");
-        userData.put("status", "pending_approval");
-        userData.put("createdAt", new java.util.Date());
-        userData.put("profileCompleted", true);
-        userData.put("profileCompletedAt", new java.util.Date());
+        // 3. Crear objeto User usando el modelo
+        User newUser = new User();
+        newUser.setUserId(userId); // Establecer userId para el modelo
+        newUser.setEmail(correo);
+        newUser.setFirstName(nombres);
+        newUser.setLastName(apellidos);
+        newUser.setFullName(fullName);
+        newUser.setDocumentType(tipoDocumento);
+        newUser.setDocumentNumber(numeroDocumento);
+        newUser.setDateOfBirth(fechaNacimiento);
+        newUser.setPhoneNumber(telefono);
+        newUser.setUserType("GUIDE");
+        newUser.setProvider("email");
+        newUser.setStatus("pending_approval");
+        newUser.setActive(false); // Pendiente de aprobación
+        newUser.setProfileCompleted(true);
+        newUser.setProfileCompletedAt(new java.util.Date());
 
         // ✅ Campos específicos para guías
-        userData.put("isGuideApproved", false); // Requiere aprobación de superadmin
-        userData.put("guideRating", 4.8f); // Calificación inicial del guía
+        newUser.setGuideApproved(false); // Requiere aprobación de superadmin
+        newUser.setGuideRating(4.8f); // Calificación inicial del guía
         
         // Agregar idiomas como guideLanguages
         if (idiomasSeleccionados != null && !idiomasSeleccionados.isEmpty()) {
-            userData.put("guideLanguages", idiomasSeleccionados);
-            userData.put("languages", idiomasSeleccionados); // Por compatibilidad
+            newUser.setGuideLanguages(idiomasSeleccionados);
         }
 
         // Agregar foto si existe
         if (photoUri != null && !photoUri.isEmpty()) {
-            userData.put("photoURL", photoUri);
-            userData.put("customPhoto", true);
+            newUser.setProfileImageUrl(photoUri);
+            newUser.setCustomPhoto(true);
         }
 
-        // 4. GUARDAR EN COLECCIÓN "users"
-        FirebaseFirestore.getInstance().collection("users")
-                .document(userId)
-                .set(userData)
-                .addOnSuccessListener(aVoid -> {
-                    // 5. GUARDAR ROL DEL USUARIO
-                    saveUserRole(userId);
-                })
-                .addOnFailureListener(e -> {
-                    handleRegistrationError("Error al guardar datos: " + e.getMessage());
-                });
+        // 4. GUARDAR EN FIRESTORE usando FirestoreManager
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.createUser(newUser, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d("GuideCreatePassword", "Guía guardado exitosamente en Firestore");
+                // 5. GUARDAR ROL DEL USUARIO
+                saveUserRole(userId);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e("GuideCreatePassword", "Error al guardar guía en Firestore para userId: " + userId, e);
+                handleRegistrationError("Error al guardar datos: " + e.getMessage());
+            }
+        });
     }
 
     private void saveUserRole(String userId) {
-        Map<String, Object> roleData = new HashMap<>();
-        roleData.put("status", "pending");
-        roleData.put("appliedAt", new java.util.Date());
-        roleData.put("updatedAt", new java.util.Date());
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.saveUserRole(userId, "GUIDE", "pending", new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d("GuideCreatePassword", "Rol de guía guardado exitosamente");
+                // 6. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
+                saveToPreferencesManager(userId);
 
-        Map<String, Object> roleUpdate = new HashMap<>();
-        roleUpdate.put("guide", roleData);
+                Toast.makeText(GuideCreatePasswordActivity.this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
 
-        FirebaseFirestore.getInstance().collection("user_roles")
-                .document(userId)
-                .set(roleUpdate)
-                .addOnSuccessListener(aVoid -> {
-                    // 6. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
-                    saveToPreferencesManager(userId);
+                // 7. REDIRIGIR A PANTALLA DE ESPERA
+                redirectToApprovalPending();
+            }
 
-                    Toast.makeText(this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
-
-                    // 7. REDIRIGIR A PANTALLA DE ESPERA
-                    redirectToApprovalPending();
-                })
-                .addOnFailureListener(e -> {
-                    handleRegistrationError("Error al guardar rol: " + e.getMessage());
-                });
+            @Override
+            public void onFailure(Exception e) {
+                Log.e("GuideCreatePassword", "Error al guardar rol de guía para userId: " + userId, e);
+                handleRegistrationError("Error al guardar rol: " + e.getMessage());
+            }
+        });
     }
 
     private void saveToPreferencesManager(String userId) {
@@ -268,6 +271,7 @@ public class GuideCreatePasswordActivity extends AppCompatActivity {
     }
 
     private void handleRegistrationError(String errorMessage) {
+        Log.e("GuideCreatePassword", "Error en registro: " + errorMessage);
         btnSiguiente.setEnabled(true);
         btnSiguiente.setText("Siguiente"); // Restaurar texto
 

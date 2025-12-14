@@ -1,8 +1,9 @@
 package com.example.droidtour.utils;
 
+import android.util.Log;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.SetOptions;
+import com.example.droidtour.models.User;
+import com.example.droidtour.firebase.FirestoreManager;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -10,135 +11,265 @@ import java.util.Map;
 import java.util.List;
 
 public class FirebaseUtils {
+    
+    private static final String TAG = "FirebaseUtils";
+    private static final FirestoreManager firestoreManager = FirestoreManager.getInstance();
 
+    /**
+     * Guardar usuario de Google en Firestore usando FirestoreManager
+     * @param user Usuario de Firebase Authentication
+     * @param userType Tipo de usuario (CLIENT, GUIDE, etc.)
+     * @param additionalData Datos adicionales del formulario (firstName, lastName, documentType, etc.)
+     */
     public static void saveGoogleUserToFirestore(FirebaseUser user, String userType, Map<String, Object> additionalData) {
         String userId = user.getUid();
 
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("uid", userId);
-        userData.put("email", user.getEmail());
-        userData.put("displayName", user.getDisplayName());
-        userData.put("photoURL", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "");
-        userData.put("provider", "google");
-        userData.put("userType", userType);
-        userData.put("createdAt", new Date());
-        userData.put("status", "active");
+        // Crear objeto User usando el modelo
+        User newUser = new User();
+        newUser.setUserId(userId);
+        newUser.setEmail(user.getEmail());
+        
+        // Dividir displayName en firstName y lastName si es posible
+        String displayName = user.getDisplayName();
+        if (displayName != null && !displayName.isEmpty()) {
+            newUser.setFullName(displayName);
+            String[] nameParts = displayName.split(" ", 2);
+            if (nameParts.length > 0) {
+                newUser.setFirstName(nameParts[0]);
+                if (nameParts.length > 1) {
+                    newUser.setLastName(nameParts[1]);
+                }
+            }
+        }
+        
+        // Usar profileImageUrl
+        if (user.getPhotoUrl() != null) {
+            newUser.setProfileImageUrl(user.getPhotoUrl().toString());
+        }
+        
+        newUser.setProvider("google");
+        newUser.setUserType(userType);
+        newUser.setStatus("active");
+        newUser.setActive(true);
 
-        // Agregar datos adicionales específicos del formulario
+        // Aplicar datos adicionales del formulario
         if (additionalData != null) {
-            userData.putAll(additionalData);
+            if (additionalData.containsKey("firstName")) {
+                newUser.setFirstName(String.valueOf(additionalData.get("firstName")));
+            }
+            if (additionalData.containsKey("lastName")) {
+                newUser.setLastName(String.valueOf(additionalData.get("lastName")));
+            }
+            if (additionalData.containsKey("fullName")) {
+                newUser.setFullName(String.valueOf(additionalData.get("fullName")));
+            }
+            if (additionalData.containsKey("documentType")) {
+                newUser.setDocumentType(String.valueOf(additionalData.get("documentType")));
+            }
+            if (additionalData.containsKey("documentNumber")) {
+                newUser.setDocumentNumber(String.valueOf(additionalData.get("documentNumber")));
+            }
+            if (additionalData.containsKey("birthDate") || additionalData.containsKey("dateOfBirth")) {
+                String dateOfBirth = additionalData.containsKey("birthDate") ? 
+                    String.valueOf(additionalData.get("birthDate")) : 
+                    String.valueOf(additionalData.get("dateOfBirth"));
+                newUser.setDateOfBirth(dateOfBirth);
+            }
+            if (additionalData.containsKey("phone") || additionalData.containsKey("phoneNumber")) {
+                String phone = additionalData.containsKey("phone") ? 
+                    String.valueOf(additionalData.get("phone")) : 
+                    String.valueOf(additionalData.get("phoneNumber"));
+                newUser.setPhoneNumber(phone);
+            }
+            if (additionalData.containsKey("profileCompleted") && additionalData.get("profileCompleted") instanceof Boolean) {
+                newUser.setProfileCompleted((Boolean) additionalData.get("profileCompleted"));
+            }
+            if (additionalData.containsKey("profileCompletedAt") && additionalData.get("profileCompletedAt") instanceof Date) {
+                newUser.setProfileCompletedAt((Date) additionalData.get("profileCompletedAt"));
+            }
+            if (additionalData.containsKey("customPhoto") && additionalData.get("customPhoto") instanceof Boolean) {
+                newUser.setCustomPhoto((Boolean) additionalData.get("customPhoto"));
+            }
         }
 
-        // Guardar en users collection
-        FirebaseFirestore.getInstance().collection("users")
-                .document(userId)
-                .set(userData, SetOptions.merge()) // Usar merge para no sobreescribir datos existentes
-                .addOnSuccessListener(aVoid -> {
-                    // Para CLIENTE, no necesitamos aprobación, así que activamos directamente
-                    if ("CLIENT".equals(userType)) {
-                        saveUserRole(userId, userType, "active");
-                    } else if ("GUIDE".equals(userType)) {
-                        saveUserRole(userId, userType, "pending");
+        // Guardar usuario usando FirestoreManager con merge
+        firestoreManager.createOrUpdateUser(newUser, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "User saved successfully: " + userId);
+                
+                // Guardar rol del usuario
+                String roleStatus = "CLIENT".equals(userType) ? "active" : "pending";
+                firestoreManager.saveUserRole(userId, userType, roleStatus, new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Log.d(TAG, "User role saved successfully: " + userType);
                     }
-                })
-                .addOnFailureListener(e -> {
-                    // Manejar error
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e(TAG, "Error saving user role for userId: " + userId + ", userType: " + userType, e);
+                    }
                 });
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error saving user", e);
+            }
+        });
     }
 
-    private static void saveUserRole(String userId, String userType, String status) {
-        Map<String, Object> roleData = new HashMap<>();
-        roleData.put("status", status);
-        roleData.put("updatedAt", new Date());
-
-        if ("active".equals(status)) {
-            roleData.put("activatedAt", new Date());
-        } else if ("pending".equals(status)) {
-            roleData.put("appliedAt", new Date());
-        }
-
-        // Crear el mapa completo de roles
-        Map<String, Object> roleUpdate = new HashMap<>();
-        roleUpdate.put(userType.toLowerCase(), roleData);
-
-        FirebaseFirestore.getInstance().collection("user_roles")
-                .document(userId)
-                .set(roleUpdate, SetOptions.merge())
-                .addOnSuccessListener(aVoid -> {
-                    // Éxito
-                })
-                .addOnFailureListener(e -> {
-                    // Manejar error
-                });
-    }
-
-
+    /**
+     * Guardar guía de Google en Firestore usando FirestoreManager
+     * @param user Usuario de Firebase Authentication
+     * @param userType Tipo de usuario (debe ser "GUIDE")
+     * @param additionalData Datos adicionales del formulario
+     * @param languages Lista de idiomas que habla el guía
+     */
     public static void saveGoogleGuideToFirestore(FirebaseUser user, String userType, Map<String, Object> additionalData, List<String> languages) {
         String userId = user.getUid();
 
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("uid", userId);
-        userData.put("email", user.getEmail());
-        userData.put("displayName", user.getDisplayName());
-        userData.put("photoURL", user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "");
-        userData.put("provider", "google");
-        userData.put("userType", userType);
-        userData.put("createdAt", new Date());
-        userData.put("status", "pending_approval"); // Estado pendiente para guías
-
-        // Agregar datos adicionales específicos del formulario
-        if (additionalData != null) {
-            userData.putAll(additionalData);
+        // Crear objeto User usando el modelo
+        User newUser = new User();
+        newUser.setUserId(userId);
+        newUser.setEmail(user.getEmail());
+        
+        // Dividir displayName en firstName y lastName si es posible
+        String displayName = user.getDisplayName();
+        if (displayName != null && !displayName.isEmpty()) {
+            newUser.setFullName(displayName);
+            String[] nameParts = displayName.split(" ", 2);
+            if (nameParts.length > 0) {
+                newUser.setFirstName(nameParts[0]);
+                if (nameParts.length > 1) {
+                    newUser.setLastName(nameParts[1]);
+                }
+            }
         }
+        
+        // Usar profileImageUrl
+        if (user.getPhotoUrl() != null) {
+            newUser.setProfileImageUrl(user.getPhotoUrl().toString());
+        }
+        
+        newUser.setProvider("google");
+        newUser.setUserType(userType);
+        newUser.setStatus("pending_approval"); // Estado pendiente para guías
+        newUser.setActive(false); // Pendiente de aprobación
+        newUser.setGuideApproved(false); // Requiere aprobación
 
         // Agregar idiomas si existen
         if (languages != null && !languages.isEmpty()) {
-            userData.put("languages", languages);
+            newUser.setGuideLanguages(languages);
         }
 
-        // Guardar en users collection
-        FirebaseFirestore.getInstance().collection("users")
-                .document(userId)
-                .set(userData, SetOptions.merge())
-                .addOnSuccessListener(aVoid -> {
-                    // Para GUÍA, necesita aprobación
-                    saveUserRole(userId, userType, "pending");
-                })
-                .addOnFailureListener(e -> {
-                    // Manejar error
+        // Aplicar datos adicionales del formulario
+        if (additionalData != null) {
+            if (additionalData.containsKey("firstName")) {
+                newUser.setFirstName(String.valueOf(additionalData.get("firstName")));
+            }
+            if (additionalData.containsKey("lastName")) {
+                newUser.setLastName(String.valueOf(additionalData.get("lastName")));
+            }
+            if (additionalData.containsKey("fullName")) {
+                newUser.setFullName(String.valueOf(additionalData.get("fullName")));
+            }
+            if (additionalData.containsKey("documentType")) {
+                newUser.setDocumentType(String.valueOf(additionalData.get("documentType")));
+            }
+            if (additionalData.containsKey("documentNumber")) {
+                newUser.setDocumentNumber(String.valueOf(additionalData.get("documentNumber")));
+            }
+            if (additionalData.containsKey("birthDate") || additionalData.containsKey("dateOfBirth")) {
+                String dateOfBirth = additionalData.containsKey("birthDate") ? 
+                    String.valueOf(additionalData.get("birthDate")) : 
+                    String.valueOf(additionalData.get("dateOfBirth"));
+                newUser.setDateOfBirth(dateOfBirth);
+            }
+            if (additionalData.containsKey("phone") || additionalData.containsKey("phoneNumber")) {
+                String phone = additionalData.containsKey("phone") ? 
+                    String.valueOf(additionalData.get("phone")) : 
+                    String.valueOf(additionalData.get("phoneNumber"));
+                newUser.setPhoneNumber(phone);
+            }
+            if (additionalData.containsKey("profileCompleted") && additionalData.get("profileCompleted") instanceof Boolean) {
+                newUser.setProfileCompleted((Boolean) additionalData.get("profileCompleted"));
+            }
+            if (additionalData.containsKey("profileCompletedAt") && additionalData.get("profileCompletedAt") instanceof Date) {
+                newUser.setProfileCompletedAt((Date) additionalData.get("profileCompletedAt"));
+            }
+            if (additionalData.containsKey("customPhoto") && additionalData.get("customPhoto") instanceof Boolean) {
+                newUser.setCustomPhoto((Boolean) additionalData.get("customPhoto"));
+            }
+        }
+
+        // Guardar usuario usando FirestoreManager con merge
+        firestoreManager.createOrUpdateUser(newUser, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "Guide saved successfully: " + userId);
+                
+                // Guardar rol del guía (siempre pending para guías)
+                firestoreManager.saveUserRole(userId, userType, "pending", new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Log.d(TAG, "Guide role saved successfully");
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e(TAG, "Error saving guide role for userId: " + userId, e);
+                    }
                 });
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error saving guide", e);
+            }
+        });
     }
 
+    /**
+     * Verificar estado de aprobación del usuario desde user_roles usando FirestoreManager
+     * @param userId ID del usuario
+     * @param callback Callback para recibir el resultado
+     */
     public static void checkUserApprovalStatus(String userId, UserStatusCallback callback) {
-        FirebaseFirestore.getInstance().collection("user_roles")
-                .document(userId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        Map<String, Object> roles = (Map<String, Object>) documentSnapshot.get("roles");
-                        if (roles != null) {
-                            // Verificar el estado del usuario
-                            Map<String, Object> clientRole = (Map<String, Object>) roles.get("client");
-                            Map<String, Object> guideRole = (Map<String, Object>) roles.get("guide");
+        // Usar FirestoreManager para obtener datos de user_roles
+        firestoreManager.getUserRoles(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) result;
+                
+                if (data != null && !data.isEmpty()) {
+                    // Verificar el estado del usuario
+                    Map<String, Object> clientRole = data.containsKey("client") ? 
+                        (Map<String, Object>) data.get("client") : null;
+                    Map<String, Object> guideRole = data.containsKey("guide") ? 
+                        (Map<String, Object>) data.get("guide") : null;
 
-                            if (clientRole != null && "active".equals(clientRole.get("status"))) {
-                                callback.onStatusChecked("CLIENT", "active");
-                            } else if (guideRole != null) {
-                                String guideStatus = (String) guideRole.get("status");
-                                callback.onStatusChecked("GUIDE", guideStatus);
-                            } else {
-                                callback.onStatusChecked("UNKNOWN", "inactive");
-                            }
-                        } else {
-                            callback.onStatusChecked("UNKNOWN", "inactive");
-                        }
+                    if (clientRole != null && "active".equals(clientRole.get("status"))) {
+                        callback.onStatusChecked("CLIENT", "active");
+                    } else if (guideRole != null) {
+                        String guideStatus = (String) guideRole.get("status");
+                        callback.onStatusChecked("GUIDE", guideStatus != null ? guideStatus : "pending");
                     } else {
                         callback.onStatusChecked("UNKNOWN", "inactive");
                     }
-                })
-                .addOnFailureListener(e -> {
-                    callback.onError(e);
-                });
+                } else {
+                    callback.onStatusChecked("UNKNOWN", "inactive");
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error checking user approval status for userId: " + userId, e);
+                callback.onError(e);
+            }
+        });
     }
 
     public interface UserStatusCallback {

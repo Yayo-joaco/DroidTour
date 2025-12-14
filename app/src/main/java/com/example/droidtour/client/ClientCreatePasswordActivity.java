@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.droidtour.R;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.models.User;
 import com.example.droidtour.models.UserSession;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.google.android.material.button.MaterialButton;
@@ -17,7 +18,6 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
@@ -189,67 +189,69 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
         String userId = user.getUid();
         String fullName = nombres + " " + apellidos;
 
-        // 3. PREPARAR DATOS PARA FIRESTORE
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("uid", userId);
-        userData.put("email", correo);
-        userData.put("firstName", nombres);
-        userData.put("lastName", apellidos);
-        userData.put("fullName", fullName);
-        userData.put("documentType", tipoDocumento);
-        userData.put("documentNumber", numeroDocumento);
-        userData.put("birthDate", fechaNacimiento);
-        userData.put("phone", telefono);
-        userData.put("userType", "CLIENT");
-        userData.put("provider", "email");
-        userData.put("status", "active");
-        userData.put("createdAt", new java.util.Date());
-        userData.put("profileCompleted", true);
-        userData.put("profileCompletedAt", new java.util.Date());
+        // 3. Crear objeto User usando el modelo
+        User newUser = new User();
+        newUser.setUserId(userId); // Establecer userId para el modelo
+        newUser.setEmail(correo);
+        newUser.setFirstName(nombres);
+        newUser.setLastName(apellidos);
+        newUser.setFullName(fullName);
+        newUser.setDocumentType(tipoDocumento);
+        newUser.setDocumentNumber(numeroDocumento);
+        newUser.setDateOfBirth(fechaNacimiento);
+        newUser.setPhoneNumber(telefono);
+        newUser.setUserType("CLIENT");
+        newUser.setProvider("email");
+        newUser.setStatus("active");
+        newUser.setActive(true);
+        newUser.setProfileCompleted(true);
+        newUser.setProfileCompletedAt(new java.util.Date());
 
         // Agregar foto si existe
         if (photoUri != null && !photoUri.isEmpty()) {
-            userData.put("photoURL", photoUri);
-            userData.put("customPhoto", true);
+            newUser.setProfileImageUrl(photoUri);
+            newUser.setCustomPhoto(true);
         }
 
-        // 4. GUARDAR EN COLECCIÓN "users"
-        FirebaseFirestore.getInstance().collection("users")
-                .document(userId)
-                .set(userData)
-                .addOnSuccessListener(aVoid -> {
-                    // 5. GUARDAR ROL DEL USUARIO (CLIENTE ACTIVO DIRECTAMENTE)
-                    saveUserRole(userId);
-                })
-                .addOnFailureListener(e -> {
-                    handleRegistrationError("Error al guardar datos: " + e.getMessage());
-                });
+        // 4. GUARDAR EN FIRESTORE usando FirestoreManager
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.createUser(newUser, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "Usuario guardado exitosamente en Firestore");
+                // 5. GUARDAR ROL DEL USUARIO (CLIENTE ACTIVO DIRECTAMENTE)
+                saveUserRole(userId);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al guardar usuario en Firestore para userId: " + userId, e);
+                handleRegistrationError("Error al guardar datos: " + e.getMessage());
+            }
+        });
     }
 
     private void saveUserRole(String userId) {
-        Map<String, Object> roleData = new HashMap<>();
-        roleData.put("status", "active");
-        roleData.put("activatedAt", new java.util.Date());
-        roleData.put("updatedAt", new java.util.Date());
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.saveUserRole(userId, "CLIENT", "active", new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "Rol de cliente guardado exitosamente");
+                // 6. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
+                saveToPreferencesManager(userId);
 
-        Map<String, Object> roleUpdate = new HashMap<>();
-        roleUpdate.put("client", roleData);
+                Toast.makeText(ClientCreatePasswordActivity.this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
 
-        FirebaseFirestore.getInstance().collection("user_roles")
-                .document(userId)
-                .set(roleUpdate)
-                .addOnSuccessListener(aVoid -> {
-                    // 6. REGISTRO COMPLETADO - GUARDAR EN PREFERENCES
-                    saveToPreferencesManager(userId);
+                // 7. REDIRIGIR AL DASHBOARD DEL CLIENTE
+                redirectToMainActivity();
+            }
 
-                    Toast.makeText(this, "¡Registro completado exitosamente!", Toast.LENGTH_SHORT).show();
-
-                    // 7. REDIRIGIR AL DASHBOARD DEL CLIENTE
-                    redirectToMainActivity();
-                })
-                .addOnFailureListener(e -> {
-                    handleRegistrationError("Error al guardar rol: " + e.getMessage());
-                });
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al guardar rol de cliente", e);
+                handleRegistrationError("Error al guardar rol: " + e.getMessage());
+            }
+        });
     }
 
     private void saveToPreferencesManager(String userId) {
@@ -291,7 +293,8 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
             
             @Override
             public void onFailure(Exception e) {
-                Log.e(TAG, "Error guardando sesión en Firestore", e);
+                Log.e(TAG, "Error guardando sesión en Firestore para userId: " + userId + " (no crítico)", e);
+                // No bloquear el flujo si falla guardar la sesión
             }
         });
     }

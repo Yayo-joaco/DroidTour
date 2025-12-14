@@ -9,6 +9,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
@@ -26,18 +27,20 @@ public class FirestoreManager {
     
     private final FirebaseFirestore db;
     
-    // Nombres de colecciones
-    private static final String COLLECTION_USERS = "users";
-    private static final String COLLECTION_COMPANIES = "companies";
-    private static final String COLLECTION_TOURS = "tours";
-    private static final String COLLECTION_RESERVATIONS = "reservations";
-    private static final String COLLECTION_REVIEWS = "reviews";
-    private static final String COLLECTION_PAYMENT_METHODS = "payment_methods";
-    private static final String COLLECTION_NOTIFICATIONS = "notifications";
-    private static final String COLLECTION_USER_PREFERENCES = "user_preferences";
-    private static final String COLLECTION_MESSAGES = "messages";
-    private static final String COLLECTION_USER_SESSIONS = "user_sessions";
-    private static final String COLLECTION_TOUR_OFFERS = "tour_offers";
+    // Nombres de colecciones - Públicas para uso en toda la aplicación
+    public static final String COLLECTION_USERS = "users";
+    public static final String COLLECTION_COMPANIES = "companies";
+    public static final String COLLECTION_TOURS = "tours";
+    public static final String COLLECTION_RESERVATIONS = "reservations";
+    public static final String COLLECTION_REVIEWS = "reviews";
+    public static final String COLLECTION_PAYMENT_METHODS = "payment_methods";
+    public static final String COLLECTION_NOTIFICATIONS = "notifications";
+    public static final String COLLECTION_USER_PREFERENCES = "user_preferences";
+    public static final String COLLECTION_MESSAGES = "messages";
+    public static final String COLLECTION_USER_SESSIONS = "user_sessions";
+    public static final String COLLECTION_TOUR_OFFERS = "tour_offers";
+    public static final String COLLECTION_USER_ROLES = "user_roles";
+    public static final String COLLECTION_CONVERSATIONS = "conversations";
 
     private FirestoreManager() {
         this.db = FirebaseFirestore.getInstance();
@@ -53,15 +56,203 @@ public class FirestoreManager {
     // ==================== USUARIOS ====================
 
     /**
+     * Método auxiliar para mapear un documento a User manualmente cuando toObject() falla
+     * Útil para documentos legacy que tienen campos conflictivos (ej: userId dentro del documento)
+     * 
+     * ESTRATEGIA DE MIGRACIÓN DE CAMPOS LEGACY:
+     * - Lee tanto campos estándar como legacy para compatibilidad con documentos existentes
+     * - Prioriza campos estándar (phoneNumber, dateOfBirth, profileImageUrl, fullName, guideLanguages)
+     * - Si no encuentra campo estándar, lee campo legacy (phone, birthDate, photoURL, displayName, languages)
+     * - Al guardar (User.toMap()), solo se guardan campos estándar, migrando automáticamente documentos legacy
+     */
+    private User mapDocumentToUser(DocumentSnapshot document) {
+        User user = new User();
+        Map<String, Object> data = document.getData();
+        
+        if (data == null) {
+            return user;
+        }
+        
+        // Establecer userId desde el ID del documento (no desde el campo interno)
+        user.setUserId(document.getId());
+        
+        // Mapear campos básicos
+        if (data.get("email") != null) user.setEmail(String.valueOf(data.get("email")));
+        if (data.get("firstName") != null) user.setFirstName(String.valueOf(data.get("firstName")));
+        if (data.get("lastName") != null) user.setLastName(String.valueOf(data.get("lastName")));
+        if (data.get("fullName") != null) user.setFullName(String.valueOf(data.get("fullName")));
+        else if (data.get("displayName") != null) user.setFullName(String.valueOf(data.get("displayName")));
+        
+        // Phone: intentar phoneNumber primero, luego phone (legacy)
+        if (data.get("phoneNumber") != null) user.setPhoneNumber(String.valueOf(data.get("phoneNumber")));
+        else if (data.get("phone") != null) user.setPhoneNumber(String.valueOf(data.get("phone")));
+        
+        if (data.get("countryCode") != null) user.setCountryCode(String.valueOf(data.get("countryCode")));
+        if (data.get("documentType") != null) user.setDocumentType(String.valueOf(data.get("documentType")));
+        if (data.get("documentNumber") != null) user.setDocumentNumber(String.valueOf(data.get("documentNumber")));
+        
+        // Date of birth: intentar dateOfBirth primero, luego birthDate (legacy)
+        if (data.get("dateOfBirth") != null) user.setDateOfBirth(String.valueOf(data.get("dateOfBirth")));
+        else if (data.get("birthDate") != null) user.setDateOfBirth(String.valueOf(data.get("birthDate")));
+        
+        if (data.get("address") != null) user.setAddress(String.valueOf(data.get("address")));
+        if (data.get("userType") != null) user.setUserType(String.valueOf(data.get("userType")));
+        
+        // Profile image: intentar profileImageUrl primero, luego photoURL (legacy)
+        if (data.get("profileImageUrl") != null) user.setProfileImageUrl(String.valueOf(data.get("profileImageUrl")));
+        else if (data.get("photoURL") != null) user.setProfileImageUrl(String.valueOf(data.get("photoURL")));
+        else if (data.get("photoUrl") != null) user.setProfileImageUrl(String.valueOf(data.get("photoUrl")));
+        
+        // Campos de estado
+        if (data.get("isActive") instanceof Boolean) {
+            user.setActive((Boolean) data.get("isActive"));
+        } else if (data.get("status") != null) {
+            String status = String.valueOf(data.get("status"));
+            user.setStatus(status);
+            user.setActive("active".equalsIgnoreCase(status));
+        }
+        
+        if (data.get("isEmailVerified") instanceof Boolean) {
+            user.setEmailVerified((Boolean) data.get("isEmailVerified"));
+        }
+        
+        // Campos de metadatos
+        if (data.get("provider") != null) user.setProvider(String.valueOf(data.get("provider")));
+        if (data.get("customPhoto") instanceof Boolean) user.setCustomPhoto((Boolean) data.get("customPhoto"));
+        if (data.get("profileCompleted") instanceof Boolean) user.setProfileCompleted((Boolean) data.get("profileCompleted"));
+        if (data.get("profileCompletedAt") != null && data.get("profileCompletedAt") instanceof java.util.Date) {
+            user.setProfileCompletedAt((java.util.Date) data.get("profileCompletedAt"));
+        }
+        if (data.get("registeredBy") != null) user.setRegisteredBy(String.valueOf(data.get("registeredBy")));
+        
+        // Campos específicos para guías
+        if ("GUIDE".equals(user.getUserType())) {
+            if (data.get("isGuideApproved") instanceof Boolean) {
+                user.setGuideApproved((Boolean) data.get("isGuideApproved"));
+            }
+            if (data.get("guideRating") instanceof Number) {
+                user.setGuideRating(((Number) data.get("guideRating")).floatValue());
+            }
+            if (data.get("guideLanguages") instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> languages = (List<String>) data.get("guideLanguages");
+                user.setGuideLanguages(languages);
+            } else if (data.get("languages") instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> languages = (List<String>) data.get("languages");
+                user.setGuideLanguages(languages);
+            }
+            if (data.get("guideSpecialties") != null) {
+                user.setGuideSpecialties(String.valueOf(data.get("guideSpecialties")));
+            }
+        }
+        
+        // Campos específicos para admins
+        if ("ADMIN".equals(user.getUserType())) {
+            if (data.get("companyId") != null) user.setCompanyId(String.valueOf(data.get("companyId")));
+            if (data.get("companyBusinessName") != null) user.setCompanyBusinessName(String.valueOf(data.get("companyBusinessName")));
+            if (data.get("companyRuc") != null) user.setCompanyRuc(String.valueOf(data.get("companyRuc")));
+            if (data.get("companyCommercialName") != null) user.setCompanyCommercialName(String.valueOf(data.get("companyCommercialName")));
+            if (data.get("companyType") != null) user.setCompanyType(String.valueOf(data.get("companyType")));
+        }
+        
+        // Timestamps
+        if (data.get("createdAt") != null && data.get("createdAt") instanceof java.util.Date) {
+            user.setCreatedAt((java.util.Date) data.get("createdAt"));
+        }
+        if (data.get("updatedAt") != null && data.get("updatedAt") instanceof java.util.Date) {
+            user.setUpdatedAt((java.util.Date) data.get("updatedAt"));
+        }
+        
+        return user;
+    }
+
+    /**
+     * Validar estructura de datos de un objeto User antes de guardarlo
+     * @param user Objeto User a validar
+     * @return null si es válido, mensaje de error si hay problemas
+     */
+    private String validateUserData(User user) {
+        // Validar userId
+        if (user.getUserId() == null || user.getUserId().isEmpty()) {
+            return "User ID is required";
+        }
+
+        // Validar email
+        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+            return "Email is required";
+        }
+        
+        // Validar formato de email básico
+        String email = user.getEmail().trim();
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            return "Invalid email format";
+        }
+
+        // Validar userType
+        if (user.getUserType() == null || user.getUserType().isEmpty()) {
+            return "User type is required";
+        }
+
+        String userType = user.getUserType().toUpperCase();
+        if (!userType.equals("CLIENT") && !userType.equals("GUIDE") && 
+            !userType.equals("ADMIN") && !userType.equals("SUPERADMIN")) {
+            return "Invalid user type. Must be CLIENT, GUIDE, ADMIN, or SUPERADMIN";
+        }
+
+        // Validar campos requeridos según el tipo de usuario
+        if (user.getFirstName() == null || user.getFirstName().trim().isEmpty()) {
+            return "First name is required";
+        }
+
+        if (user.getLastName() == null || user.getLastName().trim().isEmpty()) {
+            return "Last name is required";
+        }
+
+        // Validar campos específicos para ADMIN
+        if ("ADMIN".equals(userType)) {
+            if (user.getCompanyBusinessName() == null || user.getCompanyBusinessName().trim().isEmpty()) {
+                return "Company business name is required for ADMIN users";
+            }
+            if (user.getCompanyRuc() == null || user.getCompanyRuc().trim().isEmpty()) {
+                return "Company RUC is required for ADMIN users";
+            }
+        }
+
+        // Validar formato de teléfono si está presente
+        if (user.getPhoneNumber() != null && !user.getPhoneNumber().trim().isEmpty()) {
+            String phone = user.getPhoneNumber().trim();
+            // Validar que tenga al menos 6 dígitos (sin contar código de país)
+            String digitsOnly = phone.replaceAll("[^0-9]", "");
+            if (digitsOnly.length() < 6) {
+                return "Phone number must have at least 6 digits";
+            }
+        }
+
+        // Validar formato de documento si está presente
+        if (user.getDocumentNumber() != null && !user.getDocumentNumber().trim().isEmpty()) {
+            String docNumber = user.getDocumentNumber().trim();
+            if (docNumber.length() < 4) {
+                return "Document number must have at least 4 characters";
+            }
+        }
+
+        return null; // Válido
+    }
+
+    /**
      * Crear un nuevo usuario en Firestore
      */
     public void createUser(User user, FirestoreCallback callback) {
-        String userId = user.getUserId();
-        if (userId == null || userId.isEmpty()) {
-            callback.onFailure(new Exception("User ID is required"));
+        // Validar datos antes de guardar
+        String validationError = validateUserData(user);
+        if (validationError != null) {
+            Log.e(TAG, "Validation error: " + validationError);
+            callback.onFailure(new Exception(validationError));
             return;
         }
 
+        String userId = user.getUserId();
         db.collection(COLLECTION_USERS)
                 .document(userId)
                 .set(user.toMap())
@@ -71,6 +262,50 @@ public class FirestoreManager {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error creating user", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Crear o actualizar usuario en Firestore usando merge (no sobrescribe datos existentes)
+     * Nota: Para actualizaciones, la validación es más flexible (solo valida campos presentes)
+     */
+    public void createOrUpdateUser(User user, FirestoreCallback callback) {
+        // Validar datos básicos requeridos
+        String userId = user.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            callback.onFailure(new Exception("User ID is required"));
+            return;
+        }
+
+        // Validar email si está presente
+        if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+            String email = user.getEmail().trim();
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                callback.onFailure(new Exception("Invalid email format"));
+                return;
+            }
+        }
+
+        // Validar userType si está presente
+        if (user.getUserType() != null && !user.getUserType().isEmpty()) {
+            String userType = user.getUserType().toUpperCase();
+            if (!userType.equals("CLIENT") && !userType.equals("GUIDE") && 
+                !userType.equals("ADMIN") && !userType.equals("SUPERADMIN")) {
+                callback.onFailure(new Exception("Invalid user type. Must be CLIENT, GUIDE, ADMIN, or SUPERADMIN"));
+                return;
+            }
+        }
+
+        db.collection(COLLECTION_USERS)
+                .document(userId)
+                .set(user.toMap(), SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User created/updated successfully with merge");
+                    callback.onSuccess(userId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error creating/updating user", e);
                     callback.onFailure(e);
                 });
     }
@@ -102,8 +337,27 @@ public class FirestoreManager {
                     Log.d(TAG, "🔍 Respuesta de Firestore - exists: " + documentSnapshot.exists());
                     if (documentSnapshot.exists()) {
                         Log.d(TAG, "✅ Documento encontrado!");
-                        User user = documentSnapshot.toObject(User.class);
-                        Log.d(TAG, "✅ Usuario deserializado: " + (user != null ? user.getEmail() : "null"));
+                        User user = null;
+                        try {
+                            // Intentar mapeo automático primero
+                            user = documentSnapshot.toObject(User.class);
+                            if (user != null) {
+                                // Asegurar que userId esté establecido desde el ID del documento
+                                user.setUserId(documentSnapshot.getId());
+                            }
+                        } catch (RuntimeException e) {
+                            // Si falla (por ejemplo, conflicto con @DocumentId o campos duplicados),
+                            // usar mapeo manual
+                            Log.w(TAG, "⚠️ Error en toObject(), usando mapeo manual: " + e.getMessage());
+                            user = mapDocumentToUser(documentSnapshot);
+                        }
+                        
+                        if (user == null) {
+                            user = new User();
+                            user.setUserId(documentSnapshot.getId());
+                        }
+                        
+                        Log.d(TAG, "✅ Usuario deserializado: " + (user.getEmail() != null ? user.getEmail() : "sin email"));
                         callback.onSuccess(user);
                     } else {
                         Log.e(TAG, "❌ Documento NO existe en Firestore");
@@ -144,7 +398,26 @@ public class FirestoreManager {
                 .addOnSuccessListener(querySnapshot -> {
                     List<User> users = new ArrayList<>();
                     for (QueryDocumentSnapshot document : querySnapshot) {
-                        User user = document.toObject(User.class);
+                        User user = null;
+                        try {
+                            // Intentar mapeo automático primero
+                            user = document.toObject(User.class);
+                            if (user != null) {
+                                // Asegurar que userId esté establecido desde el ID del documento
+                                user.setUserId(document.getId());
+                            }
+                        } catch (RuntimeException e) {
+                            // Si falla (por ejemplo, conflicto con @DocumentId o campos duplicados),
+                            // usar mapeo manual
+                            Log.w(TAG, "⚠️ Error en toObject() para documento " + document.getId() + ", usando mapeo manual: " + e.getMessage());
+                            user = mapDocumentToUser(document);
+                        }
+                        
+                        if (user == null) {
+                            user = new User();
+                            user.setUserId(document.getId());
+                        }
+                        
                         users.add(user);
                     }
                     callback.onSuccess(users);
@@ -1449,6 +1722,115 @@ public class FirestoreManager {
                 Log.e(TAG, "Error finding sessions to close", e);
                 callback.onFailure(e);
             });
+    }
+
+    // ==================== USER ROLES ====================
+
+    /**
+     * Guardar o actualizar rol de usuario en user_roles collection
+     * Usa merge para preservar otros roles existentes
+     */
+    public void saveUserRole(String userId, String userType, String status, FirestoreCallback callback) {
+        saveUserRole(userId, userType, status, null, callback);
+    }
+
+    /**
+     * Guardar o actualizar rol de usuario en user_roles collection con campos adicionales
+     * Usa merge para preservar otros roles existentes
+     * 
+     * Estructura estándar de user_roles:
+     * {
+     *   "{userType}": {
+     *     "status": "active" | "pending" | "inactive",
+     *     "updatedAt": Date,
+     *     "activatedAt": Date (solo si status = "active"),
+     *     "appliedAt": Date (solo si status = "pending"),
+     *     ...additionalFields
+     *   }
+     * }
+     * 
+     * @param userId ID del usuario
+     * @param userType Tipo de usuario (CLIENT, GUIDE, ADMIN, etc.) - se convertirá a lowercase
+     * @param status Estado del rol: "active", "pending", "inactive"
+     * @param additionalFields Campos adicionales específicos del rol (ej: assignedBy, company, companyRuc para ADMIN)
+     * @param callback Callback para el resultado
+     */
+    public void saveUserRole(String userId, String userType, String status, Map<String, Object> additionalFields, FirestoreCallback callback) {
+        if (userId == null || userId.isEmpty()) {
+            callback.onFailure(new Exception("User ID is required"));
+            return;
+        }
+        
+        if (userType == null || userType.isEmpty()) {
+            callback.onFailure(new Exception("User type is required"));
+            return;
+        }
+
+        Map<String, Object> roleData = new HashMap<>();
+        roleData.put("status", status);
+        roleData.put("updatedAt", new java.util.Date());
+
+        // Estructura estándar según el estado:
+        // - "active" -> incluye "activatedAt"
+        // - "pending" -> incluye "appliedAt"
+        // - "inactive" -> solo status y updatedAt
+        if ("active".equals(status)) {
+            roleData.put("activatedAt", new java.util.Date());
+        } else if ("pending".equals(status)) {
+            roleData.put("appliedAt", new java.util.Date());
+        }
+        // Para "inactive" no agregamos campos adicionales de fecha
+
+        // Agregar campos adicionales si existen (ej: assignedBy, company, companyRuc para ADMIN)
+        if (additionalFields != null && !additionalFields.isEmpty()) {
+            roleData.putAll(additionalFields);
+        }
+
+        // Crear el mapa completo de roles usando merge para preservar otros roles
+        Map<String, Object> roleUpdate = new HashMap<>();
+        roleUpdate.put(userType.toLowerCase(), roleData);
+
+        db.collection(COLLECTION_USER_ROLES)
+                .document(userId)
+                .set(roleUpdate, SetOptions.merge())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User role saved successfully: " + userType + " -> " + status);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error saving user role", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Obtener datos de user_roles para un usuario
+     * @param userId ID del usuario
+     * @param callback Callback que recibe un Map<String, Object> con los roles del usuario
+     */
+    public void getUserRoles(String userId, FirestoreCallback callback) {
+        if (userId == null || userId.isEmpty()) {
+            callback.onFailure(new Exception("User ID is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_USER_ROLES)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Map<String, Object> rolesData = documentSnapshot.getData();
+                        Log.d(TAG, "User roles retrieved successfully for: " + userId);
+                        callback.onSuccess(rolesData);
+                    } else {
+                        Log.d(TAG, "No user roles found for: " + userId);
+                        callback.onSuccess(new HashMap<>()); // Retornar mapa vacío si no existe
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error retrieving user roles", e);
+                    callback.onFailure(e);
+                });
     }
 
     // ==================== CALLBACK ====================

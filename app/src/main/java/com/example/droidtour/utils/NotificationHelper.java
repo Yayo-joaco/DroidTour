@@ -8,9 +8,11 @@ import android.content.Intent;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import com.example.droidtour.R;
-import com.example.droidtour.database.DatabaseHelper;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Notification;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 public class NotificationHelper {
@@ -22,13 +24,13 @@ public class NotificationHelper {
 
     private Context context;
     private NotificationManager notificationManager;
-    private DatabaseHelper dbHelper;
+    private FirestoreManager firestoreManager;
 
     public NotificationHelper(Context context) {
         this.context = context;
         this.notificationManager = (NotificationManager) 
                 context.getSystemService(Context.NOTIFICATION_SERVICE);
-        this.dbHelper = new DatabaseHelper(context);
+        this.firestoreManager = FirestoreManager.getInstance();
         createNotificationChannels();
     }
 
@@ -122,13 +124,32 @@ public class NotificationHelper {
 
     // ==================== CLIENT NOTIFICATIONS ====================
     
-    public void sendReservationConfirmedNotification(String tourName, String date, String qrCode) {
+    public void sendReservationConfirmedNotification(String userId, String tourName, String date, String qrCode) {
         String title = "Reserva Confirmada";
         String message = "Tu reserva para " + tourName + " el " + date + " ha sido confirmada. Código: " + qrCode;
         
-        // Guardar en base de datos
-        String timestamp = getCurrentTimestamp();
-        dbHelper.addNotification("RESERVATION_CONFIRMED", title, message, timestamp);
+        // Guardar en Firestore
+        if (userId != null) {
+            Notification notification = new Notification();
+            notification.setUserId(userId);
+            notification.setType("RESERVATION_CONFIRMED");
+            notification.setTitle(title);
+            notification.setMessage(message);
+            notification.setCreatedAt(new Date());
+            notification.setIsRead(false);
+            
+            firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    // Notificación guardada en Firestore
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    // Error al guardar, pero mostrar notificación de todos modos
+                }
+            });
+        }
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -141,13 +162,32 @@ public class NotificationHelper {
         notificationManager.notify(generateNotificationId(), builder.build());
     }
 
-    public void sendTourReminderForClient(String tourName, String date, String time) {
+    public void sendTourReminderForClient(String userId, String tourName, String date, String time) {
         String title = "Recordatorio de Tour";
         String message = "No olvides tu tour " + tourName + " el " + date + " a las " + time;
         
-        // Guardar en base de datos
-        String timestamp = getCurrentTimestamp();
-        dbHelper.addNotification("TOUR_REMINDER", title, message, timestamp);
+        // Guardar en Firestore
+        if (userId != null) {
+            Notification notification = new Notification();
+            notification.setUserId(userId);
+            notification.setType("TOUR_REMINDER");
+            notification.setTitle(title);
+            notification.setMessage(message);
+            notification.setCreatedAt(new Date());
+            notification.setIsRead(false);
+            
+            firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    // Notificación guardada en Firestore
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    // Error al guardar, pero mostrar notificación de todos modos
+                }
+            });
+        }
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_REMINDERS)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -160,13 +200,32 @@ public class NotificationHelper {
         notificationManager.notify(generateNotificationId(), builder.build());
     }
 
-    public void sendTourCompletedNotification(String tourName) {
+    public void sendTourCompletedNotification(String userId, String tourName) {
         String title = "Tour Completado";
         String message = "¡Esperamos que hayas disfrutado " + tourName + "! ¿Quieres calificarlo?";
         
-        // Guardar en base de datos
-        String timestamp = getCurrentTimestamp();
-        dbHelper.addNotification("TOUR_COMPLETED", title, message, timestamp);
+        // Guardar en Firestore
+        if (userId != null) {
+            Notification notification = new Notification();
+            notification.setUserId(userId);
+            notification.setType("TOUR_COMPLETED");
+            notification.setTitle(title);
+            notification.setMessage(message);
+            notification.setCreatedAt(new Date());
+            notification.setIsRead(false);
+            
+            firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    // Notificación guardada en Firestore
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    // Error al guardar, pero mostrar notificación de todos modos
+                }
+            });
+        }
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -178,13 +237,32 @@ public class NotificationHelper {
         notificationManager.notify(generateNotificationId(), builder.build());
     }
 
-    public void sendPaymentConfirmedNotification(String tourName, double amount) {
+    public void sendPaymentConfirmedNotification(String userId, String tourName, double amount) {
         String title = "Pago Confirmado";
         String message = "Tu pago de S/. " + amount + " para " + tourName + " ha sido procesado exitosamente";
         
-        // Guardar en base de datos
-        String timestamp = getCurrentTimestamp();
-        dbHelper.addNotification("PAYMENT_CONFIRMED", title, message, timestamp);
+        // Guardar en Firestore
+        if (userId != null) {
+            Notification notification = new Notification();
+            notification.setUserId(userId);
+            notification.setType("PAYMENT_CONFIRMED");
+            notification.setTitle(title);
+            notification.setMessage(message);
+            notification.setCreatedAt(new Date());
+            notification.setIsRead(false);
+            
+            firestoreManager.createNotification(notification, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    // Notificación guardada en Firestore
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    // Error al guardar, pero mostrar notificación de todos modos
+                }
+            });
+        }
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_CLIENT_RESERVATIONS)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -206,9 +284,6 @@ public class NotificationHelper {
         notificationManager.cancelAll();
     }
 
-    private String getCurrentTimestamp() {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault());
-        return sdf.format(Calendar.getInstance().getTime());
-    }
+    // Método getCurrentTimestamp eliminado - ya no se usa
 }
 

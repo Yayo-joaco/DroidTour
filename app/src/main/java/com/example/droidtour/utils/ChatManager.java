@@ -3,6 +3,7 @@ package com.example.droidtour.utils;
 import androidx.annotation.Nullable;
 
 import com.example.droidtour.models.Message;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.EventListener;
@@ -48,7 +49,7 @@ public class ChatManager {
             return;
         }
 
-        CollectionReference messagesRef = db.collection("conversations").document(conversationId).collection("messages");
+        CollectionReference messagesRef = db.collection(FirestoreManager.COLLECTION_CONVERSATIONS).document(conversationId).collection("messages");
 
         // Añadir el mensaje; Firestore asignará un id
         messagesRef.add(message)
@@ -70,7 +71,7 @@ public class ChatManager {
     public void listenForMessages(String conversationId, final MessagesListener listener) {
         if (conversationId == null || conversationId.isEmpty()) return;
 
-        CollectionReference messagesRef = db.collection("conversations").document(conversationId).collection("messages");
+        CollectionReference messagesRef = db.collection(FirestoreManager.COLLECTION_CONVERSATIONS).document(conversationId).collection("messages");
         Query q = messagesRef.orderBy("timestamp", Query.Direction.ASCENDING);
 
         // Remover listener anterior si existe

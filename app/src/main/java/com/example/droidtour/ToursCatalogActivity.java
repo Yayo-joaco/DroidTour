@@ -16,8 +16,6 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
-import com.example.droidtour.database.DatabaseHelper;
-
 public class ToursCatalogActivity extends AppCompatActivity {
     
     private RecyclerView rvTours;

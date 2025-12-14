@@ -2,6 +2,7 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -9,7 +10,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.models.PaymentMethod;
 import com.example.droidtour.utils.NotificationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TourBookingActivity extends AppCompatActivity {
+    private static final String TAG = "TourBookingActivity";
 
     private TextView tvTourName, tvCompanyName, tvPrice;
     private TextView tvParticipantsCount, tvTotalPrice;
@@ -38,8 +39,7 @@ public class TourBookingActivity extends AppCompatActivity {
     private List<PaymentMethod> paymentMethods = new ArrayList<>();
     private PaymentMethod selectedPaymentMethod = null;
     
-    // Storage Local (deprecated)
-    private DatabaseHelper dbHelper;
+    // Helpers
     private NotificationHelper notificationHelper;
 
     @Override
@@ -77,8 +77,7 @@ public class TourBookingActivity extends AppCompatActivity {
             Toast.makeText(this, "⚠️ Modo testing: prueba@droidtour.com", Toast.LENGTH_SHORT).show();
         }
 
-        // Inicializar Storage Local (deprecated)
-        dbHelper = new DatabaseHelper(this);
+        // Inicializar helpers
         notificationHelper = new NotificationHelper(this);
 
         getIntentData();
@@ -320,6 +319,7 @@ public class TourBookingActivity extends AppCompatActivity {
                     
                     @Override
                     public void onFailure(Exception e) {
+                        Log.e(TAG, "Error creando reserva", e);
                         btnConfirmBooking.setEnabled(true);
                         btnConfirmBooking.setText("Confirmar Reserva");
                         Toast.makeText(TourBookingActivity.this, "❌ Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -329,6 +329,7 @@ public class TourBookingActivity extends AppCompatActivity {
             
             @Override
             public void onFailure(Exception e) {
+                Log.e(TAG, "Error obteniendo datos del tour o método de pago", e);
                 btnConfirmBooking.setEnabled(true);
                 btnConfirmBooking.setText("Confirmar Reserva");
                 Toast.makeText(TourBookingActivity.this, "❌ Error obteniendo datos", Toast.LENGTH_SHORT).show();

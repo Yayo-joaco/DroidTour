@@ -16,7 +16,6 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.droidtour.database.DatabaseHelper;
 import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.managers.PrefsManager;
@@ -41,7 +40,6 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private MaterialButton btnContinueTour;
     
     // Storage y Notificaciones
-    private DatabaseHelper dbHelper;
     private PrefsManager prefsManager;
     private NotificationHelper notificationHelper;
     
@@ -63,7 +61,6 @@ public class TourGuideMainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_tour_guide_main);
         
         // Inicializar helpers
-        dbHelper = new DatabaseHelper(this);
         prefsManager = new PrefsManager(this);
         notificationHelper = new NotificationHelper(this);
         
@@ -420,137 +417,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
 
     // ============================= ADAPTERS =============================
 
-    // Adapter for Pending Offers (Horizontal)
-    private class PendingOffersAdapter extends RecyclerView.Adapter<PendingOffersAdapter.ViewHolder> {
-        
-        private final OnOfferClickListener listener;
-        private final List<DatabaseHelper.Offer> offers;
-
-        PendingOffersAdapter(List<DatabaseHelper.Offer> offers, OnOfferClickListener listener) {
-            this.offers = offers;
-            this.listener = listener;
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
-            View view = getLayoutInflater().inflate(R.layout.item_pending_offer, parent, false);
-            return new ViewHolder(view);
-    }
-
-    @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            // ✅ USAR DATOS DE LA BD
-            DatabaseHelper.Offer offer = offers.get(position);
-            
-            holder.tvTourName.setText(offer.getTourName());
-            holder.tvCompanyName.setText(offer.getCompany());
-            holder.tvTourDate.setText(offer.getDate());
-            holder.tvTourTime.setText(offer.getTime());
-            holder.tvPaymentAmount.setText(String.format("S/. %.0f", offer.getPayment()));
-            holder.tvParticipants.setText(offer.getParticipants() + " personas");
-
-            holder.btnAccept.setOnClickListener(v -> {
-                // ✅ ACEPTAR OFERTA Y GUARDAR EN BD
-                acceptOffer(offer.getId(), offer.getTourName(), offer.getCompany(), 
-                    offer.getDate(), offer.getTime(), offer.getPayment(), offer.getParticipants());
-                
-                // Recargar dashboard
-                setupRecyclerViews();
-            });
-
-            holder.btnReject.setOnClickListener(v -> {
-                // Handle reject offer
-                android.widget.Toast.makeText(TourGuideMainActivity.this, 
-                    "Oferta rechazada", 
-                    android.widget.Toast.LENGTH_SHORT).show();
-            });
-
-            holder.itemView.setOnClickListener(v -> listener.onClick(position));
-        }
-
-        @Override
-        public int getItemCount() {
-            // ✅ RETORNAR NÚMERO REAL DE OFERTAS
-            return offers.size();
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvTourName, tvCompanyName, tvTourDate, tvTourTime, 
-                     tvPaymentAmount, tvParticipants;
-            com.google.android.material.button.MaterialButton btnAccept, btnReject;
-
-            ViewHolder(View itemView) {
-                super(itemView);
-                tvTourName = itemView.findViewById(R.id.tv_tour_name);
-                tvCompanyName = itemView.findViewById(R.id.tv_company_name);
-                tvTourDate = itemView.findViewById(R.id.tv_tour_date);
-                tvTourTime = itemView.findViewById(R.id.tv_tour_time);
-                tvPaymentAmount = itemView.findViewById(R.id.tv_payment_amount);
-                tvParticipants = itemView.findViewById(R.id.tv_participants);
-                btnAccept = itemView.findViewById(R.id.btn_accept);
-                btnReject = itemView.findViewById(R.id.btn_reject);
-            }
-        }
-    }
-
-    // Adapter for Upcoming Tours (Vertical)
-    private class UpcomingToursAdapter extends RecyclerView.Adapter<UpcomingToursAdapter.ViewHolder> {
-        
-        private final OnOfferClickListener listener;
-        private final List<DatabaseHelper.Tour> tours;
-
-        UpcomingToursAdapter(List<DatabaseHelper.Tour> tours, OnOfferClickListener listener) {
-            this.tours = tours;
-            this.listener = listener;
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
-            View view = getLayoutInflater().inflate(R.layout.item_upcoming_tour, parent, false);
-            return new ViewHolder(view);
-    }
-    
-    @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            // ✅ USAR DATOS DE LA BD
-            DatabaseHelper.Tour tour = tours.get(position);
-            
-            holder.tvTourName.setText(tour.getName());
-            holder.tvCompanyName.setText(tour.getCompany());
-            holder.tvTourDate.setText(tour.getDate());
-            holder.tvTourTime.setText(tour.getTime());
-            holder.tvPaymentAmount.setText(String.format("S/. %.0f", tour.getPayment()));
-            holder.tvParticipants.setText(tour.getParticipants() + " personas");
-
-            holder.itemView.setOnClickListener(v -> listener.onClick(position));
-    }
-    
-    @Override
-        public int getItemCount() {
-            // ✅ RETORNAR NÚMERO REAL DE TOURS
-            return tours.size();
-        }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvTourName, tvCompanyName, tvTourDate, tvTourTime, 
-                     tvPaymentAmount, tvParticipants, tvStatus;
-            View viewStatusIndicator;
-
-            ViewHolder(View itemView) {
-                super(itemView);
-                tvTourName = itemView.findViewById(R.id.tv_tour_name);
-                tvCompanyName = itemView.findViewById(R.id.tv_company_name);
-                tvTourDate = itemView.findViewById(R.id.tv_tour_date);
-                tvTourTime = itemView.findViewById(R.id.tv_tour_time);
-                tvPaymentAmount = itemView.findViewById(R.id.tv_payment_amount);
-                tvParticipants = itemView.findViewById(R.id.tv_participants);
-                tvStatus = itemView.findViewById(R.id.tv_status);
-                viewStatusIndicator = itemView.findViewById(R.id.view_status_indicator);
-            }
-        }
-    }
+    // Adapters antiguos eliminados - ahora se usan PendingOffersAdapterFirebase y UpcomingToursAdapterFirebase
 
     // Click listener interface
     private interface OnOfferClickListener {
@@ -621,56 +488,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
         });
     }
     
-    private void loadSampleDataIfNeeded() {
-        // Cargar datos de ejemplo solo si la BD está vacía
-        List<DatabaseHelper.Offer> existingOffers = dbHelper.getAllOffers();
-        
-        if (existingOffers.isEmpty()) {
-            // Agregar ofertas de ejemplo
-            dbHelper.addOffer("City Tour Lima Centro", "Perú Grand Travel", 
-                "25 Oct", "09:00 AM", 180.0, "PENDIENTE", 15);
-            dbHelper.addOffer("Tour Pachacamac", "Lima Explorer", 
-                "26 Oct", "08:00 AM", 200.0, "PENDIENTE", 12);
-            
-            Toast.makeText(this, "Datos de ejemplo cargados", Toast.LENGTH_SHORT).show();
-            
-            // Enviar notificación de nueva oferta
-            notificationHelper.sendNewOfferNotification(
-                "City Tour Lima Centro", 
-                "Perú Grand Travel", 
-                180.0
-            );
-        }
-        
-        // Cargar tours aceptados de ejemplo
-        List<DatabaseHelper.Tour> existingTours = dbHelper.getAllTours();
-        if (existingTours.isEmpty()) {
-            dbHelper.addTour("Tour Islas Palomino", "Oceanic Adventures", 
-                "27 Oct", "07:00 AM", "PROGRAMADO", 250.0, 20);
-        }
-    }
-    
-    // Método para aceptar una oferta
-    public void acceptOffer(int offerId, String tourName, String company, String date, 
-                           String time, double payment, int participants) {
-        // Actualizar oferta a aceptada (se mueve a "Mis Tours")
-        int rowsUpdated = dbHelper.updateOfferStatus(offerId, "ACEPTADA");
-        
-        // Agregar tour a "Mis Tours"
-        long tourId = dbHelper.addTour(tourName, company, date, time, "PROGRAMADO", payment, participants);
-        
-        // Enviar notificación de confirmación
-        notificationHelper.sendTourReminderNotification(tourName, time);
-        
-        // Mostrar mensaje con detalles
-        Toast.makeText(this, "✅ Oferta aceptada: " + tourName + 
-            "\nOferta actualizada: " + rowsUpdated + 
-            "\nTour creado con ID: " + tourId, 
-            Toast.LENGTH_LONG).show();
-        
-        // ✅ RECARGAR DASHBOARD INMEDIATAMENTE
-        setupRecyclerViews();
-    }
+    // Métodos de SQLite eliminados - ahora se usa FirestoreManager directamente
     
     // ==================== NOTIFICACIONES ====================
     

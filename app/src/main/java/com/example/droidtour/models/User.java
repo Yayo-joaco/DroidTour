@@ -30,6 +30,13 @@ public class User {
     private String userType; // CLIENT, GUIDE, ADMIN, SUPERADMIN
     private String profileImageUrl;
     
+    // ========== CAMPOS DE METADATOS Y REGISTRO ==========
+    private String provider; // "email", "google" - método de autenticación
+    private Boolean customPhoto; // Si el usuario subió su propia foto
+    private Boolean profileCompleted; // Si completó el perfil
+    private Date profileCompletedAt; // Fecha de completado del perfil
+    private String registeredBy; // userId del usuario que registró (para admins creados por superadmin)
+    
     // ========== CAMPOS ESPECÍFICOS PARA GUÍA ==========
     private Boolean isGuideApproved; // Aprobado por superadmin
     private Float guideRating; // Calificación del guía
@@ -38,6 +45,10 @@ public class User {
     
     // ========== CAMPOS ESPECÍFICOS PARA ADMIN DE EMPRESA ==========
     private String companyId; // ID de la empresa que administra
+    private String companyBusinessName; // Razón social de la empresa
+    private String companyRuc; // RUC de la empresa
+    private String companyCommercialName; // Nombre comercial de la empresa
+    private String companyType; // Tipo de empresa
     
     // ========== CAMPOS COMUNES DE ESTADO ==========
     private Boolean isActive; // Activado/Desactivado por superadmin
@@ -91,35 +102,64 @@ public class User {
         }
     }
 
-    // Convertir a Map para guardar en Firestore
+    /**
+     * Convertir a Map para guardar en Firestore
+     * 
+     * NOTA: Solo guarda los campos nuevos (estándar). Los campos legacy (phone, birthDate, 
+     * photoURL, displayName, languages) NO se guardan para evitar duplicación de datos.
+     * 
+     * Los campos legacy se mantienen solo para LECTURA desde documentos existentes en Firestore.
+     * La lectura de campos legacy se maneja en FirestoreManager.mapDocumentToUser().
+     * 
+     * Estrategia de migración:
+     * - Nuevos documentos: solo usan campos estándar
+     * - Documentos legacy: se leen correctamente gracias a mapDocumentToUser()
+     * - Al actualizar documentos legacy, se migran automáticamente a campos estándar
+     */
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("email", email);
         map.put("firstName", firstName);
         map.put("lastName", lastName);
         map.put("fullName", fullName);
+        // Solo guardar phoneNumber (campo estándar), NO duplicar como "phone"
         map.put("phoneNumber", phoneNumber);
         map.put("countryCode", countryCode);
         map.put("documentType", documentType);
         map.put("documentNumber", documentNumber);
+        // Solo guardar dateOfBirth (campo estándar), NO duplicar como "birthDate"
         map.put("dateOfBirth", dateOfBirth);
         map.put("address", address);
         map.put("userType", userType);
+        // Solo guardar profileImageUrl (campo estándar), NO duplicar como "photoURL" o "photoUrl"
         map.put("profileImageUrl", profileImageUrl);
         map.put("isActive", isActive);
         map.put("isEmailVerified", isEmailVerified);
+        if (status != null) map.put("status", status);
+        
+        // Campos de metadatos y registro
+        if (provider != null) map.put("provider", provider);
+        if (customPhoto != null) map.put("customPhoto", customPhoto);
+        if (profileCompleted != null) map.put("profileCompleted", profileCompleted);
+        if (profileCompletedAt != null) map.put("profileCompletedAt", profileCompletedAt);
+        if (registeredBy != null) map.put("registeredBy", registeredBy);
         
         // Campos específicos para guías
         if ("GUIDE".equals(userType)) {
             map.put("isGuideApproved", isGuideApproved != null ? isGuideApproved : false);
             map.put("guideRating", guideRating != null ? guideRating : 0.0f);
+            // Solo guardar guideLanguages (campo estándar), NO duplicar como "languages"
             map.put("guideLanguages", guideLanguages);
             map.put("guideSpecialties", guideSpecialties);
         }
         
         // Campos específicos para admin de empresa
         if ("ADMIN".equals(userType)) {
-            map.put("companyId", companyId);
+            if (companyId != null) map.put("companyId", companyId);
+            if (companyBusinessName != null) map.put("companyBusinessName", companyBusinessName);
+            if (companyRuc != null) map.put("companyRuc", companyRuc);
+            if (companyCommercialName != null) map.put("companyCommercialName", companyCommercialName);
+            if (companyType != null) map.put("companyType", companyType);
         }
         
         return map;
@@ -158,12 +198,24 @@ public class User {
         this.lastName = lastName;
     }
 
+    /**
+     * Nombre completo del usuario (campo estándar)
+     * Para documentos legacy con "displayName", se lee en FirestoreManager.mapDocumentToUser()
+     */
     public String getFullName() {
         return fullName;
     }
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+    
+    /**
+     * Getter alternativo para compatibilidad con documentos legacy
+     * Solo para lectura, NO se usa para escritura
+     */
+    public String getDisplayName() {
+        return fullName;
     }
 
     @PropertyName("phoneNumber")
@@ -211,6 +263,11 @@ public class User {
         this.documentNumber = documentNumber;
     }
 
+    /**
+     * Fecha de nacimiento (campo estándar)
+     * @PropertyName("birthDate") permite leer documentos legacy que usan "birthDate"
+     * pero en toMap() se guarda como "dateOfBirth" (campo estándar)
+     */
     @PropertyName("birthDate")
     public String getDateOfBirth() {
         return dateOfBirth;
@@ -236,6 +293,8 @@ public class User {
         this.userType = userType;
     }
 
+    // Usar profileImageUrl como nombre estándar
+    // Para documentos legacy con "photoURL", se manejará en el código de lectura
     public String getProfileImageUrl() {
         return profileImageUrl;
     }
@@ -244,28 +303,61 @@ public class User {
         this.profileImageUrl = profileImageUrl;
     }
 
+    @PropertyName("isActive")
     public Boolean getActive() {
         return isActive;
     }
 
+    @PropertyName("isActive")
     public void setActive(Boolean active) {
         isActive = active;
     }
+    
+    // Getter alternativo usando el nombre del campo directamente
+    public Boolean getIsActive() {
+        return isActive;
+    }
+    
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
 
+    @PropertyName("isEmailVerified")
     public Boolean getEmailVerified() {
         return isEmailVerified;
     }
 
+    @PropertyName("isEmailVerified")
     public void setEmailVerified(Boolean emailVerified) {
         isEmailVerified = emailVerified;
     }
+    
+    // Getter alternativo usando el nombre del campo directamente
+    public Boolean getIsEmailVerified() {
+        return isEmailVerified;
+    }
+    
+    public void setIsEmailVerified(Boolean isEmailVerified) {
+        this.isEmailVerified = isEmailVerified;
+    }
 
+    @PropertyName("isGuideApproved")
     public Boolean getGuideApproved() {
         return isGuideApproved;
     }
 
+    @PropertyName("isGuideApproved")
     public void setGuideApproved(Boolean guideApproved) {
         isGuideApproved = guideApproved;
+    }
+    
+    // Getter alternativo usando el nombre del campo directamente
+    public Boolean getIsGuideApproved() {
+        return isGuideApproved;
+    }
+    
+    public void setIsGuideApproved(Boolean isGuideApproved) {
+        this.isGuideApproved = isGuideApproved;
     }
 
     public Float getGuideRating() {
@@ -276,6 +368,9 @@ public class User {
         this.guideRating = guideRating;
     }
 
+    /**
+     * Idiomas que habla el guía (campo estándar)
+     */
     @com.google.firebase.firestore.PropertyName("guideLanguages")
     public List<String> getGuideLanguages() {
         return guideLanguages;
@@ -286,7 +381,10 @@ public class User {
         this.guideLanguages = guideLanguages;
     }
     
-    // Método alternativo para compatibilidad con campo "languages"
+    /**
+     * Método alternativo para compatibilidad con campo "languages" (legacy)
+     * Solo para lectura desde documentos existentes, NO se usa para escritura
+     */
     @com.google.firebase.firestore.PropertyName("languages")
     public List<String> getLanguages() {
         return guideLanguages;
@@ -311,6 +409,78 @@ public class User {
 
     public void setCompanyId(String companyId) {
         this.companyId = companyId;
+    }
+
+    public String getCompanyBusinessName() {
+        return companyBusinessName;
+    }
+
+    public void setCompanyBusinessName(String companyBusinessName) {
+        this.companyBusinessName = companyBusinessName;
+    }
+
+    public String getCompanyRuc() {
+        return companyRuc;
+    }
+
+    public void setCompanyRuc(String companyRuc) {
+        this.companyRuc = companyRuc;
+    }
+
+    public String getCompanyCommercialName() {
+        return companyCommercialName;
+    }
+
+    public void setCompanyCommercialName(String companyCommercialName) {
+        this.companyCommercialName = companyCommercialName;
+    }
+
+    public String getCompanyType() {
+        return companyType;
+    }
+
+    public void setCompanyType(String companyType) {
+        this.companyType = companyType;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
+    public Boolean getCustomPhoto() {
+        return customPhoto;
+    }
+
+    public void setCustomPhoto(Boolean customPhoto) {
+        this.customPhoto = customPhoto;
+    }
+
+    public Boolean getProfileCompleted() {
+        return profileCompleted;
+    }
+
+    public void setProfileCompleted(Boolean profileCompleted) {
+        this.profileCompleted = profileCompleted;
+    }
+
+    public Date getProfileCompletedAt() {
+        return profileCompletedAt;
+    }
+
+    public void setProfileCompletedAt(Date profileCompletedAt) {
+        this.profileCompletedAt = profileCompletedAt;
+    }
+
+    public String getRegisteredBy() {
+        return registeredBy;
+    }
+
+    public void setRegisteredBy(String registeredBy) {
+        this.registeredBy = registeredBy;
     }
 
     public Date getCreatedAt() {

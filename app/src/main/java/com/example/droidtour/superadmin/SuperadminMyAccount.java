@@ -19,16 +19,16 @@ import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.LoginActivity;
 import com.example.droidtour.R;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.example.droidtour.models.User;
 
 public class SuperadminMyAccount extends AppCompatActivity {
     
     private static final String TAG = "SuperadminMyAccount";
     
     private PreferencesManager prefsManager;
-    private FirebaseFirestore db;
+    private FirestoreManager firestoreManager;
     private ImageView profileImage;
     private TextView tvUserName, tvUserEmail;
     
@@ -58,7 +58,7 @@ public class SuperadminMyAccount extends AppCompatActivity {
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar Firestore
-        db = FirebaseFirestore.getInstance();
+        firestoreManager = FirestoreManager.getInstance();
 
         // Inicializar vistas
         profileImage = findViewById(R.id.profile_image);
@@ -143,30 +143,28 @@ public class SuperadminMyAccount extends AppCompatActivity {
             tvUserEmail.setText(email != null && !email.isEmpty() ? email : "");
         }
 
-        // Cargar datos completos desde Firestore
-        db.collection("users").document(userId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot != null && documentSnapshot.exists()) {
-                        updateUIWithFirestoreData(documentSnapshot);
-                    } else {
-                        Log.w(TAG, "Usuario no encontrado en Firestore con ID: " + userId);
-                        loadFallbackData();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error cargando datos del usuario desde Firestore", e);
-                    Toast.makeText(this, "Error cargando datos del perfil", Toast.LENGTH_SHORT).show();
-                    loadFallbackData();
-                });
+        // Cargar datos completos desde Firestore usando FirestoreManager
+        firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                User userObj = (User) result;
+                updateUIWithUserData(userObj);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.w(TAG, "Usuario no encontrado en Firestore con ID: " + userId + ": " + e.getMessage());
+                loadFallbackData();
+            }
+        });
     }
 
-    private void updateUIWithFirestoreData(DocumentSnapshot document) {
-        // Obtener nombre completo
-        String fullName = document.getString("fullName");
+    private void updateUIWithUserData(User user) {
+        // Obtener nombre completo desde el objeto User
+        String fullName = user.getFullName();
         if (fullName == null || fullName.isEmpty()) {
-            String firstName = document.getString("firstName");
-            String lastName = document.getString("lastName");
+            String firstName = user.getFirstName();
+            String lastName = user.getLastName();
             if (firstName != null && lastName != null) {
                 fullName = firstName + " " + lastName;
             } else if (firstName != null) {
@@ -174,17 +172,11 @@ public class SuperadminMyAccount extends AppCompatActivity {
             }
         }
         
-        // Obtener email
-        String email = document.getString("email");
+        // Obtener email desde el objeto User
+        String email = user.getEmail();
         
-        // Obtener foto de perfil
-        String profileImageUrl = document.getString("profileImageUrl");
-        if (profileImageUrl == null || profileImageUrl.isEmpty()) {
-            profileImageUrl = document.getString("photoUrl");
-        }
-        if (profileImageUrl == null || profileImageUrl.isEmpty()) {
-            profileImageUrl = document.getString("photoURL");
-        }
+        // Obtener foto de perfil desde el objeto User
+        String profileImageUrl = user.getProfileImageUrl();
 
         // Actualizar UI
         if (tvUserName != null) {
@@ -210,11 +202,8 @@ public class SuperadminMyAccount extends AppCompatActivity {
         }
 
         // Actualizar PreferencesManager con los datos más recientes
-        String phoneNumber = document.getString("phoneNumber");
-        if (phoneNumber == null || phoneNumber.isEmpty()) {
-            phoneNumber = document.getString("phone");
-        }
-        String userType = document.getString("userType");
+        String phoneNumber = user.getPhoneNumber();
+        String userType = user.getUserType();
         
         if (userType != null && !userType.isEmpty()) {
             prefsManager.saveUserData(

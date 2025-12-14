@@ -59,6 +59,7 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.example.droidtour.LoginActivity;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
@@ -329,7 +330,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         android.util.Log.d("SuperadminMain", "Iniciando carga de ingresos mensuales desde Firestore");
 
         // Consultar todas las reservas con status válido
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -394,7 +395,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     }
 
     private void loadMonthlyRevenueWithoutFilter() {
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -594,7 +595,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         android.util.Log.d("SuperadminMain", "Iniciando carga de precio promedio mensual desde Firestore");
 
         // Consultar todas las reservas con status válido
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -690,7 +691,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     }
 
     private void loadMonthlyAveragePriceWithoutFilter() {
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -890,7 +891,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
                           " desde " + startDate + " hasta " + endDate);
 
         // Consultar reservas con filtro de fecha
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -1032,7 +1033,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         android.util.Log.d("SuperadminMain", "Iniciando carga de tours por categoría desde Firestore");
 
         // Consultar todos los tours activos
-        db.collection("tours")
+        db.collection(FirestoreManager.COLLECTION_TOURS)
                 .whereEqualTo("isActive", true)
                 .get()
                 .addOnCompleteListener(task -> {
@@ -1072,7 +1073,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     }
 
     private void loadToursByCategoryWithoutFilter() {
-        db.collection("tours")
+        db.collection(FirestoreManager.COLLECTION_TOURS)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -1200,7 +1201,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         android.util.Log.d("SuperadminMain", "Iniciando carga de reservas mensuales desde Firestore");
 
         // Consultar todas las reservas con status válido
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -1247,7 +1248,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     }
 
     private void loadMonthlyBookingsWithoutFilter() {
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -1390,7 +1391,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         android.util.Log.d("SuperadminMain", "Iniciando carga de personas mensuales desde Firestore");
 
         // Consultar todas las reservas con status válido
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -1450,7 +1451,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     }
 
     private void loadMonthlyPeopleWithoutFilter() {
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -1610,7 +1611,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
                           " desde " + startDate + " hasta " + endDate);
 
         // Consultar reservas con filtro de fecha
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -1700,7 +1701,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         android.util.Log.d("SuperadminMain", "Iniciando consulta a colección 'users'");
 
         // Consultar todos los usuarios en la colección
-        db.collection("users")
+        db.collection(FirestoreManager.COLLECTION_USERS)
                 .get()
                 .addOnCompleteListener(task -> {
                     android.util.Log.d("SuperadminMain", "Consulta completada. Éxito: " + task.isSuccessful());
@@ -1761,7 +1762,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         android.util.Log.d("SuperadminMain", "Iniciando consulta a colección 'tours' con filtro isActive=true");
 
         // Consultar tours activos (isActive == true)
-        db.collection("tours")
+        db.collection(FirestoreManager.COLLECTION_TOURS)
                 .whereEqualTo("isActive", true)
                 .get()
                 .addOnCompleteListener(task -> {
@@ -1821,7 +1822,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
 
         // Consultar todas las reservas (o solo las confirmadas/completadas)
         // Filtrar por status: CONFIRMADA, EN_CURSO, COMPLETADA (excluir PENDIENTE y CANCELADA)
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", java.util.Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -1851,7 +1852,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     }
 
     private void loadTotalBookingsWithoutFilter() {
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -1894,7 +1895,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         // Consultar todas las reservas confirmadas/completadas para calcular ingresos
         // Filtrar por status: CONFIRMADA, EN_CURSO, COMPLETADA
         // Y por paymentStatus: CONFIRMADO, COBRADO
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", java.util.Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -1957,7 +1958,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
     }
 
     private void loadTotalRevenueWithoutFilter() {
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -2826,7 +2827,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
                           " desde " + startDate + " hasta " + endDate);
 
         // Consultar reservas con filtro de fecha
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {
@@ -2932,7 +2933,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
                           " desde " + startDate + " hasta " + endDate);
 
         // Consultar reservas con filtro de fecha
-        db.collection("reservations")
+        db.collection(FirestoreManager.COLLECTION_RESERVATIONS)
                 .whereIn("status", Arrays.asList("CONFIRMADA", "EN_CURSO", "COMPLETADA"))
                 .get()
                 .addOnCompleteListener(task -> {

@@ -577,7 +577,7 @@ public class LoginActivity extends AppCompatActivity {
             case "SUPERADMIN":
                 intent = new Intent(this, SuperadminMainActivity.class);
                 break;
-            case "ADMIN":
+            case "COMPANY_ADMIN":
                 intent = new Intent(this, TourAdminMainActivity.class);
                 break;
             case "GUIDE":

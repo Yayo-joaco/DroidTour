@@ -77,7 +77,8 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
                 break;
             case "ADMIN":
                 for (User user : userListFull) {
-                    if ("ADMIN".equals(user.getUserType()) || "SUPERADMIN".equals(user.getUserType())) {
+                    String userType = user.getUserType();
+                    if ("ADMIN".equals(userType) || "SUPERADMIN".equals(userType) || "COMPANY_ADMIN".equals(userType)) {
                         filteredList.add(user);
                     }
                 }
@@ -249,9 +250,12 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
         private void setupStatusSwitch(User user, OnUserClickListener listener) {
             // Determinar si está activo basándose en el status // nuevo actualizado
             boolean isActive = "active".equalsIgnoreCase(user.getStatus());
-            switchUserStatus.setChecked(isActive);
-
+            
+            // Primero remover el listener para evitar que se dispare durante el setChecked
             switchUserStatus.setOnCheckedChangeListener(null);
+            // Luego establecer el estado del switch
+            switchUserStatus.setChecked(isActive);
+            // Finalmente asignar el nuevo listener
             switchUserStatus.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (listener != null) {
                     listener.onUserStatusChange(user, isChecked);
@@ -283,6 +287,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
             switch (userType) {
                 case "SUPERADMIN": return "Super Admin";
                 case "ADMIN": return "Administrador";
+                case "COMPANY_ADMIN": return "Administrador de empresa";
                 case "GUIDE": return "Guía Turístico";
                 case "CLIENT": return "Cliente";
                 default: return userType;
@@ -295,6 +300,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
             switch (userType) {
                 case "SUPERADMIN": return R.color.superadmin_chip_color;
                 case "ADMIN": return R.color.admin_chip_color;
+                case "COMPANY_ADMIN": return R.color.admin_chip_color;
                 case "GUIDE": return R.color.guide_chip_color;
                 case "CLIENT": return R.color.client_chip_color;
                 default: return R.color.default_chip_color;

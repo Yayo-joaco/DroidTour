@@ -14,6 +14,8 @@ import java.util.Map;
  */
 public class User {
     @DocumentId
+    private String documentId;
+
     private String userId;
     
     // ========== DATOS COMUNES A TODOS LOS ROLES ==========
@@ -21,6 +23,15 @@ public class User {
     private String firstName;
     private String lastName;
     private String fullName;
+
+    public String getDocumentId() {
+        return documentId;
+    }
+
+    public void setDocumentId(String documentId) {
+        this.documentId = documentId;
+    }
+
     private String phoneNumber;
     private String countryCode;
     private String documentType; // DNI, Pasaporte, Carnet de Extranjería

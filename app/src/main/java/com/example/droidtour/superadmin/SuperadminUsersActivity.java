@@ -294,6 +294,11 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                                 user.setCreatedAt((Date) data.get("createdAt"));
                             }
 
+                            // Excluir usuarios SUPERADMIN de la lista
+                            if ("SUPERADMIN".equals(user.getUserType())) {
+                                continue; // Saltar este usuario
+                            }
+
                             // Añadir usuario a la lista
                             userList.add(user);
                         }
@@ -435,8 +440,9 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
 
     @Override
     public void onEditUser(String userId) {
-        Toast.makeText(this, "Abrir edición para " + userId, Toast.LENGTH_SHORT).show();
-        // TODO: implementar navegación a la pantalla de edición
+        Intent intent = new Intent(this, UserEditActivity.class);
+        intent.putExtra(UserEditActivity.EXTRA_USER_ID, userId);
+        startActivityForResult(intent, 1002);
     }
 
     @Override
@@ -447,8 +453,13 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
 
     @Override
     public void onUserEdit(User user) {
-        Toast.makeText(this, "Editar: " + user.getFullName(), Toast.LENGTH_SHORT).show();
-        // TODO: Implementar edición de usuario
+        if (user.getUserId() != null && !user.getUserId().isEmpty()) {
+            Intent intent = new Intent(this, UserEditActivity.class);
+            intent.putExtra(UserEditActivity.EXTRA_USER_ID, user.getUserId());
+            startActivityForResult(intent, 1002);
+        } else {
+            Toast.makeText(this, "Error: ID de usuario no válido", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -589,6 +600,11 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.top_app_bar_general, menu);
+        // Ocultar la foto del usuario (avatar) en el toolbar
+        MenuItem profileItem = menu.findItem(R.id.action_profile);
+        if (profileItem != null) {
+            profileItem.setVisible(false);
+        }
         return true;
     }
 
@@ -620,6 +636,9 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         if (requestCode == 1001 && resultCode == RESULT_OK) {
             loadUsersFromFirestore();
             Toast.makeText(this, "Nuevo administrador registrado", Toast.LENGTH_SHORT).show();
+        } else if (requestCode == 1002 && resultCode == RESULT_OK) {
+            loadUsersFromFirestore();
+            Toast.makeText(this, "Usuario actualizado", Toast.LENGTH_SHORT).show();
         }
     }
 }

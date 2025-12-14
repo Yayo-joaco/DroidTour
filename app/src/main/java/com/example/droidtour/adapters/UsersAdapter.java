@@ -147,7 +147,6 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
         private TextView tvUserName, tvUserEmail, tvUserType, tvAvatarInitial;
         private ImageView ivUserAvatar;
         private View viewStatusIndicator;
-        private com.google.android.material.chip.Chip chipUserRole, chipRegisterDate;
         private com.google.android.material.switchmaterial.SwitchMaterial switchUserStatus;
         private com.google.android.material.chip.Chip chipStatus; // <-- nuevo
 
@@ -159,8 +158,6 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
             tvAvatarInitial = itemView.findViewById(R.id.tv_avatar_initial);
             ivUserAvatar = itemView.findViewById(R.id.iv_user_avatar);
             viewStatusIndicator = itemView.findViewById(R.id.view_status_indicator);
-            chipUserRole = itemView.findViewById(R.id.chip_user_role);
-            chipRegisterDate = itemView.findViewById(R.id.chip_register_date);
             switchUserStatus = itemView.findViewById(R.id.switch_user_status);
             chipStatus = itemView.findViewById(R.id.chip_status); // inicializar
         }
@@ -176,9 +173,6 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
 
             // Estado en línea (placeholder)
             setupOnlineStatus(user);
-
-            // Chips de información
-            setupInfoChips(user);
 
             // Mostrar chip de estado solo para GUIDEs con status pending
             if ("GUIDE".equals(user.getUserType()) && "pending".equalsIgnoreCase(user.getStatus())) {
@@ -220,32 +214,6 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
             viewStatusIndicator.setVisibility(View.GONE);
         }
 
-        private void setupInfoChips(User user) {
-            // Chip de rol
-            chipUserRole.setText(getUserTypeDisplayName(user.getUserType()));
-
-            // Chip de fecha - formatear fecha si existe
-            if (user.getCreatedAt() != null) {
-                String formattedDate = formatDate(user.getCreatedAt());
-                chipRegisterDate.setText("Desde " + formattedDate);
-                chipRegisterDate.setVisibility(View.VISIBLE);
-            } else {
-                chipRegisterDate.setVisibility(View.GONE);
-            }
-
-            // Color del chip según el tipo de usuario
-            int chipColor = getChipColorForUserType(user.getUserType());
-            chipUserRole.setChipBackgroundColorResource(chipColor);
-        }
-
-        private String formatDate(java.util.Date date) {
-            try {
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM yyyy", java.util.Locale.getDefault());
-                return sdf.format(date);
-            } catch (Exception e) {
-                return "Fecha inválida";
-            }
-        }
 
         private void setupStatusSwitch(User user, OnUserClickListener listener) {
             // Determinar si está activo basándose en el status // nuevo actualizado

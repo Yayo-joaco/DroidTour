@@ -99,6 +99,53 @@ public class ClientRegistrationActivity extends AppCompatActivity {
         ccp.registerCarrierNumberEditText(etTelefono);
         ccp.setDefaultCountryUsingNameCode("PE");
         ccp.resetToDefaultCountry();
+        setupPhoneFormatter();
+    }
+
+    private void setupPhoneFormatter() {
+        etTelefono.addTextChangedListener(new android.text.TextWatcher() {
+            private boolean isFormatting = false;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                if (isFormatting) return;
+
+                isFormatting = true;
+                String text = s.toString().replaceAll("\\s+", ""); // Remover espacios
+                
+                // Solo permitir dígitos
+                text = text.replaceAll("[^0-9]", "");
+                
+                // Formatear con espacios cada 3 dígitos
+                StringBuilder formatted = new StringBuilder();
+                for (int i = 0; i < text.length(); i++) {
+                    if (i > 0 && i % 3 == 0) {
+                        formatted.append(" ");
+                    }
+                    formatted.append(text.charAt(i));
+                }
+                
+                // Actualizar el texto
+                int cursorPosition = etTelefono.getSelectionStart();
+                int lengthBefore = s.length();
+                s.clear();
+                s.append(formatted.toString());
+                
+                // Ajustar la posición del cursor
+                int lengthAfter = formatted.length();
+                int cursorOffset = lengthAfter - lengthBefore;
+                int newCursorPosition = Math.max(0, Math.min(formatted.length(), cursorPosition + cursorOffset));
+                etTelefono.setSelection(newCursorPosition);
+                
+                isFormatting = false;
+            }
+        });
     }
 
     private void setupClickListeners() {
@@ -127,14 +174,26 @@ public class ClientRegistrationActivity extends AppCompatActivity {
     }
 
     private boolean validateForm() {
-        if (etNombres.getText().toString().trim().isEmpty()) {
+        String nombres = etNombres.getText().toString().trim();
+        if (nombres.isEmpty()) {
             etNombres.setError("Campo obligatorio");
             etNombres.requestFocus();
             return false;
         }
+        if (nombres.length() > 40) {
+            etNombres.setError("Los nombres no pueden exceder 40 caracteres");
+            etNombres.requestFocus();
+            return false;
+        }
 
-        if (etApellidos.getText().toString().trim().isEmpty()) {
+        String apellidos = etApellidos.getText().toString().trim();
+        if (apellidos.isEmpty()) {
             etApellidos.setError("Campo obligatorio");
+            etApellidos.requestFocus();
+            return false;
+        }
+        if (apellidos.length() > 40) {
+            etApellidos.setError("Los apellidos no pueden exceder 40 caracteres");
             etApellidos.requestFocus();
             return false;
         }
@@ -169,8 +228,24 @@ public class ClientRegistrationActivity extends AppCompatActivity {
             return false;
         }
 
-        if (etTelefono.getText().toString().trim().isEmpty()) {
+        String telefono = etTelefono.getText().toString().trim();
+        if (telefono.isEmpty()) {
             etTelefono.setError("Campo obligatorio");
+            etTelefono.requestFocus();
+            return false;
+        }
+
+        // Validar que el número tenga exactamente 9 dígitos (solo el número local, sin código de país)
+        String telefonoSinEspacios = telefono.replaceAll("\\s+", "");
+        if (telefonoSinEspacios.length() != 9) {
+            etTelefono.setError("El número de teléfono debe tener 9 dígitos");
+            etTelefono.requestFocus();
+            return false;
+        }
+
+        // Validar que solo contenga dígitos
+        if (!telefonoSinEspacios.matches("\\d{9}")) {
+            etTelefono.setError("El número de teléfono solo debe contener dígitos");
             etTelefono.requestFocus();
             return false;
         }

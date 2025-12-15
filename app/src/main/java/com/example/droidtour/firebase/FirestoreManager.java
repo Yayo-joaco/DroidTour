@@ -1420,6 +1420,29 @@ public class FirestoreManager {
     }
 
     /**
+     * Obtener tours asignados a un guía
+     */
+    public void getToursByGuide(String guideId, FirestoreCallback callback) {
+        if (guideId == null || guideId.trim().isEmpty()) {
+            callback.onFailure(new Exception("guideId is required"));
+            return;
+        }
+        db.collection(COLLECTION_TOURS)
+                .whereEqualTo("assignedGuideId", guideId)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<Tour> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Tour t = doc.toObject(Tour.class);
+                        if (t != null && (t.getTourId() == null || t.getTourId().isEmpty()))
+                            t.setTourId(doc.getId());
+                        list.add(t);
+                    }
+                    callback.onSuccess(list);
+                }).addOnFailureListener(callback::onFailure);
+    }
+
+    /**
      * Crear un nuevo tour
      */
     public void createTour(Tour tour, FirestoreCallback callback) {

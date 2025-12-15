@@ -876,6 +876,9 @@ public class CreateTourActivity extends AppCompatActivity {
                 tour.setActive(currentTour.getActive() != null && currentTour.getActive());
                 tour.setPublic(currentTour.getPublic() != null && currentTour.getPublic());
                 tour.setAssignedGuideId(currentTour.getAssignedGuideId());
+                tour.setAssignedGuideName(currentTour.getAssignedGuideName());
+                tour.setGuidePayment(currentTour.getGuidePayment());
+                tour.setTourStatus(currentTour.getTourStatus());
                 tour.setTotalBookings(currentTour.getTotalBookings());
                 tour.setAverageRating(currentTour.getAverageRating());
                 tour.setTotalReviews(currentTour.getTotalReviews());

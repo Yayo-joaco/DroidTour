@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Tour;
 import com.example.droidtour.models.TourOffer;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
@@ -91,6 +92,12 @@ public class TourOffersActivity extends AppCompatActivity {
             public void onSuccess(Object result) {
                 allOffers = (List<TourOffer>) result;
                 Log.d(TAG, "✅ Ofertas cargadas: " + allOffers.size());
+                
+                // Log detallado de cada oferta
+                for (TourOffer offer : allOffers) {
+                    Log.d(TAG, "   📋 Oferta: " + offer.getTourName() + " | Status: " + offer.getStatus() + " | Fecha: " + offer.getTourDate());
+                }
+                
                 filterAndUpdateList();
 
                 if (allOffers.isEmpty()) {
@@ -113,6 +120,12 @@ public class TourOffersActivity extends AppCompatActivity {
 
         for (TourOffer offer : allOffers) {
             String status = offer.getStatus();
+            
+            // IMPORTANTE: No mostrar ofertas ACEPTADAS (ya están en "Mis Tours")
+            if ("ACEPTADA".equals(status)) {
+                continue;
+            }
+            
             if (currentFilter.equals("ALL")) {
                 filteredOffers.add(offer);
             } else if (currentFilter.equals("PENDING") && "PENDIENTE".equals(status)) {
@@ -228,29 +241,33 @@ public class TourOffersActivity extends AppCompatActivity {
 
             // Handle button clicks
             holder.btnAcceptOffer.setOnClickListener(v -> {
-                // Marcar oferta como ACEPTADA en Firebase
-                firestoreManager.updateOfferStatus(offer.getOfferId(), "ACEPTADA", new FirestoreManager.FirestoreCallback() {
+                // Verificar conflicto de fechas antes de aceptar
+                firestoreManager.getToursByGuide(offer.getGuideId(), new FirestoreManager.FirestoreCallback() {
                     @Override
                     public void onSuccess(Object result) {
-                        Toast.makeText(TourOffersActivity.this,
-                            "✅ Oferta aceptada: " + offer.getTourName(),
-                            Toast.LENGTH_LONG).show();
-
-                        // Actualizar UI
-                        holder.layoutPendingActions.setVisibility(View.GONE);
-                        holder.layoutResponseStatus.setVisibility(View.VISIBLE);
-                        holder.tvResponseMessage.setText("Oferta aceptada - Tour asignado");
-                        holder.tvResponseMessage.setTextColor(getColor(R.color.green));
-                        holder.ivResponseIcon.setColorFilter(getColor(R.color.green));
-
-                        // Recargar ofertas
-                        loadOffersFromFirebase();
+                        List<Tour> existingTours = (List<Tour>) result;
+                        
+                        // Verificar conflicto de fechas
+                        for (Tour tour : existingTours) {
+                            if (offer.getTourDate() != null && offer.getTourDate().equals(tour.getTourDate())) {
+                                String status = tour.getTourStatus();
+                                if ("EN_PROGRESO".equals(status) || "CONFIRMADA".equals(status)) {
+                                    Toast.makeText(TourOffersActivity.this, 
+                                        "❌ Ya tienes un tour aceptado para el " + offer.getTourDate(), 
+                                        Toast.LENGTH_LONG).show();
+                                    return;
+                                }
+                            }
+                        }
+                        
+                        // No hay conflicto, proceder a aceptar
+                        acceptOfferAndAssignTour(offer, holder);
                     }
-
+                    
                     @Override
                     public void onFailure(Exception e) {
                         Toast.makeText(TourOffersActivity.this,
-                            "Error al aceptar oferta: " + e.getMessage(),
+                            "Error verificando disponibilidad: " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -352,6 +369,183 @@ public class TourOffersActivity extends AppCompatActivity {
         }
     }
 
+    private void acceptOfferAndAssignTour(TourOffer offer, TourOffersAdapter.ViewHolder holder) {
+        Log.d(TAG, "🎯 ========================================");
+        Log.d(TAG, "🎯 INICIANDO ACEPTACIÓN DE OFERTA");
+        Log.d(TAG, "🎯 Offer ID: " + offer.getOfferId());
+        Log.d(TAG, "🎯 Tour ID: " + offer.getTourId());
+        Log.d(TAG, "🎯 Guide ID: " + offer.getGuideId());
+        Log.d(TAG, "🎯 Tour Name: " + offer.getTourName());
+        Log.d(TAG, "🎯 ========================================");
+        
+        // Actualizar estado de la oferta
+        firestoreManager.updateOfferStatus(offer.getOfferId(), "ACEPTADA", new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "✅ PASO 1: Oferta marcada como ACEPTADA en Firestore");
+                Log.d(TAG, "   → Ahora asignando guía al tour...");
+                assignGuideToTour(offer, holder);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ ERROR en PASO 1: No se pudo marcar oferta como ACEPTADA", e);
+                Toast.makeText(TourOffersActivity.this,
+                    "Error al aceptar oferta: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    private void assignGuideToTour(TourOffer offer, TourOffersAdapter.ViewHolder holder) {
+        Log.d(TAG, "🔄 PASO 2: Obteniendo tours existentes del guía");
+        Log.d(TAG, "   → Guide ID: " + offer.getGuideId());
+        
+        // Obtener tours existentes del guía para determinar status
+        firestoreManager.getToursByGuide(offer.getGuideId(), new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Tour> existingTours = (List<Tour>) result;
+                Log.d(TAG, "✅ PASO 2: Tours existentes obtenidos: " + existingTours.size());
+                
+                String tourStatus = determineTourStatus(existingTours, offer.getTourDate());
+                Log.d(TAG, "📊 Status determinado para nuevo tour: " + tourStatus);
+                
+                // Actualizar el Tour con el guía asignado
+                java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                updates.put("assignedGuideId", offer.getGuideId());
+                updates.put("assignedGuideName", offer.getGuideName());
+                updates.put("tourStatus", tourStatus);
+                updates.put("guidePayment", offer.getPaymentAmount());
+                updates.put("isPublic", true);
+                
+                Log.d(TAG, "🔄 PASO 3: Actualizando Tour en Firestore");
+                Log.d(TAG, "   → Tour ID: " + offer.getTourId());
+                Log.d(TAG, "   → assignedGuideId: " + offer.getGuideId());
+                Log.d(TAG, "   → assignedGuideName: " + offer.getGuideName());
+                Log.d(TAG, "   → tourStatus: " + tourStatus);
+                Log.d(TAG, "   → isPublic: true");
+                Log.d(TAG, "   → Collection: Tours (NO Reservations)");
+                
+                firestoreManager.updateTour(offer.getTourId(), updates, new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Log.d(TAG, "✅✅✅ PASO 3 COMPLETADO: Tour actualizado exitosamente ✅✅✅");
+                        Log.d(TAG, "   ✅ assignedGuideId guardado en Tour: " + offer.getGuideId());
+                        Log.d(TAG, "   ✅ NO se creó ninguna Reservation");
+                        Log.d(TAG, "   ✅ El tour debe aparecer en getToursByGuide()");
+                        
+                        // Si esta es la más cercana, actualizar los demás tours EN_PROGRESO a CONFIRMADA
+                        if ("EN_PROGRESO".equals(tourStatus)) {
+                            Log.d(TAG, "🔄 PASO 4: Actualizando otros tours a CONFIRMADA");
+                            updateOtherToursToConfirmed(offer.getGuideId(), offer.getTourId());
+                        }
+                        
+                        Toast.makeText(TourOffersActivity.this,
+                            "✅ Oferta aceptada - Tour agregado a Mis Tours",
+                            Toast.LENGTH_LONG).show();
+
+                        // Actualizar UI
+                        holder.layoutPendingActions.setVisibility(View.GONE);
+                        holder.layoutResponseStatus.setVisibility(View.VISIBLE);
+                        holder.tvResponseMessage.setText("Oferta aceptada - Tour en Mis Tours");
+                        holder.tvResponseMessage.setTextColor(getColor(R.color.green));
+                        holder.ivResponseIcon.setColorFilter(getColor(R.color.green));
+
+                        // Recargar ofertas
+                        loadOffersFromFirebase();
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e(TAG, "❌❌❌ ERROR en PASO 3: No se pudo actualizar Tour ❌❌❌", e);
+                        Log.e(TAG, "   ❌ Tour ID: " + offer.getTourId());
+                        Log.e(TAG, "   ❌ Error: " + e.getMessage());
+                        Toast.makeText(TourOffersActivity.this,
+                            "Error al actualizar tour: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ ERROR en PASO 2: No se pudieron obtener tours del guía", e);
+                Toast.makeText(TourOffersActivity.this,
+                    "Error verificando tours: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    private String determineTourStatus(List<Tour> existingTours, String newTourDate) {
+        if (existingTours == null || existingTours.isEmpty()) {
+            return "EN_PROGRESO";
+        }
+        
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            java.util.Date newDate = sdf.parse(newTourDate);
+            java.util.Date today = new java.util.Date();
+            
+            if (newDate.before(today)) {
+                return "CONFIRMADA";
+            }
+            
+            for (Tour tour : existingTours) {
+                String status = tour.getTourStatus();
+                if ("EN_PROGRESO".equals(status) || "CONFIRMADA".equals(status)) {
+                    try {
+                        java.util.Date existingDate = sdf.parse(tour.getTourDate());
+                        if (existingDate.before(newDate) && existingDate.after(today)) {
+                            return "CONFIRMADA";
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error parseando fecha: " + tour.getTourDate());
+                    }
+                }
+            }
+            
+            return "EN_PROGRESO";
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error determinando status", e);
+            return "CONFIRMADA";
+        }
+    }
+    
+    private void updateOtherToursToConfirmed(String guideId, String currentTourId) {
+        firestoreManager.getToursByGuide(guideId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Tour> tours = (List<Tour>) result;
+                for (Tour tour : tours) {
+                    if ("EN_PROGRESO".equals(tour.getTourStatus()) && 
+                        !currentTourId.equals(tour.getTourId())) {
+                        java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                        updates.put("tourStatus", "CONFIRMADA");
+                        firestoreManager.updateTour(tour.getTourId(), updates, 
+                            new FirestoreManager.FirestoreCallback() {
+                                @Override
+                                public void onSuccess(Object result) {
+                                    Log.d(TAG, "Tour actualizado a CONFIRMADA");
+                                }
+                                @Override
+                                public void onFailure(Exception e) {
+                                    Log.e(TAG, "Error actualizando tour", e);
+                                }
+                            });
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error obteniendo tours", e);
+            }
+        });
+    }
+    
     private void redirectToLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

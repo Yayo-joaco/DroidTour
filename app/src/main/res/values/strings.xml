@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">DroidTour</string>
 
+    <!-- Google Maps API Key -->
+    <string name="maps_api_key">YOUR_API_KEY_HERE</string>
+
     <!-- Login/Register -->
     <string name="welcome">Bienvenido a DroidTour</string>
     <string name="login">Iniciar Sesión</string>

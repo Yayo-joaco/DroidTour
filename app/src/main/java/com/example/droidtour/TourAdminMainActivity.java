@@ -12,6 +12,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.droidtour.admin.CompanyInfoActivity;
 import com.example.droidtour.admin.CreateServiceActivity;
@@ -41,6 +42,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     
     private DrawerLayout drawerLayout;
     private ActionBarDrawerToggle toggle;
+    private SwipeRefreshLayout swipeRefresh;
     private TextView tvWelcomeAdmin, tvCompanyName, tvPendingAlertsCount, tvActiveChatCount;
     private TextView tvAdminNameHeader, tvCompanyNameHeader;
     private MaterialCardView cardAlerts, cardCustomerChat, cardReports;
@@ -73,6 +75,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         initViews();
         setupToolbar();
         setupDrawer();
+        setupSwipeRefresh();
         setupCardClickListeners();
         initializeNotificationCounters();
         setupFab();
@@ -121,6 +124,26 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         toggle.syncState();
         
         navigationView.setNavigationItemSelectedListener(this);
+    }
+    
+    private void setupSwipeRefresh() {
+        swipeRefresh = findViewById(R.id.swipe_refresh);
+        if (swipeRefresh != null) {
+            swipeRefresh.setOnRefreshListener(() -> {
+                refreshDashboard();
+            });
+        }
+    }
+    
+    private void refreshDashboard() {
+        // Recargar contadores
+        initializeNotificationCounters();
+        loadUserDataFromFirebase();
+        
+        // Detener animación de refresh
+        if (swipeRefresh != null) {
+            swipeRefresh.setRefreshing(false);
+        }
     }
     
     private void setupCardClickListeners() {

@@ -96,6 +96,13 @@ public class GuideProposalsFragment extends Fragment {
         chipRejected = view.findViewById(R.id.chip_rejected);
         chipCancelled = view.findViewById(R.id.chip_cancelled);
         
+        // Botón de refrescar
+        com.google.android.material.button.MaterialButton btnRefresh = view.findViewById(R.id.btn_refresh);
+        btnRefresh.setOnClickListener(v -> {
+            Toast.makeText(requireContext(), "Actualizando propuestas...", Toast.LENGTH_SHORT).show();
+            loadProposals();
+        });
+        
         setupRecyclerView();
         setupStatusChips();
         loadProposals();

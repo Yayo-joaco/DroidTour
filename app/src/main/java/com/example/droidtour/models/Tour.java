@@ -55,6 +55,11 @@ public class Tour {
     private Boolean isFeatured;
     private Boolean isPublic;  // True cuando un guía ha aceptado la propuesta
     private String assignedGuideId;  // ID del guía asignado (cuando acepta propuesta)
+    private String assignedGuideName;  // Nombre del guía asignado
+    private String tourStatus;  // EN_PROGRESO, CONFIRMADA, COMPLETADA (para tours aceptados por guía)
+    private Double guidePayment;  // Pago ofrecido al guía (paymentAmount de la oferta)
+    private Boolean meetingPointConfirmed;  // Si el guía confirmó el punto de encuentro
+    private Date meetingPointConfirmedAt;  // Cuándo se confirmó el punto de encuentro
     @ServerTimestamp
     private Date createdAt;
     @ServerTimestamp
@@ -117,8 +122,12 @@ public class Tour {
         private String time;        // Hora de llegada (ej: "09:00 AM")
         private String description; // Descripción de la parada
         private Integer stopDuration; // Duración en minutos de esta parada
+        private Boolean completed;  // Si la parada fue completada por el guía
+        private Date completedAt;   // Fecha y hora de completado
 
-        public TourStop() {}
+        public TourStop() {
+            this.completed = false;
+        }
 
         public TourStop(double latitude, double longitude, String name, int order) {
             this.latitude = latitude;
@@ -127,6 +136,7 @@ public class Tour {
             this.order = order;
             this.time = "";
             this.description = "";
+            this.completed = false;
         }
 
         public TourStop(double latitude, double longitude, String name, int order, String time, String description) {
@@ -137,6 +147,7 @@ public class Tour {
             this.time = time;
             this.description = description;
             this.stopDuration = 0;
+            this.completed = false;
         }
         
         public TourStop(double latitude, double longitude, String name, int order, String time, String description, Integer stopDuration) {
@@ -147,6 +158,7 @@ public class Tour {
             this.time = time;
             this.description = description;
             this.stopDuration = stopDuration;
+            this.completed = false;
         }
 
         // Getters y Setters
@@ -164,6 +176,10 @@ public class Tour {
         public void setDescription(String description) { this.description = description; }
         public Integer getStopDuration() { return stopDuration; }
         public void setStopDuration(Integer stopDuration) { this.stopDuration = stopDuration; }
+        public Boolean getCompleted() { return completed; }
+        public void setCompleted(Boolean completed) { this.completed = completed; }
+        public Date getCompletedAt() { return completedAt; }
+        public void setCompletedAt(Date completedAt) { this.completedAt = completedAt; }
     }
 
     // Convertir a Map para guardar en Firestore
@@ -199,6 +215,11 @@ public class Tour {
         map.put("isFeatured", isFeatured);
         map.put("isPublic", isPublic);
         map.put("assignedGuideId", assignedGuideId);
+        map.put("assignedGuideName", assignedGuideName);
+        map.put("tourStatus", tourStatus);
+        map.put("guidePayment", guidePayment);
+        map.put("meetingPointConfirmed", meetingPointConfirmed);
+        map.put("meetingPointConfirmedAt", meetingPointConfirmedAt);
         return map;
     }
 
@@ -291,6 +312,21 @@ public class Tour {
 
     public String getAssignedGuideId() { return assignedGuideId; }
     public void setAssignedGuideId(String assignedGuideId) { this.assignedGuideId = assignedGuideId; }
+
+    public String getAssignedGuideName() { return assignedGuideName; }
+    public void setAssignedGuideName(String assignedGuideName) { this.assignedGuideName = assignedGuideName; }
+
+    public String getTourStatus() { return tourStatus; }
+    public void setTourStatus(String tourStatus) { this.tourStatus = tourStatus; }
+
+    public Double getGuidePayment() { return guidePayment; }
+    public void setGuidePayment(Double guidePayment) { this.guidePayment = guidePayment; }
+
+    public Boolean getMeetingPointConfirmed() { return meetingPointConfirmed; }
+    public void setMeetingPointConfirmed(Boolean meetingPointConfirmed) { this.meetingPointConfirmed = meetingPointConfirmed; }
+
+    public Date getMeetingPointConfirmedAt() { return meetingPointConfirmedAt; }
+    public void setMeetingPointConfirmedAt(Date meetingPointConfirmedAt) { this.meetingPointConfirmedAt = meetingPointConfirmedAt; }
 
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }

@@ -300,6 +300,11 @@
             android:parentActivityName=".TourGuideMainActivity" />
 
         <activity
+            android:name=".GuideStopsManagementActivity"
+            android:exported="false"
+            android:parentActivityName=".LocationTrackingActivity" />
+
+        <activity
             android:name=".GuideRegistrationActivity"
             android:exported="false"
             android:parentActivityName=".TourGuideMainActivity" />

@@ -22,7 +22,7 @@ import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.managers.PrefsManager;
 import com.example.droidtour.models.Notification;
-import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.Tour;
 import com.example.droidtour.models.TourOffer;
 import com.example.droidtour.utils.NotificationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -53,7 +53,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private FirestoreManager firestoreManager;
     private FirebaseAuthManager authManager;
     private String currentUserId;
-    private Reservation activeTourReservation;
+    private Tour activeTour;
     
     // Toolbar menu elements
     private FrameLayout notificationActionLayout, avatarActionLayout;
@@ -238,6 +238,58 @@ public class TourGuideMainActivity extends AppCompatActivity {
         finish();
     }
     
+    private void openLocationTracking() {
+        // Si ya tenemos el tour activo cargado, usarlo directamente
+        if (activeTour != null && "EN_PROGRESO".equals(activeTour.getTourStatus())) {
+            Intent intent = new Intent(this, LocationTrackingActivity.class);
+            intent.putExtra("tour_id", activeTour.getTourId());
+            startActivity(intent);
+            return;
+        }
+        
+        // Si no, buscar el tour activo primero
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            Toast.makeText(this, "No se pudo obtener tu ID de usuario", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Mostrar mensaje de carga
+        Toast.makeText(this, "Cargando tour activo...", Toast.LENGTH_SHORT).show();
+        
+        firestoreManager.getToursByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Tour> allTours = (List<Tour>) result;
+                
+                // Buscar tour EN_PROGRESO
+                Tour foundActiveTour = null;
+                for (Tour tour : allTours) {
+                    if ("EN_PROGRESO".equals(tour.getTourStatus())) {
+                        foundActiveTour = tour;
+                        break;
+                    }
+                }
+                
+                if (foundActiveTour != null) {
+                    Intent intent = new Intent(TourGuideMainActivity.this, LocationTrackingActivity.class);
+                    intent.putExtra("tour_id", foundActiveTour.getTourId());
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(TourGuideMainActivity.this, 
+                        "No tienes ningún tour en progreso", 
+                        Toast.LENGTH_LONG).show();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(TourGuideMainActivity.this, 
+                    "Error al cargar tour: " + e.getMessage(), 
+                    Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+    
     @Override
     protected void onResume() {
         super.onResume();
@@ -381,7 +433,8 @@ public class TourGuideMainActivity extends AppCompatActivity {
             } else if (id == R.id.nav_my_tours) {
                 startActivity(new Intent(this, GuideActiveToursActivity.class));
             } else if (id == R.id.nav_tour_location) {
-                startActivity(new Intent(this, LocationTrackingActivity.class));
+                // Obtener el tour activo del guía antes de abrir LocationTrackingActivity
+                openLocationTracking();
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, GuideProfileActivity.class));
             } else if (id == R.id.nav_init_test_data) {
@@ -471,17 +524,17 @@ public class TourGuideMainActivity extends AppCompatActivity {
             return;
         }
         
-        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+        firestoreManager.getToursByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 @SuppressWarnings("unchecked")
-                List<Reservation> allReservations = (List<Reservation>) result;
+                List<Tour> allTours = (List<Tour>) result;
 
-                // Filtrar solo reservas programadas/confirmadas
-                List<Reservation> upcomingTours = new java.util.ArrayList<>();
-                for (Reservation reservation : allReservations) {
-                    if ("CONFIRMADA".equals(reservation.getStatus()) || "PROGRAMADA".equals(reservation.getStatus())) {
-                        upcomingTours.add(reservation);
+                // Filtrar solo tours confirmados
+                List<Tour> upcomingTours = new java.util.ArrayList<>();
+                for (Tour tour : allTours) {
+                    if ("CONFIRMADA".equals(tour.getTourStatus())) {
+                        upcomingTours.add(tour);
                     }
                 }
                 
@@ -500,24 +553,6 @@ public class TourGuideMainActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        // Active Tour Card and Continue Button
-        MaterialButton btnContinueTour = findViewById(R.id.btn_continue_tour);
-        if (btnContinueTour != null) {
-            btnContinueTour.setOnClickListener(v -> {
-                Intent intent = new Intent(this, LocationTrackingActivity.class);
-                intent.putExtra("tour_id", 1);
-                intent.putExtra("tour_name", "City Tour Lima - Centro Histórico");
-                startActivity(intent);
-            });
-        }
-
-        cardActiveTour.setOnClickListener(v -> {
-            Intent intent = new Intent(this, LocationTrackingActivity.class);
-            intent.putExtra("tour_id", 1);
-            intent.putExtra("tour_name", "City Tour Lima - Centro Histórico");
-            startActivity(intent);
-        });
-
         // View All Offers
         tvViewAllOffers.setOnClickListener(v -> {
             Intent intent = new Intent(this, TourOffersActivity.class);
@@ -530,19 +565,8 @@ public class TourGuideMainActivity extends AppCompatActivity {
             startActivity(intent);
         });
         
-        // QR Scanner
-        cardQRScanner.setOnClickListener(v -> {
-            Intent intent = new Intent(this, QRScannerActivity.class);
-            intent.putExtra("tour_name", "City Tour Lima - Centro Histórico");
-            startActivity(intent);
-        });
-        
-        // Location Tracking
-        cardLocationTracking.setOnClickListener(v -> {
-            Intent intent = new Intent(this, LocationTrackingActivity.class);
-            intent.putExtra("tour_name", "City Tour Lima - Centro Histórico");
-            startActivity(intent);
-        });
+        // Note: Active tour card, QR Scanner, and Location Tracking clicks 
+        // are configured dynamically in checkActiveTour() when a tour is active
     }
 
     private void onOfferClick(int position) {
@@ -717,20 +741,20 @@ public class TourGuideMainActivity extends AppCompatActivity {
         // 1. Cargar rating desde user_roles o guides (ya que User no tiene guideRating)
         loadGuideRatingFromFirebase();
 
-        // 2. Cargar reservas para calcular tours completados y ganancias
-        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+        // 2. Cargar tours para calcular tours completados y ganancias
+        firestoreManager.getToursByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 @SuppressWarnings("unchecked")
-                List<Reservation> allReservations = (List<Reservation>) result;
+                List<Tour> allTours = (List<Tour>) result;
 
                 int completedCount = 0;
                 double totalEarnings = 0.0;
 
-                for (Reservation reservation : allReservations) {
-                    if ("COMPLETADA".equals(reservation.getStatus())) {
+                for (Tour tour : allTours) {
+                    if ("COMPLETADA".equals(tour.getTourStatus())) {
                         completedCount++;
-                        Double price = reservation.getTotalPrice();
+                        Double price = tour.getPricePerPerson();
                         if (price != null) {
                             totalEarnings += price;
                         }
@@ -873,25 +897,24 @@ public class TourGuideMainActivity extends AppCompatActivity {
             return;
         }
         
-        firestoreManager.getReservationsByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+        firestoreManager.getToursByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                List<Reservation> allReservations =
-                    (List<Reservation>) result;
+                List<Tour> allTours = (List<Tour>) result;
                 
                 // Buscar tour EN_PROGRESO
-                Reservation activeTour = null;
-                for (Reservation reservation : allReservations) {
-                    if ("EN_PROGRESO".equals(reservation.getStatus())) {
-                        activeTour = reservation;
+                Tour foundActiveTour = null;
+                for (Tour tour : allTours) {
+                    if ("EN_PROGRESO".equals(tour.getTourStatus())) {
+                        foundActiveTour = tour;
                         break;
                     }
                 }
                 
-                final Reservation finalActiveTour = activeTour;
+                final Tour finalActiveTour = foundActiveTour;
                 
                 if (finalActiveTour != null) {
-                    activeTourReservation = finalActiveTour;
+                    activeTour = finalActiveTour;
                     cardActiveTour.setVisibility(View.VISIBLE);
                     tvActiveTourName.setText(finalActiveTour.getTourName());
                     tvActiveTourProgress.setText("📍 Punto 2 de 4 • Plaza de Armas"); // TODO: Dinámico
@@ -899,22 +922,21 @@ public class TourGuideMainActivity extends AppCompatActivity {
                     btnContinueTour.setOnClickListener(v -> {
                         // Ir a LocationTrackingActivity con el tour activo
                         Intent intent = new Intent(TourGuideMainActivity.this, LocationTrackingActivity.class);
-                        intent.putExtra("reservation_id", finalActiveTour.getReservationId());
-                        intent.putExtra("tour_name", finalActiveTour.getTourName());
+                        intent.putExtra("tour_id", finalActiveTour.getTourId());
                         startActivity(intent);
                     });
                     
                     // Configurar botones de acciones rápidas
                     cardQRScanner.setOnClickListener(v -> {
                         Intent intent = new Intent(TourGuideMainActivity.this, QRScannerActivity.class);
-                        intent.putExtra("reservation_id", finalActiveTour.getReservationId());
+                        intent.putExtra("tour_name", finalActiveTour.getTourName());
+                        intent.putExtra("tour_id", finalActiveTour.getTourId());
                         startActivity(intent);
                     });
                     
                     cardLocationTracking.setOnClickListener(v -> {
                         Intent intent = new Intent(TourGuideMainActivity.this, LocationTrackingActivity.class);
-                        intent.putExtra("reservation_id", finalActiveTour.getReservationId());
-                        intent.putExtra("tour_name", finalActiveTour.getTourName());
+                        intent.putExtra("tour_id", finalActiveTour.getTourId());
                         startActivity(intent);
                     });
                     
@@ -968,46 +990,95 @@ public class TourGuideMainActivity extends AppCompatActivity {
             holder.tvParticipants.setText((offer.getNumberOfParticipants() != null ? offer.getNumberOfParticipants() : 0) + " personas");
 
             holder.btnAccept.setOnClickListener(v -> {
-                // Aceptar oferta directamente desde el dashboard
+                // Aceptar oferta desde el dashboard con validación completa
                 if (offer.getOfferId() != null && offer.getTourId() != null) {
-                    // 1. Actualizar estado de la oferta
-                    firestoreManager.updateOfferStatus(offer.getOfferId(), "ACEPTADA", 
-                        new FirestoreManager.FirestoreCallback() {
-                            @Override
-                            public void onSuccess(Object result) {
-                                // 2. Hacer el tour público y asignar el guía
-                                Map<String, Object> tourUpdates = new HashMap<>();
-                                tourUpdates.put("isPublic", true);
-                                tourUpdates.put("assignedGuideId", currentUserId);
-                                tourUpdates.put("isActive", true);
-                                
-                                firestoreManager.updateTour(offer.getTourId(), tourUpdates, 
-                                    new FirestoreManager.FirestoreCallback() {
-                                        @Override
-                                        public void onSuccess(Object result) {
-                                            Toast.makeText(TourGuideMainActivity.this, 
-                                                "✅ Oferta aceptada. Tour ahora público para clientes", 
-                                                Toast.LENGTH_LONG).show();
-                                            loadPendingOffersFromFirebase();
-                                        }
-                                        
-                                        @Override
-                                        public void onFailure(Exception e) {
-                                            Toast.makeText(TourGuideMainActivity.this, 
-                                                "⚠️ Oferta aceptada pero error al publicar tour", 
-                                                Toast.LENGTH_SHORT).show();
-                                            loadPendingOffersFromFirebase();
-                                        }
-                                    });
+                    String offerDate = offer.getTourDate();
+                    String guideId = currentUserId;
+                    
+                    // 1. Verificar que no tenga otro tour en la misma fecha
+                    firestoreManager.getToursByGuide(guideId, new FirestoreManager.FirestoreCallback() {
+                        @Override
+                        public void onSuccess(Object result) {
+                            List<Tour> existingTours = (List<Tour>) result;
+                            
+                            // Validar conflicto de fechas
+                            for (Tour tour : existingTours) {
+                                if (offerDate != null && offerDate.equals(tour.getTourDate())) {
+                                    String status = tour.getTourStatus();
+                                    if ("EN_PROGRESO".equals(status) || "CONFIRMADA".equals(status)) {
+                                        Toast.makeText(TourGuideMainActivity.this, 
+                                            "❌ Ya tienes un tour aceptado para el " + offerDate, 
+                                            Toast.LENGTH_LONG).show();
+                                        return;
+                                    }
+                                }
                             }
                             
-                            @Override
-                            public void onFailure(Exception e) {
-                                Toast.makeText(TourGuideMainActivity.this, 
-                                    "Error al aceptar oferta: " + e.getMessage(), 
-                                    Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                            // 2. No hay conflicto, actualizar estado de la oferta
+                            firestoreManager.updateOfferStatus(offer.getOfferId(), "ACEPTADA", 
+                                new FirestoreManager.FirestoreCallback() {
+                                    @Override
+                                    public void onSuccess(Object result) {
+                                        // 3. Determinar el status del tour (EN_PROGRESO o CONFIRMADA)
+                                        String tourStatus = determineTourStatusForDashboard(existingTours, offerDate);
+                                        
+                                        // 4. Actualizar el tour con assignedGuideId, nombre y status
+                                        Map<String, Object> tourUpdates = new HashMap<>();
+                                        tourUpdates.put("assignedGuideId", guideId);
+                                        tourUpdates.put("assignedGuideName", offer.getGuideName());
+                                        tourUpdates.put("tourStatus", tourStatus);
+                                        tourUpdates.put("guidePayment", offer.getPaymentAmount());
+                                        tourUpdates.put("isPublic", true);
+                                        tourUpdates.put("isActive", true);
+                                        
+                                        android.util.Log.d("TourGuideMain", "🎯 Actualizando tour " + offer.getTourId() + " con status: " + tourStatus);
+                                        
+                                        firestoreManager.updateTour(offer.getTourId(), tourUpdates, 
+                                            new FirestoreManager.FirestoreCallback() {
+                                                @Override
+                                                public void onSuccess(Object result) {
+                                                    android.util.Log.d("TourGuideMain", "✅ Tour actualizado exitosamente");
+                                                    
+                                                    // 5. Si este tour es EN_PROGRESO, actualizar otros a CONFIRMADA
+                                                    if ("EN_PROGRESO".equals(tourStatus)) {
+                                                        updateOtherToursToConfirmedFromDashboard(guideId, offer.getTourId());
+                                                    }
+                                                    
+                                                    Toast.makeText(TourGuideMainActivity.this, 
+                                                        "✅ Oferta aceptada - Tour agregado a Mis Tours", 
+                                                        Toast.LENGTH_LONG).show();
+                                                    
+                                                    // Recargar ofertas y dashboard
+                                                    loadPendingOffersFromFirebase();
+                                                    loadActiveTour();
+                                                }
+                                                
+                                                @Override
+                                                public void onFailure(Exception e) {
+                                                    android.util.Log.e("TourGuideMain", "❌ Error actualizando tour", e);
+                                                    Toast.makeText(TourGuideMainActivity.this, 
+                                                        "Error al actualizar tour: " + e.getMessage(), 
+                                                        Toast.LENGTH_SHORT).show();
+                                                }
+                                            });
+                                    }
+                                    
+                                    @Override
+                                    public void onFailure(Exception e) {
+                                        Toast.makeText(TourGuideMainActivity.this, 
+                                            "Error al aceptar oferta: " + e.getMessage(), 
+                                            Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                        }
+                        
+                        @Override
+                        public void onFailure(Exception e) {
+                            Toast.makeText(TourGuideMainActivity.this, 
+                                "Error verificando disponibilidad: " + e.getMessage(), 
+                                Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }
             });
 
@@ -1067,9 +1138,9 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private class UpcomingToursAdapterFirebase extends RecyclerView.Adapter<UpcomingToursAdapterFirebase.ViewHolder> {
         
         private final OnTourClickListener listener;
-        private final List<Reservation> tours;
+        private final List<Tour> tours;
 
-        UpcomingToursAdapterFirebase(List<Reservation> tours, OnTourClickListener listener) {
+        UpcomingToursAdapterFirebase(List<Tour> tours, OnTourClickListener listener) {
             this.tours = tours;
             this.listener = listener;
         }
@@ -1083,14 +1154,14 @@ public class TourGuideMainActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Reservation tour = tours.get(position);
+            Tour tour = tours.get(position);
             
             holder.tvTourName.setText(tour.getTourName() != null ? tour.getTourName() : "Tour");
             holder.tvCompanyName.setText(tour.getCompanyName() != null ? tour.getCompanyName() : "Empresa");
             holder.tvTourDate.setText(tour.getTourDate() != null ? tour.getTourDate() : "Fecha");
-            holder.tvTourTime.setText(tour.getTourTime() != null ? tour.getTourTime() : "Hora");
-            holder.tvGroupSize.setText((tour.getNumberOfPeople() != null ? tour.getNumberOfPeople() : 0) + " personas");
-            holder.tvStatus.setText(tour.getStatus() != null ? tour.getStatus() : "PENDIENTE");
+            holder.tvTourTime.setText(tour.getStartTime() != null ? tour.getStartTime() : "Hora");
+            holder.tvGroupSize.setText((tour.getMaxGroupSize() != null ? tour.getMaxGroupSize() : 0) + " personas");
+            holder.tvStatus.setText(tour.getTourStatus() != null ? tour.getTourStatus() : "PENDIENTE");
 
             holder.itemView.setOnClickListener(v -> listener.onClick(position));
         }
@@ -1113,5 +1184,91 @@ public class TourGuideMainActivity extends AppCompatActivity {
                 tvStatus = itemView.findViewById(R.id.tv_status);
             }
         }
+    }
+    
+    // ==================== MÉTODOS HELPER PARA ACEPTAR OFERTAS ====================
+    
+    /**
+     * Determinar si el tour debe ser EN_PROGRESO o CONFIRMADA
+     * La fecha más cercana es EN_PROGRESO, las demás son CONFIRMADA
+     */
+    private String determineTourStatusForDashboard(List<Tour> existingTours, String newTourDate) {
+        if (newTourDate == null) return "CONFIRMADA";
+        
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+            java.util.Date newDate = sdf.parse(newTourDate);
+            java.util.Date today = new java.util.Date();
+            
+            // Si la fecha ya pasó, es COMPLETADA
+            if (newDate.before(today)) {
+                return "COMPLETADA";
+            }
+            
+            // Buscar si hay otra fecha más cercana
+            for (Tour tour : existingTours) {
+                String tourStatus = tour.getTourStatus();
+                if (!"EN_PROGRESO".equals(tourStatus) && !"CONFIRMADA".equals(tourStatus)) {
+                    continue; // Ignorar tours completados o rechazados
+                }
+                
+                String tourDate = tour.getTourDate();
+                if (tourDate != null) {
+                    java.util.Date existingDate = sdf.parse(tourDate);
+                    
+                    // Si hay una fecha más cercana que la nueva, la nueva es CONFIRMADA
+                    if (existingDate.before(newDate) && existingDate.after(today)) {
+                        return "CONFIRMADA";
+                    }
+                }
+            }
+            
+            // No hay fechas más cercanas, esta es EN_PROGRESO
+            return "EN_PROGRESO";
+            
+        } catch (Exception e) {
+            android.util.Log.e("TourGuideMain", "Error parseando fechas", e);
+            return "CONFIRMADA"; // Por defecto
+        }
+    }
+    
+    /**
+     * Si el tour recién aceptado es EN_PROGRESO, cambiar otros EN_PROGRESO a CONFIRMADA
+     */
+    private void updateOtherToursToConfirmedFromDashboard(String guideId, String newTourId) {
+        firestoreManager.getToursByGuide(guideId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Tour> allTours = (List<Tour>) result;
+                
+                for (Tour tour : allTours) {
+                    String tourId = tour.getTourId();
+                    String status = tour.getTourStatus();
+                    
+                    // Si no es el nuevo tour y está EN_PROGRESO, cambiar a CONFIRMADA
+                    if (!newTourId.equals(tourId) && "EN_PROGRESO".equals(status)) {
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("tourStatus", "CONFIRMADA");
+                        
+                        firestoreManager.updateTour(tourId, updates, new FirestoreManager.FirestoreCallback() {
+                            @Override
+                            public void onSuccess(Object result) {
+                                android.util.Log.d("TourGuideMain", "✅ Tour " + tourId + " cambiado a CONFIRMADA");
+                            }
+                            
+                            @Override
+                            public void onFailure(Exception e) {
+                                android.util.Log.e("TourGuideMain", "❌ Error actualizando tour a CONFIRMADA", e);
+                            }
+                        });
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "❌ Error obteniendo tours para actualizar", e);
+            }
+        });
     }
 }

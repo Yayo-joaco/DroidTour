@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.Guide;
 import com.example.droidtour.models.Tour;
 import com.example.droidtour.models.TourOffer;
@@ -29,6 +30,9 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 import com.google.firebase.firestore.Query;
 
 import java.text.DecimalFormat;
@@ -45,7 +49,7 @@ public class GuideProposalsFragment extends Fragment {
     private RecyclerView recyclerView;
     private LinearLayout layoutEmpty;
     private ChipGroup chipGroupStatus;
-    private Chip chipAll, chipPending, chipAccepted, chipRejected;
+    private Chip chipAll, chipPending, chipAccepted, chipRejected, chipCancelled;
     
     private ProposalsAdapter adapter;
     private List<ProposalWithDetails> proposals = new ArrayList<>();
@@ -90,6 +94,7 @@ public class GuideProposalsFragment extends Fragment {
         chipPending = view.findViewById(R.id.chip_pending);
         chipAccepted = view.findViewById(R.id.chip_accepted);
         chipRejected = view.findViewById(R.id.chip_rejected);
+        chipCancelled = view.findViewById(R.id.chip_cancelled);
         
         setupRecyclerView();
         setupStatusChips();
@@ -124,6 +129,11 @@ public class GuideProposalsFragment extends Fragment {
         
         chipRejected.setOnClickListener(v -> {
             currentFilter = "RECHAZADA";
+            filterProposals();
+        });
+        
+        chipCancelled.setOnClickListener(v -> {
+            currentFilter = "CANCELADA";
             filterProposals();
         });
     }
@@ -194,73 +204,56 @@ public class GuideProposalsFragment extends Fragment {
         ProposalWithDetails proposalDetails = new ProposalWithDetails();
         proposalDetails.offer = offer;
         
-        // Cargar información del guía
-        db.collection("Guides").document(offer.getGuideId())
-                .get()
-                .addOnSuccessListener(guideDoc -> {
-                    if (guideDoc.exists()) {
-                        Guide guide = guideDoc.toObject(Guide.class);
-                        if (guide != null) {
-                            proposalDetails.guide = guide;
-                            
-                            // Cargar información del usuario del guía
-                            db.collection("Users").document(offer.getGuideId())
-                                    .get()
-                                    .addOnSuccessListener(userDoc -> {
-                                        if (userDoc.exists()) {
-                                            proposalDetails.guideName = userDoc.getString("name");
-                                            // Obtener la foto de perfil desde personalData
-                                            if (userDoc.contains("personalData")) {
-                                                Object personalData = userDoc.get("personalData");
-                                                if (personalData instanceof java.util.Map) {
-                                                    java.util.Map<String, Object> personalDataMap = (java.util.Map<String, Object>) personalData;
-                                                    proposalDetails.guidePhotoUrl = (String) personalDataMap.get("profileImageUrl");
-                                                }
-                                            }
-                                            checkAndAddProposal(proposalDetails);
-                                        }
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        Log.e(TAG, "Error cargando usuario del guía", e);
-                                        checkAndAddProposal(proposalDetails);
-                                    });
-                        }
-                    }
-                });
+        // Usar los datos que YA vienen en el TourOffer
+        proposalDetails.guideName = offer.getGuideName() != null ? offer.getGuideName() : "Guía desconocido";
+        proposalDetails.tourName = offer.getTourName() != null ? offer.getTourName() : "Tour desconocido";
         
-        // Cargar información del tour
-        db.collection("Tours").document(offer.getTourId())
-                .get()
-                .addOnSuccessListener(tourDoc -> {
-                    if (tourDoc.exists()) {
-                        Tour tour = tourDoc.toObject(Tour.class);
-                        if (tour != null) {
-                            proposalDetails.tour = tour;
-                            proposalDetails.tourName = tour.getTourName();
-                            checkAndAddProposal(proposalDetails);
+        Log.d(TAG, "  ➕ Agregando propuesta: " + proposalDetails.guideName + " - " + proposalDetails.tourName);
+        
+        // Agregar inmediatamente
+        proposals.add(proposalDetails);
+        
+        // Cargar información adicional del guía (foto) usando FirestoreManager
+        if (offer.getGuideId() != null && !offer.getGuideId().isEmpty()) {
+            firestoreManager.getUserById(offer.getGuideId(), new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    if (result instanceof com.example.droidtour.models.User) {
+                        com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                        if (user.getPersonalData() != null && user.getPersonalData().getProfileImageUrl() != null) {
+                            proposalDetails.guidePhotoUrl = user.getPersonalData().getProfileImageUrl();
+                            Log.d(TAG, "  📸 Foto cargada para: " + proposalDetails.guideName);
+                            
+                            // Actualizar el adapter
+                            if (getActivity() != null) {
+                                getActivity().runOnUiThread(() -> adapter.notifyDataSetChanged());
+                            }
                         }
                     }
-                });
-    }
-
-    private void checkAndAddProposal(ProposalWithDetails proposalDetails) {
-        // Solo agregar si tenemos todos los datos necesarios
-        if (proposalDetails.guideName != null && proposalDetails.tourName != null) {
-            // Verificar si ya existe en la lista
-            boolean exists = false;
-            for (int i = 0; i < proposals.size(); i++) {
-                if (proposals.get(i).offer.getId().equals(proposalDetails.offer.getId())) {
-                    proposals.set(i, proposalDetails);
-                    exists = true;
-                    break;
                 }
-            }
-            
-            if (!exists) {
-                proposals.add(proposalDetails);
-            }
-            
-            filterProposals();
+
+                @Override
+                public void onFailure(Exception e) {
+                    Log.w(TAG, "No se pudo cargar foto del guía: " + e.getMessage());
+                }
+            });
+        }
+        
+        // Cargar información adicional del tour si es necesario
+        if (offer.getTourId() != null && !offer.getTourId().isEmpty()) {
+            db.collection("Tours").document(offer.getTourId())
+                    .get()
+                    .addOnSuccessListener(tourDoc -> {
+                        if (tourDoc.exists()) {
+                            Tour tour = tourDoc.toObject(Tour.class);
+                            if (tour != null) {
+                                proposalDetails.tour = tour;
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.w(TAG, "No se pudo cargar tour: " + e.getMessage());
+                    });
         }
     }
 
@@ -312,15 +305,31 @@ public class GuideProposalsFragment extends Fragment {
     }
 
     private void cancelProposal(ProposalWithDetails proposal) {
-        db.collection("TourOffers").document(proposal.offer.getId())
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(requireContext(), "Propuesta cancelada", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error al cancelar propuesta", e);
-                    Toast.makeText(requireContext(), "Error al cancelar propuesta", Toast.LENGTH_SHORT).show();
-                });
+        // Cambiar status a CANCELADA en lugar de eliminar
+        String offerId = proposal.offer.getOfferId();
+        if (offerId == null || offerId.isEmpty()) {
+            Toast.makeText(requireContext(), "Error: ID de propuesta inválido", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        Log.d(TAG, "🚫 Cancelando propuesta con ID: " + offerId);
+        
+        // Usar el mismo método que usa el guía para aceptar (que SÍ funciona)
+        firestoreManager.updateOfferStatus(offerId, "CANCELADA", new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "✅ Propuesta actualizada exitosamente a CANCELADA en servidor");
+                Toast.makeText(requireContext(), "✅ Propuesta cancelada", Toast.LENGTH_SHORT).show();
+                proposal.offer.setStatus("CANCELADA");
+                filterProposals();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error al cancelar propuesta: " + e.getMessage(), e);
+                Toast.makeText(requireContext(), "Error al cancelar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     // Clase interna para almacenar los detalles completos de una propuesta
@@ -366,6 +375,7 @@ public class GuideProposalsFragment extends Fragment {
             private TextView tvNotes;
             private MaterialButton btnCancel;
             private Chip chipStatus;
+            private View btnShowGuideDetails;
 
             public ProposalViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -379,6 +389,7 @@ public class GuideProposalsFragment extends Fragment {
                 tvNotes = itemView.findViewById(R.id.tv_notes);
                 btnCancel = itemView.findViewById(R.id.btn_cancel);
                 chipStatus = itemView.findViewById(R.id.chip_status);
+                btnShowGuideDetails = itemView.findViewById(R.id.btn_show_guide_details);
             }
 
             public void bind(ProposalWithDetails proposal) {
@@ -387,9 +398,22 @@ public class GuideProposalsFragment extends Fragment {
                     Glide.with(itemView.getContext())
                             .load(proposal.guidePhotoUrl)
                             .placeholder(R.drawable.ic_person)
+                            .error(R.drawable.ic_person)
+                            .circleCrop()
                             .into(imgGuide);
                 } else {
                     imgGuide.setImageResource(R.drawable.ic_person);
+                }
+                
+                // Botón de detalles del guía
+                if (btnShowGuideDetails != null) {
+                    btnShowGuideDetails.setOnClickListener(v -> {
+                        if (proposal.offer.getGuideId() != null && !proposal.offer.getGuideId().isEmpty()) {
+                            com.example.droidtour.ui.GuideDetailsBottomSheet sheet = 
+                                com.example.droidtour.ui.GuideDetailsBottomSheet.newInstance(proposal.offer.getGuideId());
+                            sheet.show(getParentFragmentManager(), "guide_details");
+                        }
+                    });
                 }
 
                 // Nombre del guía
@@ -424,6 +448,11 @@ public class GuideProposalsFragment extends Fragment {
                     case "RECHAZADA":
                         statusColor = ContextCompat.getColor(itemView.getContext(), R.color.error);
                         chipBackgroundColor = ContextCompat.getColor(itemView.getContext(), R.color.error_light);
+                        chipStatus.setChipIconResource(R.drawable.ic_cancel);
+                        break;
+                    case "CANCELADA":
+                        statusColor = ContextCompat.getColor(itemView.getContext(), R.color.text_secondary);
+                        chipBackgroundColor = ContextCompat.getColor(itemView.getContext(), R.color.divider);
                         chipStatus.setChipIconResource(R.drawable.ic_cancel);
                         break;
                     default:
@@ -468,6 +497,8 @@ public class GuideProposalsFragment extends Fragment {
                         return "Aceptada";
                     case "RECHAZADA":
                         return "Rechazada";
+                    case "CANCELADA":
+                        return "Cancelada";
                     case "PENDIENTE":
                     default:
                         return "Pendiente";

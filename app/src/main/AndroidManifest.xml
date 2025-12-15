@@ -68,6 +68,11 @@
             android:name=".AdminMyAccountActivity"
             android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
+        
+        <activity
+            android:name=".admin.AdminProfileActivity"
+            android:exported="false"
+            android:parentActivityName=".AdminMyAccountActivity" />
 
         <activity
             android:name=".TourGuideMainActivity"

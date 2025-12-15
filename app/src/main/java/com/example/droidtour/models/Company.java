@@ -18,6 +18,7 @@ public class Company {
     private String email;           // Email corporativo
     private String phone;           // Teléfono corporativo
     private String address;
+    private String description;     // Descripción de la empresa
     private String logoUrl;
     private List<String> coverImageUrls;
 
@@ -111,6 +112,14 @@ public class Company {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getLogoUrl() {

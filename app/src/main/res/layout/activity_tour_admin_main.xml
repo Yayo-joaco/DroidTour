@@ -23,7 +23,7 @@
             app:titleTextAppearance="@style/Toolbar.TitleText2"
             app:titleCentered="true"
             app:titleTextColor="@color/white"
-            app:menu="@menu/top_app_bar_general"
+            app:menu="@menu/top_app_bar_admin"
             app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically" />
 
         <!-- Scrollable Content -->

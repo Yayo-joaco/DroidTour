@@ -97,11 +97,11 @@ public class AdminMyAccountActivity extends AppCompatActivity {
             });
         }
 
-        // Mi Perfil - por ahora solo muestra un toast
+        // Mi Perfil - Abrir pantalla de perfil del admin
         if (cardProfile != null) {
             cardProfile.setOnClickListener(v -> {
-                // TODO: Implementar pantalla de perfil de admin
-                android.widget.Toast.makeText(this, "Perfil de administrador", android.widget.Toast.LENGTH_SHORT).show();
+                Intent profileIntent = new Intent(AdminMyAccountActivity.this, com.example.droidtour.admin.AdminProfileActivity.class);
+                startActivity(profileIntent);
             });
         }
 

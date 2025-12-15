@@ -304,14 +304,19 @@ public class AdminRegistrationActivity extends AppCompatActivity {
                             .addOnFailureListener(e -> Log.w("AdminRegistration", "No se pudo actualizar displayName: " + e.getMessage()));
 
                     // 2) Crear Company en Firestore y asociarla al admin
+                    // NOTA: Los campos email, phone, address y description de la EMPRESA
+                    // se dejan como null. El admin los llenará después en CompanyInfoActivity.
+                    // Los datos del admin (email, phone) son distintos a los de la empresa.
                     com.example.droidtour.models.Company company = new com.example.droidtour.models.Company();
                     company.setBusinessName(businessName);
                     company.setRuc(ruc);
                     company.setCommercialName(commercialName);
                     company.setBusinessType(businessType);
                     company.setAdminUserId(userId);
-                    company.setEmail(email);
-                    company.setPhone(phone);
+                    company.setEmail(null);         // Email de la empresa (diferente al del admin)
+                    company.setPhone(null);         // Teléfono de la empresa (diferente al del admin)
+                    company.setAddress(null);       // Dirección de la empresa
+                    company.setDescription(null);   // Descripción de la empresa
 
                     firestoreManager.createCompany(company, new FirestoreManager.FirestoreCallback() {
                         @Override

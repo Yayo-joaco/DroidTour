@@ -31,11 +31,17 @@ import java.util.Locale;
 
 public class CompanyInfoActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    private static final String TAG = "CompanyInfoActivity";
+    
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private com.example.droidtour.firebase.FirebaseAuthManager authManager;
     private String currentUserId;
+    private String currentCompanyId;
+    private com.example.droidtour.models.Company currentCompany;
 
     private TextInputEditText etCompanyName, etCompanyEmail, etCompanyPhone, etCompanyAddress;
+    private TextInputEditText etCompanyRuc, etCompanyDescription;
+    private android.widget.AutoCompleteTextView actBusinessType;
     private MaterialCardView cardImage1, cardImage2, cardMapPreview;
     private MaterialButton btnSelectLocation, btnCancel;
     private ExtendedFloatingActionButton btnSave;
@@ -82,6 +88,120 @@ public class CompanyInfoActivity extends AppCompatActivity implements OnMapReady
         initializeViews();
         initializeMapView(savedInstanceState);
         setupClickListeners();
+        loadCompanyData();
+    }
+    
+    private void loadCompanyData() {
+        String userId = prefsManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            android.util.Log.e(TAG, "No hay userId");
+            return;
+        }
+        
+        // Primero obtener el companyId del usuario
+        firestoreManager.getUserById(userId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                if (user != null && user.getCompanyId() != null) {
+                    currentCompanyId = user.getCompanyId();
+                    loadCompanyDetails();
+                } else {
+                    android.util.Log.e(TAG, "Usuario sin companyId");
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e(TAG, "Error cargando usuario", e);
+            }
+        });
+    }
+    
+    private void loadCompanyDetails() {
+        firestoreManager.getCompanyById(currentCompanyId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                currentCompany = (com.example.droidtour.models.Company) result;
+                if (currentCompany != null) {
+                    populateCompanyData();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e(TAG, "Error cargando empresa", e);
+                Toast.makeText(CompanyInfoActivity.this, "Error al cargar datos de empresa", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    
+    private void populateCompanyData() {
+        // Campos bloqueados (NO EDITABLES) - datos del superadmin
+        if (etCompanyName != null && currentCompany.getCommercialName() != null) {
+            etCompanyName.setText(currentCompany.getCommercialName());
+            etCompanyName.setEnabled(false);
+            etCompanyName.setFocusable(false);
+            etCompanyName.setTextColor(getResources().getColor(android.R.color.darker_gray));
+        }
+        
+        if (etCompanyRuc != null && currentCompany.getRuc() != null) {
+            etCompanyRuc.setText(currentCompany.getRuc());
+            etCompanyRuc.setEnabled(false);
+            etCompanyRuc.setFocusable(false);
+            etCompanyRuc.setTextColor(getResources().getColor(android.R.color.darker_gray));
+        }
+        
+        if (actBusinessType != null && currentCompany.getBusinessType() != null) {
+            actBusinessType.setText(currentCompany.getBusinessType());
+            actBusinessType.setEnabled(false);
+            actBusinessType.setFocusable(false);
+            actBusinessType.setTextColor(getResources().getColor(android.R.color.darker_gray));
+        }
+        
+        // Campos editables - cargar datos de la EMPRESA (no del admin)
+        if (etCompanyEmail != null) {
+            String companyEmail = currentCompany.getEmail();
+            if (companyEmail != null && !companyEmail.isEmpty()) {
+                etCompanyEmail.setText(companyEmail);
+            } else {
+                etCompanyEmail.setText(""); // Vacío si no hay email de empresa
+            }
+        }
+        
+        if (etCompanyPhone != null) {
+            String phone = currentCompany.getPhone();
+            if (phone != null && !phone.isEmpty()) {
+                // Remover el código de país si está presente
+                if (phone.startsWith("+51")) {
+                    phone = phone.substring(3);
+                }
+                etCompanyPhone.setText(phone.trim());
+            } else {
+                etCompanyPhone.setText(""); // Vacío si no hay teléfono de empresa
+            }
+        }
+        
+        if (etCompanyAddress != null) {
+            String address = currentCompany.getAddress();
+            if (address != null && !address.isEmpty()) {
+                etCompanyAddress.setText(address);
+            } else {
+                etCompanyAddress.setText("");
+            }
+        }
+        
+        if (etCompanyDescription != null) {
+            String description = currentCompany.getDescription();
+            if (description != null && !description.isEmpty()) {
+                etCompanyDescription.setText(description);
+            } else {
+                etCompanyDescription.setText("");
+            }
+        }
+        
+        android.util.Log.d(TAG, "Datos de empresa cargados - Email: " + currentCompany.getEmail() + 
+                ", Phone: " + currentCompany.getPhone() + ", Address: " + currentCompany.getAddress());
     }
 
     private void setupToolbar() {
@@ -97,6 +217,9 @@ public class CompanyInfoActivity extends AppCompatActivity implements OnMapReady
         etCompanyEmail = findViewById(R.id.et_company_email);
         etCompanyPhone = findViewById(R.id.et_company_phone);
         etCompanyAddress = findViewById(R.id.et_company_address);
+        etCompanyRuc = findViewById(R.id.et_company_ruc);
+        etCompanyDescription = findViewById(R.id.et_company_description);
+        actBusinessType = findViewById(R.id.act_business_type);
 
         cardImage1 = findViewById(R.id.card_image1);
         cardImage2 = findViewById(R.id.card_image2);
@@ -287,23 +410,15 @@ public class CompanyInfoActivity extends AppCompatActivity implements OnMapReady
     }
 
     private boolean validateInputs() {
-        if (etCompanyName.getText().toString().trim().isEmpty()) {
-            etCompanyName.setError("Ingrese el nombre de la empresa");
-            return false;
-        }
-
+        // Nombre, RUC y Tipo de empresa ya están validados (son campos bloqueados del superadmin)
+        
         if (etCompanyEmail.getText().toString().trim().isEmpty()) {
-            etCompanyEmail.setError("Ingrese el correo electrónico");
+            etCompanyEmail.setError("Ingrese el correo electrónico de la empresa");
             return false;
         }
 
         if (etCompanyPhone.getText().toString().trim().isEmpty()) {
-            etCompanyPhone.setError("Ingrese el teléfono");
-            return false;
-        }
-
-        if (etCompanyAddress.getText().toString().trim().isEmpty()) {
-            etCompanyAddress.setError("Ingrese la dirección");
+            etCompanyPhone.setError("Ingrese el teléfono de la empresa");
             return false;
         }
 
@@ -311,29 +426,33 @@ public class CompanyInfoActivity extends AppCompatActivity implements OnMapReady
     }
 
     private void saveCompanyInfo() {
-        String name = etCompanyName.getText().toString().trim();
+        if (currentCompany == null || currentCompanyId == null) {
+            Toast.makeText(this, "Error: No hay empresa para actualizar", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         String email = etCompanyEmail.getText().toString().trim();
         String phone = etCompanyPhone.getText().toString().trim();
         String address = etCompanyAddress.getText().toString().trim();
+        String description = etCompanyDescription != null ? etCompanyDescription.getText().toString().trim() : "";
 
-        // Generar ID único para la empresa
-        String companyId = "COMP_" + System.currentTimeMillis();
+        // Actualizar solo los campos editables
+        currentCompany.setEmail(email);
+        currentCompany.setPhone("+51" + phone); // Agregar código de país
+        currentCompany.setAddress(address);
+        currentCompany.setDescription(description);
 
-        com.example.droidtour.models.Company company = new com.example.droidtour.models.Company();
-        company.setBusinessName(name);
-        company.setCommercialName(name); // Mismo nombre si no hay comercial
-        company.setRuc(""); // Dejar vacío o pedir al usuario
-        company.setBusinessType(""); // Dejar vacío
-        company.setAdminUserId(currentUserId);
-        company.setEmail(email);
-        company.setPhone(phone);
-        company.setAddress(address);
-        company.setStatus("active");
-
-        firestoreManager.createCompany(company, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+        // Actualizar en Firebase
+        java.util.Map<String, Object> updates = new java.util.HashMap<>();
+        updates.put("email", email);
+        updates.put("phone", "+51" + phone);
+        updates.put("address", address);
+        updates.put("description", description);
+        
+        firestoreManager.updateCompany(currentCompanyId, updates, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
-                Toast.makeText(CompanyInfoActivity.this, "Empresa guardada exitosamente", Toast.LENGTH_SHORT).show();
+                Toast.makeText(CompanyInfoActivity.this, "Empresa actualizada exitosamente", Toast.LENGTH_SHORT).show();
                 finish();
             }
 

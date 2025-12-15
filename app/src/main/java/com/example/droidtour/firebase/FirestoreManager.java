@@ -398,6 +398,29 @@ public class FirestoreManager {
                 .addOnFailureListener(callback::onFailure);
     }
 
+    /**
+     * Actualizar campos específicos de una empresa
+     */
+    public void updateCompany(String companyId, Map<String, Object> updates, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+        if (updates == null || updates.isEmpty()) {
+            callback.onFailure(new Exception("updates is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_COMPANIES)
+                .document(companyId)
+                .update(updates)
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Company updated: " + companyId);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
     public void getCompanyById(String companyId, FirestoreCallback callback) {
         if (companyId == null || companyId.trim().isEmpty()) {
             callback.onFailure(new Exception("companyId is required"));

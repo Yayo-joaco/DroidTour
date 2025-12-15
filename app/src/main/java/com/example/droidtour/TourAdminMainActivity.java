@@ -348,7 +348,17 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.top_app_bar_general, menu);
+        getMenuInflater().inflate(R.menu.top_app_bar_admin, menu);
+        
+        // Configurar click del avatar
+        MenuItem profileItem = menu.findItem(R.id.action_profile);
+        if (profileItem != null && profileItem.getActionView() != null) {
+            profileItem.getActionView().setOnClickListener(v -> {
+                Intent intent = new Intent(this, AdminMyAccountActivity.class);
+                startActivity(intent);
+            });
+        }
+        
         return true;
     }
     
@@ -409,6 +419,10 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     private void initializeNotificationCounters() {
         tvPendingAlertsCount = findViewById(R.id.tv_pending_alerts_count);
         tvActiveChatCount = findViewById(R.id.tv_active_chats_count);
+        
+        // Inicializar en 0 para que se vea el valor mientras carga de Firebase
+        updatePendingAlertsCount(0);
+        updateActiveChatCount(0);
     }
     
     private void loadDashboardData() {
@@ -425,14 +439,14 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     private void updatePendingAlertsCount(int count) {
         if (tvPendingAlertsCount != null) {
             tvPendingAlertsCount.setText(String.valueOf(count));
-            tvPendingAlertsCount.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
+            tvPendingAlertsCount.setVisibility(View.VISIBLE);
         }
     }
     
     private void updateActiveChatCount(int count) {
         if (tvActiveChatCount != null) {
             tvActiveChatCount.setText(String.valueOf(count));
-            tvActiveChatCount.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
+            tvActiveChatCount.setVisibility(View.VISIBLE);
         }
     }
     

@@ -14,15 +14,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.firebase.FirestoreManager;
-import com.example.droidtour.models.Message;
+import com.example.droidtour.utils.ConversationHelper;
+import com.example.droidtour.utils.PresenceManager;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class AdminChatListActivity extends AppCompatActivity {
     
@@ -30,7 +29,10 @@ public class AdminChatListActivity extends AppCompatActivity {
     private RecyclerView rvClientChats;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
     private FirestoreManager firestoreManager;
+    private ConversationHelper conversationHelper;
+    private PresenceManager presenceManager;
     private String currentCompanyId;
+    private String currentUserId;
     private List<ClientChat> clientChatList = new ArrayList<>();
     private AdminClientChatsAdapter adapter;
 
@@ -59,6 +61,9 @@ public class AdminChatListActivity extends AppCompatActivity {
         setContentView(R.layout.activity_admin_chat_list);
         
         firestoreManager = FirestoreManager.getInstance();
+        conversationHelper = new ConversationHelper();
+        presenceManager = new PresenceManager();
+        currentUserId = prefsManager.getUserId();
         
         setupToolbar();
         initializeViews();
@@ -86,50 +91,46 @@ public class AdminChatListActivity extends AppCompatActivity {
     }
     
     private void loadClientChats() {
-        // Cargar mensajes de la empresa
-        firestoreManager.getMessagesByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+        // Cargar conversaciones de la empresa desde Realtime Database
+        conversationHelper.getConversationsForCompany(currentCompanyId, new ConversationHelper.ConversationsCallback() {
             @Override
-            public void onSuccess(Object result) {
-                List<Message> messages = (List<Message>) result;
-                
-                // Agrupar mensajes por cliente
-                Map<String, ClientChat> clientMap = new HashMap<>();
+            public void onConversationsLoaded(List<ConversationHelper.ConversationData> conversations) {
+                clientChatList.clear();
                 SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
                 
-                for (Message msg : messages) {
-                    String clientId = msg.getSenderId();
-                    String clientName = msg.getSenderName() != null ? msg.getSenderName() : "Cliente";
+                for (ConversationHelper.ConversationData conv : conversations) {
+                    String clientId = conv.getClientId();
+                    String clientName = conv.getClientName() != null ? conv.getClientName() : "Cliente";
+                    String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
                     
-                    ClientChat existing = clientMap.get(clientId);
-                    if (existing == null) {
-                        ClientChat chat = new ClientChat(
-                            clientId,
-                            clientName, 
-                            msg.getContent(), 
-                            msg.getCreatedAt() != null ? sdf.format(msg.getCreatedAt()) : "",
-                            !msg.getIsRead(),
-                            msg.getIsRead() ? 0 : 1
-                        );
-                        clientMap.put(clientId, chat);
-                    } else {
-                        // Actualizar con mensaje más reciente
-                        if (!msg.getIsRead()) {
-                            existing.unreadCount++;
-                            existing.hasUnreadMessages = true;
-                        }
+                    // Formatear timestamp
+                    long timestamp = conv.getLastMessageTimestamp();
+                    String timeStr = "";
+                    if (timestamp > 0) {
+                        timeStr = sdf.format(new java.util.Date(timestamp));
                     }
+                    
+                    // Obtener contador de no leídos (desde perspectiva del admin)
+                    int unreadCount = conv.getUnreadCountAdmin();
+                    
+                    ClientChat chat = new ClientChat(
+                        clientId,
+                        clientName,
+                        lastMessage,
+                        timeStr,
+                        unreadCount > 0,
+                        unreadCount
+                    );
+                    clientChatList.add(chat);
                 }
                 
-                clientChatList.clear();
-                clientChatList.addAll(clientMap.values());
                 adapter.updateData(clientChatList);
-                
                 Log.d(TAG, "Chats cargados: " + clientChatList.size());
             }
             
             @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error al cargar mensajes", e);
+            public void onError(Exception e) {
+                Log.e(TAG, "Error al cargar conversaciones", e);
                 Toast.makeText(AdminChatListActivity.this, "Error al cargar chats", Toast.LENGTH_SHORT).show();
             }
         });
@@ -162,8 +163,65 @@ public class AdminChatListActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // Establecer usuario como en línea
+        if (currentUserId != null) {
+            presenceManager.setOnline(currentUserId);
+        }
+        
         if (currentCompanyId != null) {
-            loadClientChats();
+            // Escuchar cambios en conversaciones en tiempo real
+            conversationHelper.listenToCompanyConversations(currentCompanyId, new ConversationHelper.ConversationsCallback() {
+                @Override
+                public void onConversationsLoaded(List<ConversationHelper.ConversationData> conversations) {
+                    clientChatList.clear();
+                    SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                    
+                    for (ConversationHelper.ConversationData conv : conversations) {
+                        String clientId = conv.getClientId();
+                        String clientName = conv.getClientName() != null ? conv.getClientName() : "Cliente";
+                        String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+                        
+                        long timestamp = conv.getLastMessageTimestamp();
+                        String timeStr = "";
+                        if (timestamp > 0) {
+                            timeStr = sdf.format(new java.util.Date(timestamp));
+                        }
+                        
+                        int unreadCount = conv.getUnreadCountAdmin();
+                        
+                        ClientChat chat = new ClientChat(
+                            clientId,
+                            clientName,
+                            lastMessage,
+                            timeStr,
+                            unreadCount > 0,
+                            unreadCount
+                        );
+                        clientChatList.add(chat);
+                    }
+                    
+                    adapter.updateData(clientChatList);
+                }
+                
+                @Override
+                public void onError(Exception e) {
+                    Log.e(TAG, "Error escuchando conversaciones", e);
+                }
+            });
+        }
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // El heartbeat seguirá actualizando lastSeen
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (presenceManager != null && currentUserId != null) {
+            presenceManager.setOffline(currentUserId);
         }
     }
     

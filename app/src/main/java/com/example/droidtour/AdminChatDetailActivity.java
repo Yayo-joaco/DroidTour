@@ -14,6 +14,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.example.droidtour.utils.ChatManagerRealtime;
+import com.example.droidtour.utils.PresenceManager;
+import com.example.droidtour.models.Message;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
 import android.view.inputmethod.InputMethodManager;
@@ -32,8 +35,15 @@ public class AdminChatDetailActivity extends AppCompatActivity {
     private TextInputEditText etMessage;
     private View rootLayout;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private ChatManagerRealtime chatManager;
+    private PresenceManager presenceManager;
     
+    private String clientId;
     private String clientName;
+    private String companyId;
+    private String conversationId;
+    private String currentUserId;
+    private String currentUserName;
     private AdminChatMessagesAdapter messagesAdapter;
     private List<AdminChatMessage> messagesList;
 
@@ -68,13 +78,29 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         setupClickListeners();
         setupInputBehavior();
         setupRecyclerView();
+        
+        // Inicializar managers
+        chatManager = new ChatManagerRealtime();
+        presenceManager = new PresenceManager();
+        currentUserId = prefsManager.getUserId();
+        currentUserName = prefsManager.getUserName();
+        
         loadChatData();
+        initializeConversation();
     }
     
     private void getIntentData() {
+        clientId = getIntent().getStringExtra("CLIENT_ID");
         clientName = getIntent().getStringExtra("CLIENT_NAME");
+        companyId = getIntent().getStringExtra("COMPANY_ID");
+        
         if (clientName == null) {
             clientName = "Cliente";
+        }
+        if (companyId == null) {
+            // Intentar obtener companyId del usuario actual
+            // Esto debería mejorarse obteniéndolo de Firestore
+            companyId = "unknown_company";
         }
     }
     
@@ -144,8 +170,6 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         messagesList = new ArrayList<>();
         messagesAdapter = new AdminChatMessagesAdapter(messagesList);
         rvMessages.setAdapter(messagesAdapter);
-        
-        loadSampleMessages();
     }
     
     private void loadChatData() {
@@ -153,45 +177,190 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         tvClientStatus.setText("En línea");
     }
     
-    private void loadSampleMessages() {
-        // Mensajes de ejemplo desde la perspectiva del administrador
-        // Los mensajes del cliente aparecen a la izquierda (gris)
-        // Los mensajes del administrador aparecen a la derecha (azul)
-        messagesList.add(new AdminChatMessage("Hola, buenas!", true, "14:20"));
-        messagesList.add(new AdminChatMessage("Me interesa comprar el top verde", true, "14:21"));
-        messagesList.add(new AdminChatMessage("¡Hola, buenas tardes!", false, "14:22"));
-        messagesList.add(new AdminChatMessage("Sí, claro. ¿Cómo pagará?", false, "14:23"));
-        messagesList.add(new AdminChatMessage("Con tarjeta.", true, "14:24"));
-        messagesList.add(new AdminChatMessage("¿Es seguro? nunca he comprado por esta app.", true, "14:25"));
-        messagesList.add(new AdminChatMessage("Sí, es seguro", false, "14:26"));
-        messagesList.add(new AdminChatMessage("La app tiene un sistema de protección contra robos y estafas", false, "14:27"));
-        messagesList.add(new AdminChatMessage("Perfecto! ¿Cómo es el envío?", true, "14:28"));
-        messagesList.add(new AdminChatMessage("Usted solo realiza la transacción y yo le enviaré un motorizado con un costo adicional de 5 soles.", false, "14:29"));
+    private void initializeConversation() {
+        if (clientId == null || companyId == null) {
+            Toast.makeText(this, "Error: falta información del cliente o empresa", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
         
-        messagesAdapter.notifyDataSetChanged();
-        rvMessages.scrollToPosition(messagesList.size() - 1);
+        // Crear o obtener conversación
+        chatManager.createOrGetConversation(
+            clientId,
+            companyId,
+            clientName,
+            currentUserName != null ? currentUserName : "Administrador",
+            new ChatManagerRealtime.ConversationCallback() {
+                @Override
+                public void onConversationCreated(String convId) {
+                    conversationId = convId;
+                    setupChat();
+                }
+                
+                @Override
+                public void onConversationFound(String convId) {
+                    conversationId = convId;
+                    setupChat();
+                }
+                
+                @Override
+                public void onError(Exception e) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(AdminChatDetailActivity.this, "Error al inicializar chat: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+                }
+            }
+        );
+    }
+    
+    private void setupChat() {
+        // Marcar todos los mensajes como leídos al abrir
+        chatManager.markAllMessagesAsRead(conversationId, currentUserId);
+        
+        // Escuchar mensajes en tiempo real
+        chatManager.listenForMessages(conversationId, new ChatManagerRealtime.MessagesListener() {
+            @Override
+            public void onNewMessage(Message message) {
+                runOnUiThread(() -> {
+                    AdminChatMessage chatMsg = convertToAdminChatMessage(message);
+                    messagesList.add(chatMsg);
+                    messagesAdapter.notifyItemInserted(messagesList.size() - 1);
+                    rvMessages.scrollToPosition(messagesList.size() - 1);
+                    
+                    // Marcar como entregado y leído si es del cliente
+                    if (message.getSenderId().equals(clientId)) {
+                        chatManager.markMessageAsDelivered(conversationId, message.getMessageId());
+                        chatManager.markMessageAsRead(conversationId, message.getMessageId());
+                    }
+                });
+            }
+            
+            @Override
+            public void onMessageUpdated(Message message) {
+                runOnUiThread(() -> {
+                    // Actualizar mensaje existente
+                    for (int i = 0; i < messagesList.size(); i++) {
+                        AdminChatMessage msg = messagesList.get(i);
+                        if (msg.message.equals(message.getMessageText())) {
+                            // Actualizar si es necesario
+                            break;
+                        }
+                    }
+                });
+            }
+            
+            @Override
+            public void onError(Exception e) {
+                runOnUiThread(() -> 
+                    Toast.makeText(AdminChatDetailActivity.this, "Error al recibir mensajes: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+        
+        // Escuchar estado en línea del cliente
+        if (clientId != null) {
+            presenceManager.listenToPresence(clientId, new PresenceManager.PresenceCallback() {
+                @Override
+                public void onPresenceChanged(String userId, boolean isOnline, long lastSeen) {
+                    runOnUiThread(() -> {
+                        if (isOnline) {
+                            tvClientStatus.setText("En línea");
+                        } else {
+                            if (lastSeen > 0) {
+                                long timeDiff = System.currentTimeMillis() / 1000 - lastSeen;
+                                if (timeDiff < 300) {
+                                    tvClientStatus.setText("Recientemente");
+                                } else {
+                                    tvClientStatus.setText("Desconectado");
+                                }
+                            } else {
+                                tvClientStatus.setText("Desconectado");
+                            }
+                        }
+                    });
+                }
+                
+                @Override
+                public void onError(Exception e) {
+                    // Ignorar errores de presencia
+                }
+            });
+        }
+    }
+    
+    private AdminChatMessage convertToAdminChatMessage(Message message) {
+        boolean isFromClient = message.getSenderId().equals(clientId);
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        String timeStr = "";
+        if (message.getTimestamp() != null) {
+            timeStr = sdf.format(message.getTimestamp().toDate());
+        }
+        return new AdminChatMessage(message.getMessageText(), isFromClient, timeStr);
     }
     
     private void sendMessage() {
         String messageText = etMessage.getText().toString().trim();
         
-        if (messageText.isEmpty()) {
+        if (messageText.isEmpty() || conversationId == null) {
             Toast.makeText(this, "Escriba un mensaje", Toast.LENGTH_SHORT).show();
             return;
         }
         
-        // Agregar mensaje a la lista
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
-        String currentTime = timeFormat.format(new Date());
+        // Construir Message
+        Message msg = new Message();
+        msg.setSenderId(currentUserId);
+        msg.setSenderName(currentUserName != null ? currentUserName : "Administrador");
+        msg.setReceiverId(clientId);
+        msg.setReceiverName(clientName);
+        msg.setSenderType(prefsManager.getUserType());
+        msg.setMessageText(messageText);
+        msg.setConversationId(conversationId);
+        msg.setCompanyId(companyId);
         
-        AdminChatMessage newMessage = new AdminChatMessage(messageText, false, currentTime); // false = mensaje del administrador
-        messagesList.add(newMessage);
-        messagesAdapter.notifyItemInserted(messagesList.size() - 1);
-        rvMessages.scrollToPosition(messagesList.size() - 1);
-        
-        etMessage.setText("");
-        
-        // TODO: Enviar mensaje a la base de datos
+        // Enviar mediante ChatManagerRealtime
+        chatManager.sendMessage(conversationId, msg, new ChatManagerRealtime.SendCallback() {
+            @Override
+            public void onSuccess(String messageId) {
+                runOnUiThread(() -> {
+                    etMessage.setText("");
+                    // El mensaje se agregará automáticamente cuando llegue por el listener
+                });
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                runOnUiThread(() -> 
+                    Toast.makeText(AdminChatDetailActivity.this, "Error al enviar: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Establecer usuario como en línea
+        if (currentUserId != null) {
+            presenceManager.setOnline(currentUserId);
+        }
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // El heartbeat seguirá actualizando lastSeen
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (chatManager != null) {
+            chatManager.stopListening();
+        }
+        if (presenceManager != null && currentUserId != null) {
+            presenceManager.setOffline(currentUserId);
+        }
     }
     
     @Override

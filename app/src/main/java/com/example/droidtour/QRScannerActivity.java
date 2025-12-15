@@ -67,6 +67,7 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         }
 
         setContentView(R.layout.activity_qr_scanner);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         initializeViews();
         setupToolbar();

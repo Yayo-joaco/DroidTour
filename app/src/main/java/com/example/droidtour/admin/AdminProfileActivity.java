@@ -34,11 +34,12 @@ public class AdminProfileActivity extends AppCompatActivity {
 
     private ImageView ivProfileImage;
     private TextView tvUserName, tvUserEmail, tvUserRole;
-    private TextView tvFirstName, tvLastName, tvBirthDate;
+    private TextView tvFirstName, tvLastName;
     private TextView tvDocumentType, tvDocumentNumber, tvPhone;
     private TextView tvToursCount, tvRating, tvMemberSince;
     private CardView cardLanguages;
     private FloatingActionButton fabEdit;
+    private View rowBirthDate, dividerBeforeBirthDate, dividerAfterBirthDate;
 
     private PreferencesManager prefsManager;
     private FirestoreManager firestoreManager;
@@ -95,8 +96,17 @@ public class AdminProfileActivity extends AppCompatActivity {
         // Información personal
         tvFirstName = findViewById(R.id.tv_first_name);
         tvLastName = findViewById(R.id.tv_last_name);
-        tvBirthDate = findViewById(R.id.tv_birth_date);
         tvDocumentType = findViewById(R.id.tv_document_type);
+        
+        // Fecha de nacimiento (ocultar para admin)
+        rowBirthDate = findViewById(R.id.row_birth_date);
+        dividerBeforeBirthDate = findViewById(R.id.divider_before_birth_date);
+        dividerAfterBirthDate = findViewById(R.id.divider_after_birth_date);
+        
+        // Ocultar fecha de nacimiento
+        if (rowBirthDate != null) rowBirthDate.setVisibility(View.GONE);
+        if (dividerBeforeBirthDate != null) dividerBeforeBirthDate.setVisibility(View.GONE);
+        if (dividerAfterBirthDate != null) dividerAfterBirthDate.setVisibility(View.GONE);
         tvDocumentNumber = findViewById(R.id.tv_document_number);
         tvPhone = findViewById(R.id.tv_phone);
 
@@ -166,10 +176,6 @@ public class AdminProfileActivity extends AppCompatActivity {
             tvFirstName.setText(pd.getFirstName() != null ? pd.getFirstName() : "N/A");
             tvLastName.setText(pd.getLastName() != null ? pd.getLastName() : "N/A");
             
-            // Fecha de nacimiento
-            String birthDateStr = pd.getDateOfBirth();
-            tvBirthDate.setText(birthDateStr != null && !birthDateStr.isEmpty() ? birthDateStr : "N/A");
-            
             // Documento
             tvDocumentType.setText(pd.getDocumentType() != null ? pd.getDocumentType() : "DNI");
             tvDocumentNumber.setText(pd.getDocumentNumber() != null ? pd.getDocumentNumber() : "N/A");
@@ -179,7 +185,6 @@ public class AdminProfileActivity extends AppCompatActivity {
         } else {
             tvFirstName.setText(user.getFirstName() != null ? user.getFirstName() : "N/A");
             tvLastName.setText(user.getLastName() != null ? user.getLastName() : "N/A");
-            tvBirthDate.setText("N/A");
             tvDocumentType.setText("DNI");
             tvDocumentNumber.setText("N/A");
             tvPhone.setText("N/A");
@@ -203,7 +208,6 @@ public class AdminProfileActivity extends AppCompatActivity {
 
         tvFirstName.setText("N/A");
         tvLastName.setText("N/A");
-        tvBirthDate.setText("N/A");
         tvDocumentType.setText("DNI");
         tvDocumentNumber.setText("N/A");
         tvPhone.setText("N/A");

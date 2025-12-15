@@ -33,6 +33,8 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.UUID;
 
+import com.example.droidtour.models.Service;
+
 public class CreateTourActivity extends AppCompatActivity {
     
     private static final String TAG = "CreateTourActivity";
@@ -42,11 +44,15 @@ public class CreateTourActivity extends AppCompatActivity {
     private TextInputEditText etStartDate, etEndDate;
     private MaterialButton btnAddLocation, btnAddImages;
     private ExtendedFloatingActionButton btnSave;
-    private RecyclerView rvLocations, rvTourImages;
-    private CheckBox cbBreakfast, cbLunch, cbDinner, cbTransport;
-    // ivTourPreview y progressBar son opcionales (pueden no existir en el layout)
+    private RecyclerView rvLocations, rvTourImages, rvServices;
+    private android.widget.TextView tvNoServices, tvImagesCount;
+    private android.widget.LinearLayout placeholderImages;
+    private TourImagesAdapter tourImagesAdapter;
+    private static final int MAX_IMAGES = 5;
+    
     private com.example.droidtour.utils.PreferencesManager prefsManager;
     private FirestoreManager firestoreManager;
+    private com.example.droidtour.firebase.FirebaseStorageManager storageManager;
     
     private List<String> selectedLanguages = new ArrayList<>();
     private List<Uri> selectedImageUris = new ArrayList<>();
@@ -54,6 +60,16 @@ public class CreateTourActivity extends AppCompatActivity {
     private String mainImageUrl = null;
     private String currentUserId;
     private String currentCompanyId;
+    private String currentCompanyName;
+    
+    // Servicios de la empresa
+    private List<Service> companyServices = new ArrayList<>();
+    private List<String> selectedServiceIds = new ArrayList<>();
+    private List<String> selectedServiceNames = new ArrayList<>();
+    private ServiceCheckboxAdapter serviceAdapter;
+    
+    // Paradas del tour
+    private List<TourLocation> tourLocations = new ArrayList<>();
     
     // Launcher para seleccionar imágenes
     private ActivityResultLauncher<Intent> imagePickerLauncher;
@@ -85,6 +101,7 @@ public class CreateTourActivity extends AppCompatActivity {
         
         // Inicializar Firebase
         firestoreManager = FirestoreManager.getInstance();
+        storageManager = com.example.droidtour.firebase.FirebaseStorageManager.getInstance();
         currentUserId = prefsManager.getUserId();
         
         // Obtener companyId del usuario (si es COMPANY_ADMIN)
@@ -107,6 +124,12 @@ public class CreateTourActivity extends AppCompatActivity {
                 if (user != null && user.getCompanyId() != null) {
                     currentCompanyId = user.getCompanyId();
                     Log.d(TAG, "CompanyId cargado: " + currentCompanyId);
+                    
+                    // Cargar nombre de la empresa
+                    loadCompanyName();
+                    
+                    // Cargar servicios de la empresa
+                    loadCompanyServices();
                 }
             }
             
@@ -117,6 +140,83 @@ public class CreateTourActivity extends AppCompatActivity {
         });
     }
     
+    private void loadCompanyName() {
+        firestoreManager.getCompanyById(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.Company company = (com.example.droidtour.models.Company) result;
+                if (company != null) {
+                    currentCompanyName = company.getCommercialName();
+                    if (currentCompanyName == null || currentCompanyName.isEmpty()) {
+                        currentCompanyName = company.getBusinessName();
+                    }
+                    Log.d(TAG, "CompanyName cargado: " + currentCompanyName);
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al cargar nombre de empresa", e);
+            }
+        });
+    }
+    
+    private void loadCompanyServices() {
+        firestoreManager.getServicesByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Service> services = (List<Service>) result;
+                companyServices.clear();
+                if (services != null && !services.isEmpty()) {
+                    companyServices.addAll(services);
+                    setupServicesRecyclerView();
+                    if (tvNoServices != null) {
+                        tvNoServices.setVisibility(View.GONE);
+                    }
+                    if (rvServices != null) {
+                        rvServices.setVisibility(View.VISIBLE);
+                    }
+                } else {
+                    if (tvNoServices != null) {
+                        tvNoServices.setVisibility(View.VISIBLE);
+                    }
+                    if (rvServices != null) {
+                        rvServices.setVisibility(View.GONE);
+                    }
+                }
+                Log.d(TAG, "Servicios cargados: " + companyServices.size());
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al cargar servicios", e);
+                if (tvNoServices != null) {
+                    tvNoServices.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+    
+    private void setupServicesRecyclerView() {
+        if (rvServices != null) {
+            rvServices.setLayoutManager(new LinearLayoutManager(this));
+            serviceAdapter = new ServiceCheckboxAdapter(companyServices, (serviceId, serviceName, isChecked) -> {
+                if (isChecked) {
+                    if (!selectedServiceIds.contains(serviceId)) {
+                        selectedServiceIds.add(serviceId);
+                    }
+                    if (!selectedServiceNames.contains(serviceName)) {
+                        selectedServiceNames.add(serviceName);
+                    }
+                } else {
+                    selectedServiceIds.remove(serviceId);
+                    selectedServiceNames.remove(serviceName);
+                }
+            });
+            rvServices.setAdapter(serviceAdapter);
+        }
+    }
+    
     private void setupImagePicker() {
         imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -124,20 +224,36 @@ public class CreateTourActivity extends AppCompatActivity {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Intent data = result.getData();
                     
+                    int addedCount = 0;
+                    
                     // Verificar si se seleccionaron múltiples imágenes
                     if (data.getClipData() != null) {
                         int count = data.getClipData().getItemCount();
-                        for (int i = 0; i < count && selectedImageUris.size() < 5; i++) {
+                        for (int i = 0; i < count && selectedImageUris.size() < MAX_IMAGES; i++) {
                             Uri imageUri = data.getClipData().getItemAt(i).getUri();
-                            selectedImageUris.add(imageUri);
+                            if (!selectedImageUris.contains(imageUri)) {
+                                selectedImageUris.add(imageUri);
+                                addedCount++;
+                            }
                         }
-                    } else if (data.getData() != null) {
+                    } else if (data.getData() != null && selectedImageUris.size() < MAX_IMAGES) {
                         // Una sola imagen
-                        selectedImageUris.add(data.getData());
+                        Uri imageUri = data.getData();
+                        if (!selectedImageUris.contains(imageUri)) {
+                            selectedImageUris.add(imageUri);
+                            addedCount++;
+                        }
                     }
                     
-                    Toast.makeText(this, selectedImageUris.size() + " imagen(es) seleccionada(s)", 
-                        Toast.LENGTH_SHORT).show();
+                    if (addedCount > 0) {
+                        if (tourImagesAdapter != null) {
+                            tourImagesAdapter.notifyDataSetChanged();
+                        }
+                        updateImagesUI();
+                        Toast.makeText(this, "✅ " + addedCount + " imagen(es) agregada(s)", Toast.LENGTH_SHORT).show();
+                    } else if (selectedImageUris.size() >= MAX_IMAGES) {
+                        Toast.makeText(this, "⚠️ Límite de 5 imágenes alcanzado", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         );
@@ -165,11 +281,65 @@ public class CreateTourActivity extends AppCompatActivity {
         
         rvLocations = findViewById(R.id.rv_locations);
         rvTourImages = findViewById(R.id.rv_tour_images);
-
-        cbBreakfast = findViewById(R.id.cb_breakfast);
-        cbLunch = findViewById(R.id.cb_lunch);
-        cbDinner = findViewById(R.id.cb_dinner);
-        cbTransport = findViewById(R.id.cb_transport);
+        rvServices = findViewById(R.id.rv_services);
+        tvNoServices = findViewById(R.id.tv_no_services);
+        tvImagesCount = findViewById(R.id.tv_images_count);
+        placeholderImages = findViewById(R.id.placeholder_images);
+        
+        // Configurar RecyclerView de imágenes
+        setupImagesRecyclerView();
+    }
+    
+    private void setupImagesRecyclerView() {
+        if (rvTourImages != null) {
+            rvTourImages.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            tourImagesAdapter = new TourImagesAdapter(selectedImageUris, position -> {
+                // Eliminar imagen
+                if (position >= 0 && position < selectedImageUris.size()) {
+                    selectedImageUris.remove(position);
+                    tourImagesAdapter.notifyDataSetChanged();
+                    updateImagesUI();
+                }
+            });
+            rvTourImages.setAdapter(tourImagesAdapter);
+        }
+    }
+    
+    private void updateImagesUI() {
+        int count = selectedImageUris.size();
+        
+        // Actualizar contador
+        if (tvImagesCount != null) {
+            tvImagesCount.setText("Agrega hasta 5 imágenes para mostrar tu tour (" + count + "/5)");
+        }
+        
+        // Actualizar texto del botón
+        if (btnAddImages != null) {
+            if (count >= MAX_IMAGES) {
+                btnAddImages.setText("Límite alcanzado (5/5)");
+                btnAddImages.setEnabled(false);
+            } else {
+                btnAddImages.setText("Agregar más imágenes (" + count + "/5)");
+                btnAddImages.setEnabled(true);
+            }
+        }
+        
+        // Mostrar/ocultar placeholder y RecyclerView
+        if (count > 0) {
+            if (placeholderImages != null) {
+                placeholderImages.setVisibility(View.GONE);
+            }
+            if (rvTourImages != null) {
+                rvTourImages.setVisibility(View.VISIBLE);
+            }
+        } else {
+            if (placeholderImages != null) {
+                placeholderImages.setVisibility(View.VISIBLE);
+            }
+            if (rvTourImages != null) {
+                rvTourImages.setVisibility(View.GONE);
+            }
+        }
     }
     
     private void setupClickListeners() {
@@ -188,6 +358,11 @@ public class CreateTourActivity extends AppCompatActivity {
         // Botón para agregar imágenes
         if (btnAddImages != null) {
             btnAddImages.setOnClickListener(v -> openImagePicker());
+        }
+        
+        // Placeholder también abre selector de imágenes
+        if (placeholderImages != null) {
+            placeholderImages.setOnClickListener(v -> openImagePicker());
         }
 
         if (btnSave != null) {
@@ -334,49 +509,24 @@ public class CreateTourActivity extends AppCompatActivity {
     
     private void uploadImagesAndSaveTour(String tourName) {
         uploadedImageUrls.clear();
-        uploadNextImage(tourName, 0);
-    }
-    
-    private void uploadNextImage(String tourName, int index) {
-        if (index >= selectedImageUris.size()) {
-            // Todas las imágenes subidas, guardar el tour
-            String mainImage = uploadedImageUrls.isEmpty() ? null : uploadedImageUrls.get(0);
-            saveTourToFirestore(tourName, mainImage);
-            return;
-        }
         
-        Uri imageUri = selectedImageUris.get(index);
+        Toast.makeText(this, "Subiendo " + selectedImageUris.size() + " imagen(es)...", Toast.LENGTH_SHORT).show();
         
-        // Crear nombre de archivo: tours_images/nombre_del_tour_1.jpg
-        String cleanTourName = tourName.replaceAll("[^a-zA-Z0-9]", "_").toLowerCase();
-        String fileName = cleanTourName + "_" + (index + 1) + "_" + UUID.randomUUID().toString().substring(0, 8) + ".jpg";
-        
-        StorageReference storageRef = FirebaseStorage.getInstance().getReference();
-        StorageReference imageRef = storageRef.child("tours_images/" + fileName);
-        
-        Log.d(TAG, "Subiendo imagen " + (index + 1) + "/" + selectedImageUris.size() + ": " + fileName);
-        
-        imageRef.putFile(imageUri)
-            .addOnSuccessListener(taskSnapshot -> {
-                // Obtener URL de descarga
-                imageRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
-                    uploadedImageUrls.add(downloadUri.toString());
-                    Log.d(TAG, "Imagen subida: " + downloadUri.toString());
-                    
-                    // Subir la siguiente imagen
-                    uploadNextImage(tourName, index + 1);
-                });
-            })
-            .addOnFailureListener(e -> {
-                Log.e(TAG, "Error al subir imagen", e);
-                Toast.makeText(this, "Error al subir imagen: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                
-                // Continuar con la siguiente imagen aunque falle esta
-                uploadNextImage(tourName, index + 1);
-            })
-            .addOnProgressListener(snapshot -> {
-                double progress = (100.0 * snapshot.getBytesTransferred()) / snapshot.getTotalByteCount();
-                Log.d(TAG, "Progreso de subida: " + progress + "%");
+        // Usar FirebaseStorageManager para subir todas las imágenes
+        storageManager.uploadTourImages(tourName, selectedImageUris, 
+            new com.example.droidtour.firebase.FirebaseStorageManager.MultipleUploadCallback() {
+                @Override
+                public void onComplete(java.util.List<String> downloadUrls) {
+                    runOnUiThread(() -> {
+                        uploadedImageUrls.clear();
+                        uploadedImageUrls.addAll(downloadUrls);
+                        
+                        Log.d(TAG, "Imágenes subidas: " + uploadedImageUrls.size());
+                        
+                        String mainImage = uploadedImageUrls.isEmpty() ? null : uploadedImageUrls.get(0);
+                        saveTourToFirestore(tourName, mainImage);
+                    });
+                }
             });
     }
     
@@ -391,8 +541,9 @@ public class CreateTourActivity extends AppCompatActivity {
         tour.setTourName(tourName);
         tour.setDescription(description);
         tour.setPricePerPerson(price);
-        tour.setDuration(duration + " horas");
+        tour.setDuration(duration);
         tour.setCompanyId(currentCompanyId);
+        tour.setCompanyName(currentCompanyName);
         tour.setLanguages(selectedLanguages);
         tour.setMainImageUrl(mainImage);
         tour.setImageUrls(uploadedImageUrls.isEmpty() ? null : uploadedImageUrls);
@@ -402,13 +553,18 @@ public class CreateTourActivity extends AppCompatActivity {
         tour.setTotalReviews(0);
         tour.setTotalBookings(0);
         
-        // Servicios incluidos
-        List<String> includedServices = new ArrayList<>();
-        if (cbBreakfast != null && cbBreakfast.isChecked()) includedServices.add("Desayuno");
-        if (cbLunch != null && cbLunch.isChecked()) includedServices.add("Almuerzo");
-        if (cbDinner != null && cbDinner.isChecked()) includedServices.add("Cena");
-        if (cbTransport != null && cbTransport.isChecked()) includedServices.add("Transporte");
-        tour.setIncludedServices(includedServices);
+        // Servicios incluidos (nombres e IDs)
+        tour.setIncludedServices(selectedServiceNames.isEmpty() ? null : new ArrayList<>(selectedServiceNames));
+        tour.setIncludedServiceIds(selectedServiceIds.isEmpty() ? null : new ArrayList<>(selectedServiceIds));
+        
+        // Paradas del tour
+        if (!tourLocations.isEmpty()) {
+            List<Tour.TourStop> stops = new ArrayList<>();
+            for (TourLocation loc : tourLocations) {
+                stops.add(new Tour.TourStop(loc.lat, loc.lng, loc.name, loc.order));
+            }
+            tour.setStops(stops);
+        }
         
         // Guardar en Firestore
         firestoreManager.createTour(tour, new FirestoreManager.FirestoreCallback() {
@@ -457,11 +613,68 @@ public class CreateTourActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == REQ_LOCATIONS && resultCode == RESULT_OK) {
-            ArrayList<TourLocation> locations =
-                    data.getParcelableArrayListExtra("locations");
-
-            // Actualiza UI resumen
+        if (requestCode == REQ_LOCATIONS && resultCode == RESULT_OK && data != null) {
+            ArrayList<TourLocation> locations = data.getParcelableArrayListExtra("locations");
+            
+            if (locations != null && !locations.isEmpty()) {
+                tourLocations.clear();
+                tourLocations.addAll(locations);
+                
+                // Mostrar resumen de paradas
+                Toast.makeText(this, "✅ " + tourLocations.size() + " parada(s) agregada(s)", Toast.LENGTH_SHORT).show();
+                
+                // Actualizar UI - mostrar lista de paradas
+                updateLocationsUI();
+            }
+        }
+    }
+    
+    private void updateLocationsUI() {
+        if (rvLocations != null && !tourLocations.isEmpty()) {
+            rvLocations.setLayoutManager(new LinearLayoutManager(this));
+            rvLocations.setAdapter(new LocationsAdapter(tourLocations));
+        }
+    }
+    
+    // Adapter simple para mostrar las ubicaciones seleccionadas
+    private class LocationsAdapter extends RecyclerView.Adapter<LocationsAdapter.ViewHolder> {
+        private List<TourLocation> locations;
+        
+        LocationsAdapter(List<TourLocation> locations) {
+            this.locations = locations;
+        }
+        
+        @Override
+        public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
+            View view = android.view.LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_tour_location, parent, false);
+            return new ViewHolder(view);
+        }
+        
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position) {
+            TourLocation location = locations.get(position);
+            if (holder.tvLocationName != null) {
+                holder.tvLocationName.setText(location.name != null ? location.name : "Parada " + (position + 1));
+            }
+            if (holder.tvLocationOrder != null) {
+                holder.tvLocationOrder.setText(String.valueOf(position + 1));
+            }
+        }
+        
+        @Override
+        public int getItemCount() {
+            return locations.size();
+        }
+        
+        class ViewHolder extends RecyclerView.ViewHolder {
+            android.widget.TextView tvLocationName, tvLocationOrder;
+            
+            ViewHolder(View itemView) {
+                super(itemView);
+                tvLocationName = itemView.findViewById(R.id.tv_location_name);
+                tvLocationOrder = itemView.findViewById(R.id.tv_location_order);
+            }
         }
     }
 

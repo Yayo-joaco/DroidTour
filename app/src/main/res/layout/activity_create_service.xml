@@ -63,29 +63,43 @@
                         android:clickable="true"
                         android:focusable="true">
 
-                        <LinearLayout
+                        <FrameLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:orientation="vertical"
-                            android:gravity="center"
                             android:background="@color/light_gray">
 
+                            <!-- Imagen seleccionada -->
                             <ImageView
                                 android:id="@+id/iv_service_image1"
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@android:drawable/ic_menu_camera"
-                                android:tint="@color/gray" />
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:scaleType="centerCrop"
+                                android:visibility="gone" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Imagen 1"
-                                android:textSize="12sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="8dp" />
+                            <!-- Placeholder -->
+                            <LinearLayout
+                                android:id="@+id/placeholder_image1"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center">
 
-                        </LinearLayout>
+                                <ImageView
+                                    android:layout_width="48dp"
+                                    android:layout_height="48dp"
+                                    android:src="@android:drawable/ic_menu_camera"
+                                    android:tint="@color/gray" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Imagen 1"
+                                    android:textSize="12sp"
+                                    android:textColor="@color/gray"
+                                    android:layout_marginTop="8dp" />
+                            </LinearLayout>
+
+                        </FrameLayout>
 
                     </com.google.android.material.card.MaterialCardView>
 
@@ -100,29 +114,43 @@
                         android:clickable="true"
                         android:focusable="true">
 
-                        <LinearLayout
+                        <FrameLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:orientation="vertical"
-                            android:gravity="center"
                             android:background="@color/light_gray">
 
+                            <!-- Imagen seleccionada -->
                             <ImageView
                                 android:id="@+id/iv_service_image2"
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@android:drawable/ic_menu_camera"
-                                android:tint="@color/gray" />
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:scaleType="centerCrop"
+                                android:visibility="gone" />
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Imagen 2"
-                                android:textSize="12sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="8dp" />
+                            <!-- Placeholder -->
+                            <LinearLayout
+                                android:id="@+id/placeholder_image2"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:gravity="center">
 
-                        </LinearLayout>
+                                <ImageView
+                                    android:layout_width="48dp"
+                                    android:layout_height="48dp"
+                                    android:src="@android:drawable/ic_menu_camera"
+                                    android:tint="@color/gray" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Imagen 2"
+                                    android:textSize="12sp"
+                                    android:textColor="@color/gray"
+                                    android:layout_marginTop="8dp" />
+                            </LinearLayout>
+
+                        </FrameLayout>
 
                     </com.google.android.material.card.MaterialCardView>
 
@@ -184,41 +212,6 @@
                         android:inputType="numberDecimal" />
 
                 </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Services Included Section -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Servicios Incluidos"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary"
-                    android:layout_marginBottom="16dp" />
-
-                <CheckBox
-                    android:id="@+id/cb_breakfast"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Desayuno" />
-
-                <CheckBox
-                    android:id="@+id/cb_lunch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Almuerzo" />
-
-                <CheckBox
-                    android:id="@+id/cb_dinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Cena" />
-
-                <CheckBox
-                    android:id="@+id/cb_transport"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Transporte"
-                    android:layout_marginBottom="24dp" />
 
                 <!-- Action Buttons -->
                 <LinearLayout

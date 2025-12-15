@@ -15,6 +15,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.example.droidtour.admin.CompanyInfoActivity;
 import com.example.droidtour.admin.CreateServiceActivity;
+import com.example.droidtour.admin.ServiceManagementActivity;
 import com.example.droidtour.admin.CreateTourActivity;
 import com.example.droidtour.admin.TourManagementActivity;
 import com.example.droidtour.firebase.FirestoreManager;
@@ -43,7 +44,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     private TextView tvWelcomeAdmin, tvCompanyName, tvPendingAlertsCount, tvActiveChatCount;
     private TextView tvAdminNameHeader, tvCompanyNameHeader;
     private MaterialCardView cardAlerts, cardCustomerChat, cardReports;
-    private MaterialCardView cardCompanyInfo, cardCreateTour, cardCreateService;
+    private MaterialCardView cardCreateTour, cardCreateService;
     private MaterialCardView cardGuideManagement, cardGuideTracking;
 
     // Storage
@@ -96,9 +97,6 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         cardCustomerChat = findViewById(R.id.card_customer_chat);
         cardReports = findViewById(R.id.card_reports);
 
-        // Gestión de Empresa
-        cardCompanyInfo = findViewById(R.id.card_company_info);
-
         // Gestión de Tours
         cardCreateTour = findViewById(R.id.card_create_tour);
         cardCreateService = findViewById(R.id.card_create_service);
@@ -142,12 +140,6 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
             startActivity(intent);
         });
 
-        // Gestión de Empresa
-        cardCompanyInfo.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, CompanyInfoActivity.class);
-            startActivity(intent);
-        });
-
         // Gestión de Tours
         cardCreateTour.setOnClickListener(v -> {
             Intent intent = new Intent(TourAdminMainActivity.this, CreateTourActivity.class);
@@ -155,7 +147,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         });
 
         cardCreateService.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, CreateServiceActivity.class);
+            Intent intent = new Intent(TourAdminMainActivity.this, ServiceManagementActivity.class);
             startActivity(intent);
         });
 

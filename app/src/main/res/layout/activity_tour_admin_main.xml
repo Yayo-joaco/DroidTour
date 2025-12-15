@@ -348,93 +348,6 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Sección: Gestión de Empresa -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginTop="24dp"
-                    android:paddingHorizontal="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Gestión de Empresa"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:layout_marginBottom="12dp" />
-
-                    <!-- Info Empresa -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_company_info"
-                        android:layout_width="match_parent"
-                        android:layout_height="80dp"
-                        android:layout_marginBottom="12dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="2dp"
-                        app:cardBackgroundColor="@color/white"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?android:attr/selectableItemBackground">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:padding="16dp">
-
-                            <FrameLayout
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:layout_marginEnd="16dp">
-
-                                <View
-                                    android:layout_width="48dp"
-                                    android:layout_height="48dp"
-                                    android:background="@drawable/bg_icon_blue" />
-
-                                <ImageView
-                                    android:layout_width="24dp"
-                                    android:layout_height="24dp"
-                                    android:layout_gravity="center"
-                                    android:src="@android:drawable/ic_menu_info_details"
-                                    app:tint="#2196F3" />
-                            </FrameLayout>
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Info Empresa"
-                                    android:textSize="16sp"
-                                    android:textStyle="bold"
-                                    android:textColor="@color/black" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Ver y editar información"
-                                    android:textSize="13sp"
-                                    android:textColor="#757575"
-                                    android:layout_marginTop="2dp" />
-                            </LinearLayout>
-
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:src="@drawable/ic_chevron_right"
-                                app:tint="#BDBDBD" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-                </LinearLayout>
-
                 <!-- Sección: Gestión de Tours -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -550,7 +463,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Crear Servicio"
+                                    android:text="Servicios"
                                     android:textSize="14sp"
                                     android:textStyle="bold"
                                     android:textColor="@color/black"

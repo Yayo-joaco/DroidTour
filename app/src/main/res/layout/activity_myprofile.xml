@@ -236,12 +236,14 @@
                             </LinearLayout>
 
                             <View
+                                android:id="@+id/divider_before_birth_date"
                                 android:layout_width="match_parent"
                                 android:layout_height="1dp"
                                 android:background="#F5F5F5"/>
 
                             <!-- Fecha de Nacimiento -->
                             <LinearLayout
+                                android:id="@+id/row_birth_date"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal"
@@ -266,6 +268,7 @@
                             </LinearLayout>
 
                             <View
+                                android:id="@+id/divider_after_birth_date"
                                 android:layout_width="match_parent"
                                 android:layout_height="1dp"
                                 android:background="#F5F5F5"/>

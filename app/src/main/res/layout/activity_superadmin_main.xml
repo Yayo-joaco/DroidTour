@@ -78,7 +78,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:padding="12dp"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp"
                 android:gravity="center"
                 android:background="@color/primary"
                 android:visibility="visible">
@@ -86,96 +87,96 @@
                 <!-- Selector para Día y Semana (calendario) -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_select_date"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_weight="1"
                     android:text="Seleccionar día"
                     android:textColor="@android:color/white"
-                    android:textSize="14sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"
+                    android:minHeight="56dp"
                     app:icon="@android:drawable/ic_menu_my_calendar"
                     app:iconTint="@android:color/white"
                     app:iconGravity="textStart"
-                    app:iconPadding="8dp"
+                    app:iconPadding="12dp"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     app:strokeColor="@android:color/white"
                     app:strokeWidth="2dp"
-                    app:cornerRadius="8dp"
+                    app:cornerRadius="12dp"
                     android:visibility="gone" />
 
                 <!-- Selectores para Mes (mes y año) -->
                 <LinearLayout
                     android:id="@+id/month_selection_layout"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:visibility="gone">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Mes:"
-                        android:textColor="@android:color/white"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:layout_marginEnd="8dp" />
-
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/til_month"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                        android:layout_width="120dp"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:hint="Mes"
-                        app:boxStrokeColor="@android:color/white"
-                        app:hintTextColor="@android:color/white"
-                        app:boxCornerRadiusTopStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusBottomEnd="8dp"
-                        app:startIconTint="@android:color/white">
+                        android:minHeight="56dp"
+                        app:boxStrokeColor="@color/white_stroke_color"
+                        app:hintTextColor="@color/white_hint_color"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:boxStrokeWidth="2dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:boxBackgroundColor="@android:color/transparent"
+                        app:startIconTint="@android:color/white"
+                        app:endIconTint="@android:color/white">
 
                         <AutoCompleteTextView
                             android:id="@+id/spinner_month"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="56dp"
                             android:inputType="none"
-                            android:textSize="14sp"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
                             android:textColor="@android:color/white"
-                            android:textColorHint="@android:color/white" />
+                            android:textColorHint="@android:color/white"
+                            android:paddingVertical="16dp" />
                     </com.google.android.material.textfield.TextInputLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Año:"
-                        android:textColor="@android:color/white"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="8dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/til_year"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                        android:layout_width="100dp"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:hint="Año"
-                        app:boxStrokeColor="@android:color/white"
-                        app:hintTextColor="@android:color/white"
-                        app:boxCornerRadiusTopStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusBottomEnd="8dp"
-                        app:startIconTint="@android:color/white">
+                        android:minHeight="56dp"
+                        android:layout_marginStart="12dp"
+                        app:boxStrokeColor="@color/white_stroke_color"
+                        app:hintTextColor="@color/white_hint_color"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:boxStrokeWidth="2dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:boxBackgroundColor="@android:color/transparent"
+                        app:startIconTint="@android:color/white"
+                        app:endIconTint="@android:color/white">
 
                         <AutoCompleteTextView
                             android:id="@+id/spinner_year"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="56dp"
                             android:inputType="none"
-                            android:textSize="14sp"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
                             android:textColor="@android:color/white"
-                            android:textColorHint="@android:color/white" />
+                            android:textColorHint="@android:color/white"
+                            android:paddingVertical="16dp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
@@ -183,43 +184,42 @@
                 <!-- Selector para Año (solo año) -->
                 <LinearLayout
                     android:id="@+id/year_selection_layout"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:visibility="gone">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Año:"
-                        android:textColor="@android:color/white"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:layout_marginEnd="8dp" />
-
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/til_year_only"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-                        android:layout_width="100dp"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:hint="Año"
-                        app:boxStrokeColor="@android:color/white"
-                        app:hintTextColor="@android:color/white"
-                        app:boxCornerRadiusTopStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusBottomEnd="8dp"
-                        app:startIconTint="@android:color/white">
+                        android:minHeight="56dp"
+                        app:boxStrokeColor="@color/white_stroke_color"
+                        app:hintTextColor="@color/white_hint_color"
+                        app:boxCornerRadiusTopStart="12dp"
+                        app:boxCornerRadiusTopEnd="12dp"
+                        app:boxCornerRadiusBottomStart="12dp"
+                        app:boxCornerRadiusBottomEnd="12dp"
+                        app:boxStrokeWidth="2dp"
+                        app:boxStrokeWidthFocused="2dp"
+                        app:boxBackgroundColor="@android:color/transparent"
+                        app:startIconTint="@android:color/white"
+                        app:endIconTint="@android:color/white">
 
                         <AutoCompleteTextView
                             android:id="@+id/spinner_year_only"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="56dp"
                             android:inputType="none"
-                            android:textSize="14sp"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
                             android:textColor="@android:color/white"
-                            android:textColorHint="@android:color/white" />
+                            android:textColorHint="@android:color/white"
+                            android:paddingVertical="16dp" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
@@ -506,7 +506,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Ingresos Mensuales"
+                                android:text="Ingresos"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"
@@ -600,7 +600,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Reservas por Mes"
+                                android:text="Cantidad de reservas"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"
@@ -646,7 +646,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Personas por Mes"
+                                android:text="Cantidad de personas"
                                 android:textSize="18sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/black"

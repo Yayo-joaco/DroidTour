@@ -25,7 +25,7 @@ public class Tour {
     private Integer maxGroupSize;
     private List<String> languages; // ["ES", "EN", "FR"]
     private List<String> includedServices; // ["Transporte", "Guía", "Almuerzo"]
-    private List<String> notIncludedServices;
+    private List<String> includedServiceIds; // IDs de servicios de la empresa
     private String meetingPoint;
     private String departureTime;
     private List<String> imageUrls;
@@ -33,6 +33,9 @@ public class Tour {
     
     // Campos para el itinerario
     private List<ItineraryPoint> itinerary;
+    
+    // Paradas del tour (ubicaciones en el mapa)
+    private List<TourStop> stops;
     
     // Campos para estadísticas
     private Double averageRating;
@@ -94,6 +97,33 @@ public class Tour {
         public void setDuration(String duration) { this.duration = duration; }
     }
 
+    // Clase interna para paradas del tour
+    public static class TourStop {
+        private double latitude;
+        private double longitude;
+        private String name;
+        private int order;
+
+        public TourStop() {}
+
+        public TourStop(double latitude, double longitude, String name, int order) {
+            this.latitude = latitude;
+            this.longitude = longitude;
+            this.name = name;
+            this.order = order;
+        }
+
+        // Getters y Setters
+        public double getLatitude() { return latitude; }
+        public void setLatitude(double latitude) { this.latitude = latitude; }
+        public double getLongitude() { return longitude; }
+        public void setLongitude(double longitude) { this.longitude = longitude; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public int getOrder() { return order; }
+        public void setOrder(int order) { this.order = order; }
+    }
+
     // Convertir a Map para guardar en Firestore
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
@@ -107,8 +137,9 @@ public class Tour {
         map.put("maxGroupSize", maxGroupSize);
         map.put("languages", languages);
         map.put("includedServices", includedServices);
-        map.put("notIncludedServices", notIncludedServices);
+        map.put("includedServiceIds", includedServiceIds);
         map.put("meetingPoint", meetingPoint);
+        map.put("stops", stops);
         map.put("departureTime", departureTime);
         map.put("imageUrls", imageUrls);
         map.put("mainImageUrl", mainImageUrl);
@@ -159,8 +190,8 @@ public class Tour {
     public List<String> getIncludedServices() { return includedServices; }
     public void setIncludedServices(List<String> includedServices) { this.includedServices = includedServices; }
 
-    public List<String> getNotIncludedServices() { return notIncludedServices; }
-    public void setNotIncludedServices(List<String> notIncludedServices) { this.notIncludedServices = notIncludedServices; }
+    public List<String> getIncludedServiceIds() { return includedServiceIds; }
+    public void setIncludedServiceIds(List<String> includedServiceIds) { this.includedServiceIds = includedServiceIds; }
 
     public String getMeetingPoint() { return meetingPoint; }
     public void setMeetingPoint(String meetingPoint) { this.meetingPoint = meetingPoint; }
@@ -176,6 +207,9 @@ public class Tour {
 
     public List<ItineraryPoint> getItinerary() { return itinerary; }
     public void setItinerary(List<ItineraryPoint> itinerary) { this.itinerary = itinerary; }
+
+    public List<TourStop> getStops() { return stops; }
+    public void setStops(List<TourStop> stops) { this.stops = stops; }
 
     public Double getAverageRating() { return averageRating; }
     public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }

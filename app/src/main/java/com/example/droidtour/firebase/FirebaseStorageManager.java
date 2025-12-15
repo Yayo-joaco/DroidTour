@@ -232,6 +232,88 @@ public class FirebaseStorageManager {
         uploadImageFile(imageRef, imageUri, callback);
     }
 
+    // ==================== SUBIR IMÁGENES DE TOURS ====================
+
+    /**
+     * Subir imagen de tour
+     * @param tourName Nombre del tour (se usa para crear subcarpeta)
+     * @param imageUri URI de la imagen local
+     * @param imageIndex Índice de la imagen (1, 2, 3, etc.)
+     * @param callback Callback con la URL de descarga
+     */
+    public void uploadTourImage(String tourName, Uri imageUri, int imageIndex, StorageCallback callback) {
+        if (imageUri == null) {
+            callback.onFailure(new Exception("Image URI is required"));
+            return;
+        }
+
+        // Limpiar nombre del tour para usarlo como nombre de carpeta
+        String cleanTourName = tourName != null ? 
+            tourName.replaceAll("[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\\s]", "").replaceAll("\\s+", "_").toLowerCase() : 
+            "tour_" + System.currentTimeMillis();
+        
+        String fileName = cleanTourName + "_img" + imageIndex + "_" + System.currentTimeMillis() + ".jpg";
+        StorageReference imageRef = storageRef.child(FOLDER_TOUR_IMAGES).child(cleanTourName).child(fileName);
+
+        Log.d(TAG, "Subiendo imagen de tour: " + FOLDER_TOUR_IMAGES + "/" + cleanTourName + "/" + fileName);
+        uploadImageFile(imageRef, imageUri, callback);
+    }
+
+    /**
+     * Subir múltiples imágenes de tour
+     * @param tourName Nombre del tour
+     * @param imageUris Lista de URIs de imágenes
+     * @param callback Callback con lista de URLs de descarga
+     */
+    public void uploadTourImages(String tourName, java.util.List<Uri> imageUris, MultipleUploadCallback callback) {
+        if (imageUris == null || imageUris.isEmpty()) {
+            callback.onComplete(new java.util.ArrayList<>());
+            return;
+        }
+
+        java.util.List<String> uploadedUrls = new java.util.ArrayList<>();
+        final int[] completedCount = {0};
+        final int totalImages = imageUris.size();
+
+        for (int i = 0; i < totalImages; i++) {
+            final int index = i;
+            uploadTourImage(tourName, imageUris.get(i), index + 1, new StorageCallback() {
+                @Override
+                public void onSuccess(String downloadUrl) {
+                    synchronized (uploadedUrls) {
+                        uploadedUrls.add(downloadUrl);
+                        completedCount[0]++;
+                        
+                        if (completedCount[0] >= totalImages) {
+                            callback.onComplete(uploadedUrls);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error subiendo imagen " + (index + 1), e);
+                    synchronized (uploadedUrls) {
+                        completedCount[0]++;
+                        
+                        if (completedCount[0] >= totalImages) {
+                            callback.onComplete(uploadedUrls);
+                        }
+                    }
+                }
+
+                @Override
+                public void onProgress(int progress) {
+                    // Progreso individual
+                }
+            });
+        }
+    }
+
+    public interface MultipleUploadCallback {
+        void onComplete(java.util.List<String> downloadUrls);
+    }
+
     // ==================== SUBIR DOCUMENTOS ====================
 
     /**

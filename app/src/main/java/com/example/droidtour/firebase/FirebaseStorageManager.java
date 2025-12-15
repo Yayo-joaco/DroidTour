@@ -27,6 +27,7 @@ public class FirebaseStorageManager {
     private static final String FOLDER_TOUR_IMAGES = "tour_images";
     private static final String FOLDER_COMPANY_LOGOS = "company_logos";
     private static final String FOLDER_COMPANY_COVERS = "company_covers";
+    private static final String FOLDER_SERVICE_IMAGES = "service_images";
     private static final String FOLDER_DOCUMENTS = "documents";
 
     private FirebaseStorageManager() {
@@ -210,6 +211,23 @@ public class FirebaseStorageManager {
 
         String fileName = companyId + "_cover_" + System.currentTimeMillis() + ".jpg";
         StorageReference imageRef = storageRef.child(FOLDER_COMPANY_COVERS).child(fileName);
+
+        uploadImageFile(imageRef, imageUri, callback);
+    }
+
+    // ==================== SUBIR IMÁGENES DE SERVICIOS ====================
+
+    /**
+     * Subir imagen de servicio
+     */
+    public void uploadServiceImage(String serviceId, Uri imageUri, StorageCallback callback) {
+        if (imageUri == null) {
+            callback.onFailure(new Exception("Image URI is required"));
+            return;
+        }
+
+        String fileName = (serviceId != null ? serviceId : "service") + "_" + System.currentTimeMillis() + ".jpg";
+        StorageReference imageRef = storageRef.child(FOLDER_SERVICE_IMAGES).child(fileName);
 
         uploadImageFile(imageRef, imageUri, callback);
     }

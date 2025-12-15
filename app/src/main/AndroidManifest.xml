@@ -112,6 +112,11 @@
         <activity
             android:name=".admin.CreateServiceActivity"
             android:exported="false"
+            android:parentActivityName=".admin.ServiceManagementActivity" />
+        
+        <activity
+            android:name=".admin.ServiceManagementActivity"
+            android:exported="false"
             android:parentActivityName=".TourAdminMainActivity" />
 
         <activity

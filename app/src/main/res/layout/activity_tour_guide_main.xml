@@ -6,9 +6,11 @@
     android:layout_height="match_parent">
 
     <!-- Main Content -->
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#F5F5F5">
 
         <!-- Toolbar -->
         <com.google.android.material.appbar.MaterialToolbar
@@ -22,30 +24,35 @@
             app:titleTextColor="@color/white"
             app:menu="@menu/top_app_bar_general"
             app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:navigationIconTint="@color/white" />
 
-        <!-- Dashboard Content -->
+        <!-- Scrollable Content -->
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            app:layout_constraintTop_toBottomOf="@id/toolbar"
-            app:layout_constraintBottom_toBottomOf="parent">
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:clipToPadding="false"
+            android:paddingBottom="20dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="14dp">
 
                 <!-- Status Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_guide_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="12dp"
+                    android:layout_marginBottom="14dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="4dp"
-                    app:cardBackgroundColor="@color/green">
+                    app:cardBackgroundColor="@color/green"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="#33FFFFFF">
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -55,16 +62,17 @@
                         android:gravity="center_vertical">
 
                         <ImageView
-                            android:layout_width="48dp"
-                            android:layout_height="48dp"
-                            android:src="@android:drawable/ic_menu_myplaces"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_greeting"
                             android:tint="@color/white" />
 
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginStart="16dp"
+                            android:layout_marginStart="14dp"
                             android:orientation="vertical">
 
                             <TextView
@@ -81,10 +89,9 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Calificación: ⭐ 4.8 (8 tours)"
-                                android:textSize="14sp"
-                                android:textColor="@color/white"
-                                android:layout_marginTop="4dp" />
-
+                                android:textSize="13sp"
+                                android:textColor="#EFFFFFFF"
+                                android:layout_marginTop="6dp" />
                         </LinearLayout>
 
                     </LinearLayout>
@@ -96,7 +103,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginBottom="14dp"
+                    android:baselineAligned="false">
 
                     <!-- Earnings Card -->
                     <com.google.android.material.card.MaterialCardView
@@ -104,39 +112,73 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="4dp">
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="3dp"
+                        app:cardBackgroundColor="@color/white"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#ECECEC"
+                        android:layout_marginStart="3dp"
+                        android:layout_marginHorizontal="3dp"
+                        android:layout_marginVertical="3dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp"
-                            android:gravity="center">
+                            android:padding="16dp">
 
-                            <TextView
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="💰"
-                                android:textSize="28sp" />
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+                                <FrameLayout
+                                    android:layout_width="40dp"
+                                    android:layout_height="40dp">
+
+                                    <com.google.android.material.card.MaterialCardView
+                                        android:layout_width="40dp"
+                                        android:layout_height="40dp"
+                                        app:cardCornerRadius="20dp"
+                                        app:cardElevation="0dp"
+                                        app:cardBackgroundColor="#1A4CAF50" />
+
+                                    <ImageView
+                                        android:layout_width="24dp"
+                                        android:layout_height="24dp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_peruvian_sol"
+                                        android:tint="@color/green" />
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Ingresos"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C2C2C"
+                                    android:layout_marginStart="10dp" />
+                            </LinearLayout>
 
                             <TextView
                                 android:id="@+id/tv_monthly_earnings"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="S/. 1,450"
-                                android:textSize="18sp"
+                                android:textSize="20sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/green"
-                                android:layout_marginTop="8dp" />
+                                android:layout_marginTop="12dp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Este mes"
                                 android:textSize="12sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="4dp" />
+                                android:textColor="#757575"
+                                android:layout_marginTop="6dp" />
 
                         </LinearLayout>
 
@@ -148,39 +190,73 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="4dp">
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="3dp"
+                        app:cardBackgroundColor="@color/white"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#ECECEC"
+                        android:layout_marginEnd="3dp"
+                        android:layout_marginHorizontal="3dp"
+                        android:layout_marginVertical="3dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:padding="16dp"
-                            android:gravity="center">
+                            android:padding="16dp">
 
-                            <TextView
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="✅"
-                                android:textSize="28sp" />
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+                                <FrameLayout
+                                    android:layout_width="40dp"
+                                    android:layout_height="40dp">
+
+                                    <com.google.android.material.card.MaterialCardView
+                                        android:layout_width="40dp"
+                                        android:layout_height="40dp"
+                                        app:cardCornerRadius="20dp"
+                                        app:cardElevation="0dp"
+                                        app:cardBackgroundColor="#1A2196F3" />
+
+                                    <ImageView
+                                        android:layout_width="24dp"
+                                        android:layout_height="24dp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_map_location"
+                                        android:tint="@color/primary" />
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Tours"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C2C2C"
+                                    android:layout_marginStart="10dp" />
+                            </LinearLayout>
 
                             <TextView
                                 android:id="@+id/tv_completed_tours"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="8 Tours"
-                                android:textSize="18sp"
+                                android:textSize="20sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/primary"
-                                android:layout_marginTop="8dp" />
+                                android:layout_marginTop="12dp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Completados"
                                 android:textSize="12sp"
-                                android:textColor="@color/gray"
-                                android:layout_marginTop="4dp" />
+                                android:textColor="#757575"
+                                android:layout_marginTop="6dp" />
 
                         </LinearLayout>
 
@@ -188,13 +264,13 @@
 
                 </LinearLayout>
 
-                <!-- Active Tour (if exists) -->
+                <!-- Active Tour -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_active_tour"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    app:cardCornerRadius="12dp"
+                    android:layout_marginBottom="18dp"
+                    app:cardCornerRadius="16dp"
                     app:cardElevation="4dp"
                     app:cardBackgroundColor="@color/primary">
 
@@ -207,37 +283,43 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🚌 Tour Activo Ahora"
-                            android:textSize="16sp"
+                            android:text="🚌 Tour activo"
+                            android:textSize="14sp"
                             android:textStyle="bold"
-                            android:textColor="@color/white"
-                            android:layout_marginBottom="12dp" />
+                            android:textColor="#EFFFFFFF"
+                            android:layout_marginBottom="10dp" />
 
                         <TextView
                             android:id="@+id/tv_active_tour_name"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="City Tour Lima - Centro Histórico"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="@color/white"
-                            android:layout_marginBottom="8dp" />
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            android:layout_marginBottom="6dp" />
 
                         <TextView
                             android:id="@+id/tv_active_tour_progress"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="📍 Punto 2 de 4 • Plaza de Armas"
-                            android:textSize="14sp"
-                            android:textColor="@color/white"
-                            android:layout_marginBottom="16dp" />
+                            android:textSize="13sp"
+                            android:textColor="#EFFFFFFF"
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            android:layout_marginBottom="14dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_continue_tour"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Continuar Tour"
+                            android:text="Continuar tour"
+                            android:textAllCaps="false"
                             android:textColor="@color/primary"
+                            app:cornerRadius="12dp"
                             app:backgroundTint="@color/white" />
 
                     </LinearLayout>
@@ -248,42 +330,62 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="⚡ Acciones Rápidas"
+                    android:text="⚡ Acciones rápidas"
                     android:textSize="18sp"
                     android:textStyle="bold"
-                    android:textColor="@color/black"
+                    android:textColor="#2C2C2C"
                     android:layout_marginBottom="12dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="24dp">
+                    android:layout_marginBottom="22dp"
+                    android:baselineAligned="false">
 
                     <!-- QR Scanner Card -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card_qr_scanner"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="110dp"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="4dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="3dp"
+                        app:cardBackgroundColor="@color/white"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#ECECEC"
                         android:clickable="true"
-                        android:focusable="true">
+                        android:focusable="true"
+                        android:layout_marginStart="3dp"
+                        android:layout_marginHorizontal="3dp"
+                        android:layout_marginVertical="4dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="16dp"
+                            android:padding="14dp"
                             android:gravity="center">
 
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@android:drawable/ic_menu_camera"
-                                android:tint="@color/accent" />
+                            <FrameLayout
+                                android:layout_width="46dp"
+                                android:layout_height="46dp">
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:layout_width="46dp"
+                                    android:layout_height="46dp"
+                                    app:cardCornerRadius="23dp"
+                                    app:cardElevation="0dp"
+                                    app:cardBackgroundColor="#1AFF9800" />
+
+                                <ImageView
+                                    android:layout_width="26dp"
+                                    android:layout_height="26dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_qr_code"
+                                    android:tint="@color/accent" />
+                            </FrameLayout>
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -291,9 +393,9 @@
                                 android:text="Escanear QR"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/black"
+                                android:textColor="#2C2C2C"
                                 android:textAlignment="center"
-                                android:layout_marginTop="8dp" />
+                                android:layout_marginTop="10dp" />
 
                         </LinearLayout>
 
@@ -303,26 +405,45 @@
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/card_location_tracking"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="110dp"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="4dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="3dp"
+                        app:cardBackgroundColor="@color/white"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#ECECEC"
                         android:clickable="true"
-                        android:focusable="true">
+                        android:focusable="true"
+                        android:layout_marginEnd="3dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_marginVertical="3dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="16dp"
+                            android:padding="14dp"
                             android:gravity="center">
 
-                            <ImageView
-                                android:layout_width="48dp"
-                                android:layout_height="48dp"
-                                android:src="@android:drawable/ic_menu_mylocation"
-                                android:tint="@color/green" />
+                            <FrameLayout
+                                android:layout_width="46dp"
+                                android:layout_height="46dp">
+
+                                <com.google.android.material.card.MaterialCardView
+                                    android:layout_width="46dp"
+                                    android:layout_height="46dp"
+                                    app:cardCornerRadius="23dp"
+                                    app:cardElevation="0dp"
+                                    app:cardBackgroundColor="#1A4CAF50" />
+
+                                <ImageView
+                                    android:layout_width="26dp"
+                                    android:layout_height="26dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_location"
+                                    android:tint="@color/green" />
+                            </FrameLayout>
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -330,9 +451,9 @@
                                 android:text="Ubicación"
                                 android:textSize="14sp"
                                 android:textStyle="bold"
-                                android:textColor="@color/black"
+                                android:textColor="#2C2C2C"
                                 android:textAlignment="center"
-                                android:layout_marginTop="8dp" />
+                                android:layout_marginTop="10dp" />
 
                         </LinearLayout>
 
@@ -340,22 +461,22 @@
 
                 </LinearLayout>
 
-                <!-- Pending Offers Section -->
+                <!-- Pending Offers Header -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
+                    android:layout_marginBottom="10dp">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="🎯 Ofertas Pendientes"
+                        android:text="🎯 Ofertas pendientes"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="@color/black" />
+                        android:textColor="#2C2C2C" />
 
                     <TextView
                         android:id="@+id/tv_view_all_offers"
@@ -371,32 +492,31 @@
 
                 </LinearLayout>
 
-                <!-- Pending Offers RecyclerView (Horizontal) -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_pending_offers"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
+                    android:layout_marginBottom="22dp"
                     android:clipToPadding="false"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp" />
+                    android:paddingStart="2dp"
+                    android:paddingEnd="2dp" />
 
-                <!-- Upcoming Tours Section -->
+                <!-- Upcoming Tours Header -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
+                    android:layout_marginBottom="10dp">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="📅 Próximos Tours"
+                        android:text="📅 Próximos tours"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="@color/black" />
+                        android:textColor="#2C2C2C" />
 
                     <TextView
                         android:id="@+id/tv_view_all_tours"
@@ -412,18 +532,23 @@
 
                 </LinearLayout>
 
-                <!-- Upcoming Tours RecyclerView (Vertical) -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_upcoming_tours"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
+                    android:nestedScrollingEnabled="false"
+                    android:paddingBottom="8dp" />
+
+                <!-- Bottom spacer -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="14dp" />
 
             </LinearLayout>
 
         </androidx.core.widget.NestedScrollView>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
 
     <!-- Navigation Drawer -->
     <com.google.android.material.navigation.NavigationView

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/black">
+    android:background="@color/light_gray">
 
     <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
@@ -12,109 +12,177 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
         app:title="Escanear QR"
+        app:titleTextAppearance="@style/Toolbar.TitleText2"
+        app:titleCentered="true"
         app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert"
+        app:navigationIcon="@drawable/ic_arrow_back_24"
+        app:navigationIconTint="@color/white"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Camera Preview Placeholder -->
-    <LinearLayout
+    <!-- Camera Preview Placeholder (styled as card container) -->
+    <com.google.android.material.card.MaterialCardView
         android:id="@+id/layout_camera_preview"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:background="@color/black"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="14dp"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="6dp"
+        app:cardBackgroundColor="@color/black"
+        app:strokeWidth="1dp"
+        app:strokeColor="#1AFFFFFF"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintBottom_toTopOf="@id/layout_scan_actions"
-        app:layout_constraintHeight_percent="0.5">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.46">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="📷"
-            android:textSize="64sp"
-            android:textColor="@color/white"
-            android:layout_marginBottom="16dp" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Vista de Cámara"
-            android:textSize="18sp"
-            android:textColor="@color/white"
-            android:textStyle="bold" />
+            <!-- Subtle overlay -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#22000000" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Apunta la cámara al código QR"
-            android:textSize="14sp"
-            android:textColor="@color/white"
-            android:layout_marginTop="8dp" />
+            <!-- Center content (placeholder) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="18dp">
 
-        <!-- QR Frame Overlay -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Apunta al código QR"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:layout_marginBottom="10dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mantén el QR dentro del marco"
+                    android:textSize="13sp"
+                    android:textColor="#DFFFFFFF"
+                    android:layout_marginBottom="18dp" />
+
+                <!-- QR Frame (more modern) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="230dp"
+                    android:layout_height="230dp"
+                    app:cardCornerRadius="18dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#00FFFFFF"
+                    app:strokeWidth="2dp"
+                    app:strokeColor="#66FFFFFF">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="#12000000" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:text="Coloca el QR aquí"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="#EFFFFFFF" />
+
+                    </FrameLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Scan Actions (as a clean action bar) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/layout_scan_actions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="14dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@color/white"
+        app:strokeWidth="1dp"
+        app:strokeColor="#ECECEC"
+        app:layout_constraintTop_toBottomOf="@id/layout_camera_preview"
+        app:layout_constraintBottom_toTopOf="@id/card_scan_info"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
         <LinearLayout
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/qr_frame_overlay"
-            android:gravity="center">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_toggle_flash"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Coloca el QR aquí"
-                android:textSize="12sp"
-                android:textColor="@color/white"
-                android:textStyle="bold" />
+                android:layout_weight="1"
+                android:text="Flash"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:icon="@drawable/ic_flash"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_manual_entry"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Entrada manual"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:textColor="@color/primary" />
 
         </LinearLayout>
 
-    </LinearLayout>
-
-    <!-- Scan Actions -->
-    <LinearLayout
-        android:id="@+id/layout_scan_actions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center"
-        android:background="@color/black"
-        app:layout_constraintBottom_toTopOf="@id/card_scan_info">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_toggle_flash"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Flash"
-            android:drawableStart="@android:drawable/ic_menu_help"
-            android:layout_marginEnd="16dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_manual_entry"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Entrada Manual"
-            android:textColor="@color/white" />
-
-    </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Scan Information Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_scan_info"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        app:cardCornerRadius="12dp"
+        android:layout_marginTop="12dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="4dp"
-        app:layout_constraintBottom_toTopOf="@id/card_scan_history">
+        app:cardBackgroundColor="@color/white"
+        app:strokeWidth="1dp"
+        app:strokeColor="#ECECEC"
+        app:layout_constraintTop_toBottomOf="@id/layout_scan_actions"
+        app:layout_constraintBottom_toTopOf="@id/card_scan_history"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -122,36 +190,68 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Información del Tour"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/primary"
-                android:layout_marginBottom="12dp" />
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <FrameLayout
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="10dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        app:cardCornerRadius="19dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#1A2196F3" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_info"
+                        android:tint="@color/primary" />
+                </FrameLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tour: "
-                    android:textSize="14sp"
-                    android:textColor="@color/gray"
+                    android:text="Información del Tour"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#202124" />
+
+            </LinearLayout>
+
+            <!-- rows -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:layout_width="92dp"
+                    android:layout_height="wrap_content"
+                    android:text="Tour"
+                    android:textSize="13sp"
+                    android:textColor="#6B7280"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_tour_name"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="City Tour Lima Centro"
-                    android:textSize="14sp"
-                    android:textColor="@color/black" />
+                    android:textSize="13sp"
+                    android:textColor="#202124"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
 
             </LinearLayout>
 
@@ -159,23 +259,24 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="10dp">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="92dp"
                     android:layout_height="wrap_content"
-                    android:text="Participantes: "
-                    android:textSize="14sp"
-                    android:textColor="@color/gray"
+                    android:text="Participantes"
+                    android:textSize="13sp"
+                    android:textColor="#6B7280"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_participants_count"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="6 personas"
-                    android:textSize="14sp"
-                    android:textColor="@color/black" />
+                    android:textSize="13sp"
+                    android:textColor="#202124" />
 
             </LinearLayout>
 
@@ -185,20 +286,23 @@
                 android:orientation="horizontal">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="92dp"
                     android:layout_height="wrap_content"
-                    android:text="Estado: "
-                    android:textSize="14sp"
-                    android:textColor="@color/gray"
+                    android:text="Estado"
+                    android:textSize="13sp"
+                    android:textColor="#6B7280"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_scan_status"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="Esperando QR de Check-in"
-                    android:textSize="14sp"
-                    android:textColor="@color/orange" />
+                    android:textSize="13sp"
+                    android:textColor="@color/orange"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
 
             </LinearLayout>
 
@@ -209,55 +313,78 @@
     <!-- Scan History Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_scan_history"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
         android:layout_marginBottom="16dp"
-        app:cardCornerRadius="12dp"
+        app:cardCornerRadius="16dp"
         app:cardElevation="4dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:cardBackgroundColor="@color/white"
+        app:strokeWidth="1dp"
+        app:strokeColor="#ECECEC"
+        app:layout_constraintTop_toBottomOf="@id/card_scan_info"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!-- Header -->
+            <!-- Header (clean, no full primary bar) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:padding="8dp"
-                android:background="@color/primary">
+                android:padding="14dp">
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@android:drawable/ic_menu_recent_history"
-                    android:tint="@color/white" />
+                <FrameLayout
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="10dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="34dp"
+                        android:layout_height="34dp"
+                        app:cardCornerRadius="17dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#1A2196F3" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:src="@android:drawable/ic_menu_recent_history"
+                        android:tint="@color/primary" />
+                </FrameLayout>
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Historial de Escaneos"
-                    android:textSize="14sp"
+                    android:text="Historial de escaneos"
+                    android:textSize="15sp"
                     android:textStyle="bold"
-                    android:textColor="@color/white"
-                    android:layout_marginStart="6dp" />
+                    android:textColor="#202124" />
 
                 <TextView
                     android:id="@+id/tv_scans_count"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="3 escaneos"
-                    android:textSize="11sp"
-                    android:textColor="@color/white" />
+                    android:textSize="12sp"
+                    android:textColor="#6B7280" />
 
             </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#EEEEEE" />
 
             <!-- Scans List -->
             <androidx.recyclerview.widget.RecyclerView
@@ -265,9 +392,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="8dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="12dp"
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"
                 android:overScrollMode="never" />
@@ -279,28 +406,46 @@
     <!-- Success/Error Overlay -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_scan_result"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="32dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="8dp"
+        android:layout_margin="24dp"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="10dp"
         android:visibility="gone"
+        app:cardBackgroundColor="@color/white"
+        app:strokeWidth="1dp"
+        app:strokeColor="#ECECEC"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp"
+            android:padding="22dp"
             android:gravity="center">
 
-            <ImageView
-                android:id="@+id/iv_scan_result_icon"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:src="@android:drawable/ic_menu_agenda"
-                android:tint="@color/green" />
+            <FrameLayout
+                android:layout_width="76dp"
+                android:layout_height="76dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="76dp"
+                    android:layout_height="76dp"
+                    app:cardCornerRadius="38dp"
+                    app:cardElevation="0dp"
+                    app:cardBackgroundColor="#1A4CAF50" />
+
+                <ImageView
+                    android:id="@+id/iv_scan_result_icon"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:src="@android:drawable/ic_menu_agenda"
+                    android:tint="@color/green" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/tv_scan_result_title"
@@ -314,11 +459,11 @@
 
             <TextView
                 android:id="@+id/tv_scan_result_message"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Cliente registrado correctamente"
-                android:textSize="16sp"
-                android:textColor="@color/black"
+                android:textSize="15sp"
+                android:textColor="#202124"
                 android:gravity="center"
                 android:layout_marginTop="8dp" />
 
@@ -327,17 +472,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Ana García Pérez"
-                android:textSize="18sp"
+                android:textSize="17sp"
                 android:textStyle="bold"
                 android:textColor="@color/primary"
                 android:layout_marginTop="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_continue_scanning"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Continuar"
-                android:layout_marginTop="16dp" />
+                android:textAllCaps="false"
+                android:layout_marginTop="16dp"
+                app:cornerRadius="12dp" />
 
         </LinearLayout>
 

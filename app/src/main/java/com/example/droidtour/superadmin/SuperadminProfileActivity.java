@@ -11,6 +11,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.LoginActivity;
@@ -58,6 +60,7 @@ public class SuperadminProfileActivity extends AppCompatActivity {
         }
         
         setContentView(R.layout.activity_myprofile);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar Firestore
         firestoreManager = FirestoreManager.getInstance();

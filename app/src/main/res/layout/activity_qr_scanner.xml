@@ -150,17 +150,18 @@
                 android:icon="@drawable/ic_flash"/>
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_manual_entry"
-                style="@style/Widget.Material3.Button.TextButton"
+                android:id="@+id/btn_finish_checkin"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Entrada manual"
+                android:text="Finalizar Check-In"
                 android:textAllCaps="false"
                 app:cornerRadius="12dp"
                 android:paddingTop="10dp"
                 android:paddingBottom="10dp"
-                android:textColor="@color/primary" />
+                android:textColor="@color/primary"
+                android:visibility="gone" />
 
         </LinearLayout>
 
@@ -283,7 +284,8 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:layout_marginBottom="10dp">
 
                 <TextView
                     android:layout_width="92dp"
@@ -301,6 +303,32 @@
                     android:text="Esperando QR de Check-in"
                     android:textSize="13sp"
                     android:textColor="@color/orange"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="92dp"
+                    android:layout_height="wrap_content"
+                    android:text="Progreso"
+                    android:textSize="13sp"
+                    android:textColor="#6B7280"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_checkinout_status"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="0 / 0 participantes"
+                    android:textSize="13sp"
+                    android:textColor="@color/primary"
                     android:maxLines="2"
                     android:ellipsize="end" />
 
@@ -392,8 +420,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="8dp"
                 android:paddingBottom="12dp"
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"

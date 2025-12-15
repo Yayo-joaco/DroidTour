@@ -1631,6 +1631,24 @@ public class FirestoreManager {
                 .addOnSuccessListener(unused -> callback.onSuccess(true))
                 .addOnFailureListener(callback::onFailure);
     }
+    
+    /**
+     * Crear una nueva notificación
+     */
+    public void createNotification(Notification notification, FirestoreCallback callback) {
+        if (notification == null) {
+            callback.onFailure(new Exception("notification is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_NOTIFICATIONS)
+                .add(notification)
+                .addOnSuccessListener(documentReference -> {
+                    notification.setNotificationId(documentReference.getId());
+                    callback.onSuccess(notification);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
 
     // ==================== SESSIONS, RESERVAS, REVIEWS ====================
 
@@ -1674,6 +1692,48 @@ public class FirestoreManager {
         if (reservationId == null || reservationId.trim().isEmpty()) { callback.onFailure(new Exception("reservationId is required")); return; }
         db.collection(COLLECTION_RESERVATIONS).document(reservationId).set(updates, SetOptions.merge())
                 .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+    
+    /**
+     * Actualizar reserva completa (objeto Reservation)
+     */
+    public void updateReservation(Reservation reservation, FirestoreCallback callback) {
+        if (reservation == null || reservation.getReservationId() == null || reservation.getReservationId().trim().isEmpty()) {
+            callback.onFailure(new Exception("Reservation or reservationId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_RESERVATIONS)
+                .document(reservation.getReservationId())
+                .set(reservation, SetOptions.merge())
+                .addOnSuccessListener(unused -> callback.onSuccess(true))
+                .addOnFailureListener(callback::onFailure);
+    }
+    
+    /**
+     * Obtener una reserva por su ID
+     */
+    public void getReservationById(String reservationId, FirestoreCallback callback) {
+        if (reservationId == null || reservationId.trim().isEmpty()) {
+            callback.onFailure(new Exception("reservationId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_RESERVATIONS)
+                .document(reservationId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Reservation reservation = documentSnapshot.toObject(Reservation.class);
+                        if (reservation != null && (reservation.getReservationId() == null || reservation.getReservationId().isEmpty())) {
+                            reservation.setReservationId(documentSnapshot.getId());
+                        }
+                        callback.onSuccess(reservation);
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                })
                 .addOnFailureListener(callback::onFailure);
     }
 
@@ -1721,6 +1781,32 @@ public class FirestoreManager {
                 .addOnSuccessListener(unused -> {
                     Log.d(TAG, "Reservation status updated: " + reservationId + " -> " + newStatus);
                     callback.onSuccess(true);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+    
+    /**
+     * Obtener reservaciones por tourId
+     */
+    public void getReservationsByTour(String tourId, FirestoreCallback callback) {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_RESERVATIONS)
+                .whereEqualTo("tourId", tourId)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<Reservation> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Reservation r = doc.toObject(Reservation.class);
+                        if (r != null && (r.getReservationId() == null || r.getReservationId().isEmpty())) {
+                            r.setReservationId(doc.getId());
+                        }
+                        list.add(r);
+                    }
+                    callback.onSuccess(list);
                 })
                 .addOnFailureListener(callback::onFailure);
     }

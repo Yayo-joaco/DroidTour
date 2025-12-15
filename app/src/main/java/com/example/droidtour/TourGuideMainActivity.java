@@ -971,7 +971,10 @@ public class TourGuideMainActivity extends AppCompatActivity {
                     activeTour = finalActiveTour;
                     cardActiveTour.setVisibility(View.VISIBLE);
                     tvActiveTourName.setText(finalActiveTour.getTourName());
-                    tvActiveTourProgress.setText("📍 Punto 2 de 4 • Plaza de Armas"); // TODO: Dinámico
+                    
+                    // Calcular progreso dinámicamente
+                    String progressText = calculateTourProgress(finalActiveTour);
+                    tvActiveTourProgress.setText(progressText);
                     
                     btnContinueTour.setOnClickListener(v -> {
                         // Ir a LocationTrackingActivity con el tour activo
@@ -1324,5 +1327,45 @@ public class TourGuideMainActivity extends AppCompatActivity {
                 android.util.Log.e("TourGuideMain", "❌ Error obteniendo tours para actualizar", e);
             }
         });
+    }
+    
+    /**
+     * Calcula el texto de progreso del tour basado en las paradas confirmadas
+     * Formato: "📍 Parada X de Y • Nombre del lugar"
+     */
+    private String calculateTourProgress(Tour tour) {
+        if (tour == null) return "📍 Sin información";
+        
+        List<Tour.TourStop> stops = tour.getStops();
+        int totalStops = (stops != null) ? stops.size() : 0;
+        
+        // Si no hay paradas, mostrar punto de encuentro
+        if (totalStops == 0) {
+            String meetingPoint = (tour.getMeetingPoint() != null) ? tour.getMeetingPoint() : "Sin punto de encuentro";
+            return "📍 Parada 0 de 0 • " + meetingPoint;
+        }
+        
+        // Contar paradas confirmadas
+        int confirmedStops = 0;
+        Tour.TourStop lastConfirmedStop = null;
+        
+        if (stops != null) {
+            for (Tour.TourStop stop : stops) {
+                if (stop.getCompleted() != null && stop.getCompleted()) {
+                    confirmedStops++;
+                    lastConfirmedStop = stop;
+                }
+            }
+        }
+        
+        // Si no hay ninguna confirmada, mostrar punto de encuentro
+        if (confirmedStops == 0) {
+            String meetingPoint = (tour.getMeetingPoint() != null) ? tour.getMeetingPoint() : "Punto de encuentro";
+            return "📍 Parada 0 de " + totalStops + " • " + meetingPoint;
+        }
+        
+        // Si hay paradas confirmadas, mostrar la última
+        String locationName = (lastConfirmedStop != null) ? lastConfirmedStop.getName() : "Parada actual";
+        return "📍 Parada " + confirmedStops + " de " + totalStops + " • " + locationName;
     }
 }

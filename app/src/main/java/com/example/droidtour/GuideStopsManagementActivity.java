@@ -306,6 +306,16 @@ public class GuideStopsManagementActivity extends AppCompatActivity implements O
         }
         
         Tour.TourStop stop = stops.get(position);
+        
+        // Validación adicional de seguridad (el botón ya debería estar deshabilitado)
+        for (int i = 0; i < position; i++) {
+            Tour.TourStop previousStop = stops.get(i);
+            if (previousStop.getCompleted() == null || !previousStop.getCompleted()) {
+                // No hacer nada, el botón está deshabilitado
+                return;
+            }
+        }
+        
         stop.setCompleted(true);
         stop.setCompletedAt(new Date());
         
@@ -318,7 +328,8 @@ public class GuideStopsManagementActivity extends AppCompatActivity implements O
                 Log.d(TAG, "✅ Parada confirmada: " + stop.getName());
                 Toast.makeText(GuideStopsManagementActivity.this, 
                     "✓ Parada confirmada: " + stop.getName(), Toast.LENGTH_SHORT).show();
-                adapter.notifyItemChanged(position);
+                // Actualizar todos los items para que la siguiente parada se habilite
+                adapter.notifyDataSetChanged();
                 updateStopCounters();
                 updateMapWithStops();
             }
@@ -332,7 +343,7 @@ public class GuideStopsManagementActivity extends AppCompatActivity implements O
                 // Revertir cambio local
                 stop.setCompleted(false);
                 stop.setCompletedAt(null);
-                adapter.notifyItemChanged(position);
+                adapter.notifyDataSetChanged();
             }
         });
     }
@@ -391,12 +402,30 @@ public class GuideStopsManagementActivity extends AppCompatActivity implements O
             
             // Estado de completado
             boolean isCompleted = stop.getCompleted() != null && stop.getCompleted();
-            holder.btnConfirmStop.setEnabled(!isCompleted);
+            
+            // Verificar si esta es la siguiente parada a confirmar (orden)
+            boolean canConfirm = !isCompleted;
+            if (!isCompleted && position > 0) {
+                // Verificar que todas las anteriores estén confirmadas
+                for (int i = 0; i < position; i++) {
+                    Tour.TourStop previousStop = stops.get(i);
+                    if (previousStop.getCompleted() == null || !previousStop.getCompleted()) {
+                        canConfirm = false;
+                        break;
+                    }
+                }
+            }
+            
+            holder.btnConfirmStop.setEnabled(canConfirm);
             
             if (isCompleted) {
                 holder.btnConfirmStop.setText("✓ Confirmada");
                 holder.btnConfirmStop.setBackgroundColor(
                     getResources().getColor(android.R.color.holo_green_light, null));
+            } else if (!canConfirm) {
+                holder.btnConfirmStop.setText("Pendiente");
+                holder.btnConfirmStop.setBackgroundColor(
+                    getResources().getColor(android.R.color.darker_gray, null));
             } else {
                 holder.btnConfirmStop.setText("Confirmar");
                 holder.btnConfirmStop.setBackgroundColor(

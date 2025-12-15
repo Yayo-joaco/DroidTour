@@ -235,9 +235,9 @@ public class TourManagementActivity extends AppCompatActivity implements AdminTo
     
     @Override
     public void onTourEdit(int position, Tour tour) {
-        // Verificar si está activo (tiene guía asignado)
-        if (tour.getActive() != null && tour.getActive()) {
-            Toast.makeText(this, "No se puede editar un tour con guía asignado", Toast.LENGTH_SHORT).show();
+        // Verificar si tiene guía asignado
+        if (tour.getAssignedGuideId() != null && !tour.getAssignedGuideId().isEmpty()) {
+            Toast.makeText(this, "No se puede editar un tour que ya fue asignado a un guía", Toast.LENGTH_LONG).show();
             return;
         }
         
@@ -249,9 +249,9 @@ public class TourManagementActivity extends AppCompatActivity implements AdminTo
     
     @Override
     public void onTourDelete(int position, Tour tour) {
-        // Verificar si está activo
-        if (tour.getActive() != null && tour.getActive()) {
-            Toast.makeText(this, "No se puede eliminar un tour con guía asignado", Toast.LENGTH_SHORT).show();
+        // Verificar si tiene guía asignado
+        if (tour.getAssignedGuideId() != null && !tour.getAssignedGuideId().isEmpty()) {
+            Toast.makeText(this, "No se puede eliminar un tour que ya fue asignado a un guía", Toast.LENGTH_LONG).show();
             return;
         }
         

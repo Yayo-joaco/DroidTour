@@ -823,6 +823,13 @@ public class CreateTourActivity extends AppCompatActivity {
         tour.setCompanyId(currentCompanyId);
         tour.setCompanyName(currentCompanyName);
         
+        // Inicializar campos de check-in/checkout
+        tour.setCheckInOutStatus("ESPERANDO_CHECKIN");
+        tour.setExpectedParticipants(0);
+        tour.setCheckedInCount(0);
+        tour.setCheckedOutCount(0);
+        tour.setScannedParticipants(new java.util.ArrayList<>());
+        
         // Convertir nombres de idiomas a códigos ISO antes de guardar
         List<String> languageCodes = convertLanguageNamesToCodes(selectedLanguages);
         tour.setLanguages(languageCodes);
@@ -882,6 +889,24 @@ public class CreateTourActivity extends AppCompatActivity {
                 tour.setTotalBookings(currentTour.getTotalBookings());
                 tour.setAverageRating(currentTour.getAverageRating());
                 tour.setTotalReviews(currentTour.getTotalReviews());
+                
+                // Mantener campos de check-in/checkout solo si ya tienen valores (no null)
+                // Si son null, se mantendrán los valores inicializados arriba
+                if (currentTour.getCheckInOutStatus() != null) {
+                    tour.setCheckInOutStatus(currentTour.getCheckInOutStatus());
+                }
+                if (currentTour.getExpectedParticipants() != null && currentTour.getExpectedParticipants() > 0) {
+                    tour.setExpectedParticipants(currentTour.getExpectedParticipants());
+                }
+                if (currentTour.getCheckedInCount() != null && currentTour.getCheckedInCount() > 0) {
+                    tour.setCheckedInCount(currentTour.getCheckedInCount());
+                }
+                if (currentTour.getCheckedOutCount() != null && currentTour.getCheckedOutCount() > 0) {
+                    tour.setCheckedOutCount(currentTour.getCheckedOutCount());
+                }
+                if (currentTour.getScannedParticipants() != null && !currentTour.getScannedParticipants().isEmpty()) {
+                    tour.setScannedParticipants(currentTour.getScannedParticipants());
+                }
             }
             
             firestoreManager.updateTour(tour, new FirestoreManager.FirestoreCallback() {

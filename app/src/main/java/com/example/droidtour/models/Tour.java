@@ -60,6 +60,14 @@ public class Tour {
     private Double guidePayment;  // Pago ofrecido al guía (paymentAmount de la oferta)
     private Boolean meetingPointConfirmed;  // Si el guía confirmó el punto de encuentro
     private Date meetingPointConfirmedAt;  // Cuándo se confirmó el punto de encuentro
+    
+    // Campos para control de check-in/check-out
+    private String checkInOutStatus;  // Estados: ESPERANDO_CHECKIN, EN_CHECKIN, ESPERANDO_CHECKOUT, CHECKOUT_COMPLETADO
+    private List<ScannedParticipant> scannedParticipants;  // Lista de participantes que han escaneado
+    private Integer expectedParticipants;  // Total de participantes esperados (reservas confirmadas)
+    private Integer checkedInCount;  // Cantidad de participantes que hicieron check-in
+    private Integer checkedOutCount;  // Cantidad de participantes que hicieron check-out
+    
     @ServerTimestamp
     private Date createdAt;
     @ServerTimestamp
@@ -84,6 +92,10 @@ public class Tour {
         this.averageRating = 0.0;
         this.totalReviews = 0;
         this.totalBookings = 0;
+        this.checkInOutStatus = "ESPERANDO_CHECKIN";
+        this.expectedParticipants = 0;
+        this.checkedInCount = 0;
+        this.checkedOutCount = 0;
     }
 
     // Clase interna para puntos del itinerario
@@ -345,5 +357,66 @@ public class Tour {
 
     public Integer getTotalDuration() { return totalDuration; }
     public void setTotalDuration(Integer totalDuration) { this.totalDuration = totalDuration; }
+    
+    // Getters y Setters para campos de check-in/check-out
+    public String getCheckInOutStatus() { return checkInOutStatus; }
+    public void setCheckInOutStatus(String checkInOutStatus) { this.checkInOutStatus = checkInOutStatus; }
+    
+    public List<ScannedParticipant> getScannedParticipants() { return scannedParticipants; }
+    public void setScannedParticipants(List<ScannedParticipant> scannedParticipants) { this.scannedParticipants = scannedParticipants; }
+    
+    public Integer getExpectedParticipants() { return expectedParticipants; }
+    public void setExpectedParticipants(Integer expectedParticipants) { this.expectedParticipants = expectedParticipants; }
+    
+    public Integer getCheckedInCount() { return checkedInCount; }
+    public void setCheckedInCount(Integer checkedInCount) { this.checkedInCount = checkedInCount; }
+    
+    public Integer getCheckedOutCount() { return checkedOutCount; }
+    public void setCheckedOutCount(Integer checkedOutCount) { this.checkedOutCount = checkedOutCount; }
+    
+    /**
+     * Clase interna para almacenar información de participantes escaneados
+     */
+    public static class ScannedParticipant {
+        private String reservationId;
+        private String userId;
+        private String userName;
+        private Boolean hasCheckedIn;
+        private Boolean hasCheckedOut;
+        private Date checkInTime;
+        private Date checkOutTime;
+        
+        public ScannedParticipant() {}
+        
+        public ScannedParticipant(String reservationId, String userId, String userName) {
+            this.reservationId = reservationId;
+            this.userId = userId;
+            this.userName = userName;
+            this.hasCheckedIn = false;
+            this.hasCheckedOut = false;
+        }
+        
+        // Getters y Setters
+        public String getReservationId() { return reservationId; }
+        public void setReservationId(String reservationId) { this.reservationId = reservationId; }
+        
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+        
+        public String getUserName() { return userName; }
+        public void setUserName(String userName) { this.userName = userName; }
+        
+        public Boolean getHasCheckedIn() { return hasCheckedIn; }
+        public void setHasCheckedIn(Boolean hasCheckedIn) { this.hasCheckedIn = hasCheckedIn; }
+        
+        public Boolean getHasCheckedOut() { return hasCheckedOut; }
+        public void setHasCheckedOut(Boolean hasCheckedOut) { this.hasCheckedOut = hasCheckedOut; }
+        
+        public Date getCheckInTime() { return checkInTime; }
+        public void setCheckInTime(Date checkInTime) { this.checkInTime = checkInTime; }
+        
+        public Date getCheckOutTime() { return checkOutTime; }
+        public void setCheckOutTime(Date checkOutTime) { this.checkOutTime = checkOutTime; }
+    }
 }
 

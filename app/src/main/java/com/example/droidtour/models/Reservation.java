@@ -88,11 +88,24 @@ public class Reservation {
     
     /**
      * Generar códigos QR únicos para check-in y check-out
+     * Formato: CHECKIN-{reservationId}-{tourId} y CHECKOUT-{reservationId}-{tourId}
      */
     private void generateQRCodes() {
-        long timestamp = System.currentTimeMillis();
-        this.qrCodeCheckIn = "CHECKIN-" + userId + "-" + timestamp;
-        this.qrCodeCheckOut = "CHECKOUT-" + userId + "-" + (timestamp + 1);
+        // Generar un ID único temporal si reservationId aún no existe
+        String tempId = userId + "-" + System.currentTimeMillis();
+        this.qrCodeCheckIn = "CHECKIN-" + tempId + "-" + tourId;
+        this.qrCodeCheckOut = "CHECKOUT-" + tempId + "-" + tourId;
+    }
+    
+    /**
+     * Regenerar QR codes después de que la reserva sea guardada en Firestore
+     * con su reservationId definitivo
+     */
+    public void regenerateQRCodes() {
+        if (reservationId != null && tourId != null) {
+            this.qrCodeCheckIn = "CHECKIN-" + reservationId + "-" + tourId;
+            this.qrCodeCheckOut = "CHECKOUT-" + reservationId + "-" + tourId;
+        }
     }
 
     // Convertir a Map para guardar en Firestore

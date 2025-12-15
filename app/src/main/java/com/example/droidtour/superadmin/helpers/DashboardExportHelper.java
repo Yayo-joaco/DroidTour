@@ -77,14 +77,17 @@ public class DashboardExportHelper {
     private void exportWithMediaStore(List<ChartInfo> charts, String[] kpiLabels, String[] kpiValues,
                                      String timestamp, ExportCompleteCallback callback) {
         try {
-            // Exportar PDF con gráficos incluidos
+            // Exportar solo PDF con gráficos incluidos
             String pdfPath = exportPDFWithMediaStore(charts, kpiLabels, kpiValues, timestamp);
             
-            // Exportar imágenes (mantener para compatibilidad)
-            List<String> imagePaths = exportImagesWithMediaStore(charts, timestamp);
+            // Verificar que el PDF se guardó correctamente (debe ser un URI válido)
+            if (pdfPath == null || !pdfPath.startsWith("content://")) {
+                throw new IOException("El PDF no se guardó correctamente. Path recibido: " + pdfPath);
+            }
             
+            // No exportar imágenes, solo PDF
             if (callback != null) {
-                callback.onSuccess(pdfPath, imagePaths);
+                callback.onSuccess(pdfPath, new ArrayList<>());
             }
         } catch (Exception e) {
             Log.e(TAG, "Error exportando con MediaStore", e);
@@ -100,14 +103,17 @@ public class DashboardExportHelper {
     private void exportWithFileSystem(List<ChartInfo> charts, String[] kpiLabels, String[] kpiValues,
                                       String timestamp, File directory, ExportCompleteCallback callback) {
         try {
-            // Exportar PDF con gráficos incluidos
+            // Exportar solo PDF con gráficos incluidos
             String pdfPath = exportPDFWithFileSystem(charts, kpiLabels, kpiValues, timestamp, directory);
             
-            // Exportar imágenes (mantener para compatibilidad)
-            List<String> imagePaths = exportImagesWithFileSystem(charts, timestamp, directory);
+            // Verificar que el PDF se guardó correctamente
+            if (pdfPath == null || !new File(pdfPath).exists()) {
+                throw new IOException("El PDF no se guardó correctamente");
+            }
             
+            // No exportar imágenes, solo PDF
             if (callback != null) {
-                callback.onSuccess(pdfPath, imagePaths);
+                callback.onSuccess(pdfPath, new ArrayList<>());
             }
         } catch (Exception e) {
             Log.e(TAG, "Error exportando con sistema de archivos", e);
@@ -246,11 +252,13 @@ public class DashboardExportHelper {
             if (fos != null) {
                 document.writeTo(fos);
                 fos.close();
+                document.close();
+                return uri.toString();
             }
         }
-        document.close();
         
-        return uri != null ? uri.toString() : fileName;
+        document.close();
+        throw new IOException("No se pudo guardar el PDF usando MediaStore");
     }
     
     /**

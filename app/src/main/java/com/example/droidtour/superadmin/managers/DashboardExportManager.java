@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.R;
 import com.example.droidtour.superadmin.helpers.DashboardExportHelper;
+import com.example.droidtour.superadmin.helpers.NotificationHelper;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
@@ -41,6 +42,7 @@ public class DashboardExportManager {
     
     private final Activity activity;
     private final DashboardExportHelper exportHelper;
+    private final NotificationHelper notificationHelper;
     private final int permissionRequestCode;
     
     // Referencias a UI components
@@ -53,6 +55,7 @@ public class DashboardExportManager {
                                   int permissionRequestCode) {
         this.activity = activity;
         this.exportHelper = exportHelper;
+        this.notificationHelper = new NotificationHelper(activity);
         this.permissionRequestCode = permissionRequestCode;
         createNotificationChannel();
     }
@@ -135,20 +138,27 @@ public class DashboardExportManager {
                 new DashboardExportHelper.ExportCompleteCallback() {
                     @Override
                     public void onSuccess(String pdfPath, List<String> imagePaths) {
-                        showSuccessNotification(pdfPath, imagePaths);
-                        showSuccessToast(imagePaths.size());
+                        // Usar NotificationHelper para mostrar notificación (solo PDF, sin imágenes)
+                        if (notificationHelper != null) {
+                            notificationHelper.showExportSuccessNotification(0, pdfPath, new ArrayList<>());
+                        }
+                        showSuccessToast();
                     }
                     
                     @Override
                     public void onError(Exception error) {
                         Log.e(TAG, "Error en exportación", error);
-                        showErrorNotification();
+                        if (notificationHelper != null) {
+                            notificationHelper.showExportErrorNotification(error.getMessage());
+                        }
                         showErrorToast(error.getMessage());
                     }
                 });
         } catch (Exception e) {
             Log.e(TAG, "Error en exportación", e);
-            showErrorNotification();
+            if (notificationHelper != null) {
+                notificationHelper.showExportErrorNotification(e.getMessage());
+            }
             showErrorToast(e.getMessage());
         }
     }
@@ -191,74 +201,12 @@ public class DashboardExportManager {
     }
     
     /**
-     * Muestra notificación de éxito
-     */
-    private void showSuccessNotification(String pdfPath, List<String> imagePaths) {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(activity, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        
-        String pdfFileName = extractFileName(pdfPath);
-        
-        StringBuilder imagesText = new StringBuilder();
-        imagesText.append("✅ PDF: ").append(pdfFileName != null ? pdfFileName : "Reporte_Analytics.pdf");
-        imagesText.append("\n📊 Imágenes: ").append(imagePaths.size()).append(" gráficos");
-        for (int i = 0; i < Math.min(imagePaths.size(), 3); i++) {
-            String imagePath = imagePaths.get(i);
-            String imageName = extractFileName(imagePath);
-            imagesText.append("\n  • ").append(imageName != null ? imageName : "Gráfico " + (i + 1));
-        }
-        if (imagePaths.size() > 3) {
-            imagesText.append("\n  ... y ").append(imagePaths.size() - 3).append(" más");
-        }
-        imagesText.append("\n📁 Ubicación: Descargas/DroidTour");
-        
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(activity, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_download_24)
-                .setContentTitle("✅ Exportación Completada")
-                .setContentText("Reporte guardado en Descargas/DroidTour")
-                .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText(imagesText.toString()))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-                .setColor(activity.getResources().getColor(R.color.primary));
-        
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(activity);
-        if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) 
-                == PackageManager.PERMISSION_GRANTED) {
-            notificationManager.notify(NOTIFICATION_ID, builder.build());
-        }
-    }
-    
-    /**
-     * Muestra notificación de error
-     */
-    private void showErrorNotification() {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(activity, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_download_24)
-                .setContentTitle("❌ Error en Exportación")
-                .setContentText("No se pudo completar la exportación")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(true)
-                .setColor(android.graphics.Color.RED);
-        
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(activity);
-        if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) 
-                == PackageManager.PERMISSION_GRANTED) {
-            notificationManager.notify(NOTIFICATION_ID + 1, builder.build());
-        }
-    }
-    
-    /**
      * Muestra Toast de éxito
      */
-    private void showSuccessToast(int imageCount) {
+    private void showSuccessToast() {
         String message = "✅ Exportación completada\n" + 
-                       "1 PDF y " + imageCount + " imágenes guardadas\n" +
-                       "Archivos en Descargas/DroidTour";
-        Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
+                       "PDF guardado en Descargas/DroidTour";
+        Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
     }
     
     /**

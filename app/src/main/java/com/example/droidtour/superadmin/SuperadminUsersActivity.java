@@ -262,10 +262,17 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                                     pd.setDateOfBirth(String.valueOf(pdMap.get("dateOfBirth")));
                                 if (pdMap.get("phoneNumber") != null)
                                     pd.setPhoneNumber(String.valueOf(pdMap.get("phoneNumber")));
-                                if (pdMap.get("profileImageUrl") != null)
-                                    pd.setProfileImageUrl(String.valueOf(pdMap.get("profileImageUrl")));
+                                if (pdMap.get("profileImageUrl") != null) {
+                                    String imageUrl = String.valueOf(pdMap.get("profileImageUrl"));
+                                    pd.setProfileImageUrl(imageUrl);
+                                    Log.d(TAG, "📸 ProfileImageUrl mapeada desde Firestore para " + user.getEmail() + ": " + imageUrl);
+                                } else {
+                                    Log.d(TAG, "⚠️ No se encontró profileImageUrl en personalData para " + user.getEmail());
+                                }
 
                                 user.setPersonalData(pd);
+                            } else {
+                                Log.d(TAG, "⚠️ No se encontró personalData en documento para " + user.getEmail());
                             }
 
                             // Fallback para campos legacy (por si no existe personalData)
@@ -350,7 +357,15 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
             db.collection(FirestoreManager.COLLECTION_USER_ROLES).document(uid).get()
                     .addOnSuccessListener(doc -> {
                         if (doc != null && doc.exists()) {
-                            // Manejar diferentes estructuras de user_roles
+                            boolean approved = false; // Por defecto, no aprobado
+                            
+                            // Primero intentar obtener approved del nivel raíz (estructura directa)
+                            Object approvedObj = doc.get("approved");
+                            if (approvedObj instanceof Boolean) {
+                                approved = (Boolean) approvedObj;
+                            }
+                            
+                            // Manejar diferentes estructuras de user_roles para status
                             if (doc.contains("guide")) {
                                 Object guideObj = doc.get("guide");
                                 if (guideObj instanceof Map) {
@@ -360,6 +375,13 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                                     if (statusObj != null) {
                                         guide.setStatus(String.valueOf(statusObj));
                                     }
+                                    // Si no se encontró approved en el nivel raíz, buscar en guide
+                                    if (!approved) {
+                                        Object approvedInGuide = guideMap.get("approved");
+                                        if (approvedInGuide instanceof Boolean) {
+                                            approved = (Boolean) approvedInGuide;
+                                        }
+                                    }
                                 }
                             } else if (doc.contains("status")) {
                                 // Estructura directa con status
@@ -367,6 +389,7 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                                 if (statusObj != null) {
                                     guide.setStatus(String.valueOf(statusObj));
                                 }
+                                // approved ya se obtuvo del nivel raíz arriba
                             } else if (doc.contains("roles")) {
                                 Object rolesObj = doc.get("roles");
                                 if (rolesObj instanceof Map) {
@@ -380,9 +403,22 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                                         if (statusObj != null) {
                                             guide.setStatus(String.valueOf(statusObj));
                                         }
+                                        // Si no se encontró approved en el nivel raíz, buscar en guide dentro de roles
+                                        if (!approved) {
+                                            Object approvedInGuide = guideMap.get("approved");
+                                            if (approvedInGuide instanceof Boolean) {
+                                                approved = (Boolean) approvedInGuide;
+                                            }
+                                        }
                                     }
                                 }
                             }
+                            
+                            // Actualizar el estado de aprobación en el adaptador
+                            usersAdapter.setGuideApprovalStatus(uid, approved);
+                        } else {
+                            // Si no existe user_roles, asumir que nunca ha sido aprobado
+                            usersAdapter.setGuideApprovalStatus(uid, false);
                         }
                     })
                     .addOnFailureListener(e -> {
@@ -421,12 +457,23 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         String profileImageUrl = null;
         if (user.getPersonalData() != null) {
             profileImageUrl = user.getPersonalData().getProfileImageUrl();
+            Log.d(TAG, "📸 ProfileImageUrl obtenida desde personalData para " + user.getEmail() + ": " + profileImageUrl);
+        } else {
+            Log.w(TAG, "⚠️ personalData es null para usuario: " + user.getEmail());
+        }
+        
+        // Fallback al método legacy si no se encuentra en personalData
+        if ((profileImageUrl == null || profileImageUrl.isEmpty()) && user.getPhotoUrl() != null) {
+            profileImageUrl = user.getPhotoUrl();
+            Log.d(TAG, "📸 ProfileImageUrl obtenida desde getPhotoUrl() (legacy): " + profileImageUrl);
         }
 
         long createdAtMillis = -1;
         if (user.getCreatedAt() != null) {
             createdAtMillis = user.getCreatedAt().getTime();
         }
+
+        Log.d(TAG, "📸 Mostrando perfil de usuario. Avatar URL: " + profileImageUrl);
 
         UserProfileBottomSheet sheet = UserProfileBottomSheet.newInstance(
                 user.getUserId() != null ? user.getUserId() : "",
@@ -533,7 +580,20 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                     if (approveGuide) {
                         // Actualizar user_roles para aprobar guía
                         FirestoreManager firestoreManager = FirestoreManager.getInstance();
-                        firestoreManager.saveUserRole(user.getUserId(), "GUIDE", "active", null, new FirestoreManager.FirestoreCallback() {
+                        
+                        // Verificar si es la primera vez que se aprueba (nunca ha sido aprobado antes)
+                        boolean hasBeenApproved = usersAdapter.hasGuideBeenApproved(user.getUserId());
+                        
+                        // Si nunca ha sido aprobado, marcar approved = true en user_roles
+                        Map<String, Object> extraFields = null;
+                        if (!hasBeenApproved) {
+                            extraFields = new HashMap<>();
+                            extraFields.put("approved", true);
+                            // Actualizar el estado en el adaptador
+                            usersAdapter.setGuideApprovalStatus(user.getUserId(), true);
+                        }
+                        
+                        firestoreManager.saveUserRole(user.getUserId(), "GUIDE", "active", extraFields, new FirestoreManager.FirestoreCallback() {
                             @Override
                             public void onSuccess(Object result) {
                                 user.setStatus("active");

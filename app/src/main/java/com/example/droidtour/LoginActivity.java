@@ -69,8 +69,16 @@ public class LoginActivity extends AppCompatActivity {
 
         // Redirección en caso se encuentre sesión activa
         if (prefsManager.isLoggedIn() && !prefsManager.getUserType().isEmpty()) {
-            redirigirSegunRol();
-            finish();
+            String userType = prefsManager.getUserType();
+            String userId = prefsManager.getUserId();
+            
+            // Si es GUIDE, validar estado de aprobación antes de redirigir
+            if ("GUIDE".equals(userType) && userId != null && !userId.isEmpty()) {
+                checkGuideApprovalStatusOnRestore(userId);
+            } else {
+                redirigirSegunRol();
+                finish();
+            }
             return;
         }
 
@@ -443,6 +451,60 @@ public class LoginActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Validar estado de aprobación del guía al restaurar sesión
+     */
+    private void checkGuideApprovalStatusOnRestore(String userId) {
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                User userObj = (User) result;
+                String statusField = userObj.getStatus();
+
+                if (statusField != null && ("inactive".equalsIgnoreCase(statusField) ||
+                        "suspended".equalsIgnoreCase(statusField))) {
+                    redirectToUserDisabled(userId, "Tu cuenta ha sido desactivada. Contacta con soporte.");
+                    return;
+                }
+
+                // Revisar user_roles para verificar estado de aprobación
+                firestoreManager.getUserRoles(userId, new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> rolesData = (Map<String, Object>) result;
+
+                        String guideStatus = extractGuideStatus(rolesData);
+
+                        if ("active".equals(guideStatus)) {
+                            // Guía aprobado - redirigir al dashboard
+                            redirigirSegunRol();
+                            finish();
+                        } else {
+                            // Guía no aprobado - redirigir a pantalla de espera
+                            redirectToApprovalPending();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e(TAG, "Error al obtener user_roles al restaurar sesión", e);
+                        // Por seguridad, redirigir a pantalla de espera si no se puede verificar
+                        redirectToApprovalPending();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error al obtener usuario al restaurar sesión", e);
+                // Por seguridad, redirigir a pantalla de espera si no se puede verificar
+                redirectToApprovalPending();
+            }
+        });
+    }
+
     private void redirectToUserDisabled(String userId, String reason) {
         try {
             if (mAuth != null) mAuth.signOut();
@@ -489,6 +551,14 @@ public class LoginActivity extends AppCompatActivity {
             public void onSuccess(Object result) {
                 User userObj = (User) result;
 
+                // Revisar si la cuenta está desactivada
+                String statusField = userObj.getStatus();
+                if (statusField != null && ("inactive".equalsIgnoreCase(statusField) ||
+                        "suspended".equalsIgnoreCase(statusField))) {
+                    redirectToUserDisabled(uid, "Tu cuenta ha sido desactivada. Contacta con soporte.");
+                    return;
+                }
+
                 String role = userObj.getUserType();
                 if (role == null || role.isEmpty()) {
                     role = inferUserTypeFromEmail(email);
@@ -508,8 +578,13 @@ public class LoginActivity extends AppCompatActivity {
 
                 saveSessionToFirestore(uid, email, displayName, role);
 
-                redirigirSegunRol();
-                finish();
+                // Verificar status del guía antes de redirigir (igual que en handleExistingUser)
+                if ("GUIDE".equals(role)) {
+                    checkGuideApprovalStatus(uid);
+                } else {
+                    redirigirSegunRol();
+                    finish();
+                }
             }
 
             @Override
@@ -526,6 +601,8 @@ public class LoginActivity extends AppCompatActivity {
 
                 saveSessionToFirestore(uid, email, displayName, role);
 
+                // Si no existe en Firestore, no puede ser un guía registrado, así que redirigir normalmente
+                // (un guía registrado siempre debería existir en Firestore)
                 redirigirSegunRol();
                 finish();
             }

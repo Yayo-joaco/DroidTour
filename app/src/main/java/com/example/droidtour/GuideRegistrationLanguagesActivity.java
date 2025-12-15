@@ -230,6 +230,11 @@ public class GuideRegistrationLanguagesActivity extends AppCompatActivity {
                     intent.putExtra("fechaNacimiento", fechaNacimiento);
                     intent.putExtra("telefono", telefono);
 
+                    // Pasar la foto seleccionada (si existe)
+                    if (photoUri != null && !photoUri.isEmpty()) {
+                        intent.putExtra("photoUri", photoUri);
+                    }
+
                     // Pasar idiomas seleccionados
                     ArrayList<String> idiomasSeleccionados = new ArrayList<>();
                     for (Language lang : selectedLanguages) {

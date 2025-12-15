@@ -3,6 +3,7 @@ package com.example.droidtour;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -13,6 +14,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.User;
@@ -153,6 +156,7 @@ public class GuideMyAccount extends AppCompatActivity {
     private void displayUserData(User user) {
         TextView tvUserName = findViewById(R.id.tv_user_name);
         TextView tvUserEmail = findViewById(R.id.tv_user_email);
+        ImageView profileImage = findViewById(R.id.profile_image);
         
         String fullName = user.getFullName() != null ? user.getFullName() : 
                          (user.getFirstName() + " " + user.getLastName());
@@ -164,6 +168,42 @@ public class GuideMyAccount extends AppCompatActivity {
         
         if (tvUserEmail != null) {
             tvUserEmail.setText(email != null ? email : "No especificado");
+        }
+        
+        // 📸 CARGAR FOTO DE PERFIL DESDE FIREBASE
+        String photoUrl = null;
+        if (user.getPersonalData() != null) {
+            photoUrl = user.getPersonalData().getProfileImageUrl();
+            Log.d(TAG, "📸 PersonalData encontrado");
+            Log.d(TAG, "📸 profileImageUrl desde PersonalData: " + photoUrl);
+        } else {
+            Log.w(TAG, "⚠️ PersonalData es null");
+        }
+
+        // También intentar obtener desde getPhotoUrl() (método legacy)
+        if (photoUrl == null || photoUrl.isEmpty()) {
+            photoUrl = user.getPhotoUrl();
+            Log.d(TAG, "📸 Intentando obtener desde getPhotoUrl(): " + photoUrl);
+        }
+
+        Log.d(TAG, "📸 URL final de foto de perfil: " + photoUrl);
+
+        if (profileImage != null) {
+            if (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")) {
+                Log.d(TAG, "📸 Cargando imagen con Glide desde URL: " + photoUrl);
+                Glide.with(GuideMyAccount.this)
+                        .load(photoUrl)
+                        .placeholder(R.drawable.ic_avatar_24)
+                        .error(R.drawable.ic_avatar_24)
+                        .transform(new CircleCrop())
+                        .into(profileImage);
+                Log.d(TAG, "✅ Glide configurado para cargar imagen");
+            } else {
+                Log.w(TAG, "⚠️ URL de imagen no válida o vacía, usando placeholder");
+                profileImage.setImageResource(R.drawable.ic_avatar_24);
+            }
+        } else {
+            Log.e(TAG, "❌ profileImage es null, no se puede cargar la foto");
         }
         
         Log.d(TAG, "✅ UI actualizada con datos de Firebase");

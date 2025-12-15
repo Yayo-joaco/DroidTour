@@ -91,9 +91,90 @@ public class AdminRegistrationActivity extends AppCompatActivity {
         // Configurar dropdowns
         setupDropdowns();
 
+        // Configurar filtros de entrada
+        setupNameFilters();
+        setupDocumentNumberFilter();
+
         // Configurar listener del botón de registro
         setupPhoneFormatter();
         setupRegisterButton();
+    }
+    
+    /**
+     * Configura filtros de entrada para limitar nombres y apellidos a 40 caracteres
+     */
+    private void setupNameFilters() {
+        android.text.InputFilter[] nameFilters = new android.text.InputFilter[]{
+            new android.text.InputFilter.LengthFilter(40)
+        };
+        etAdminFirstName.setFilters(nameFilters);
+        etAdminLastName.setFilters(nameFilters);
+    }
+    
+    /**
+     * Configura filtro de entrada para DNI (máximo 8 dígitos numéricos)
+     */
+    private void setupDocumentNumberFilter() {
+        // Escuchar cambios en el tipo de documento para aplicar filtro dinámicamente
+        actAdminDocType.setOnItemClickListener((parent, view, position, id) -> {
+            updateDocumentNumberFilter();
+        });
+        
+        // Aplicar filtro inicial
+        updateDocumentNumberFilter();
+        
+        // TextWatcher adicional para limpiar caracteres no numéricos en tiempo real
+        etAdminDocNumber.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                String tipoDocumento = actAdminDocType.getText().toString().trim();
+                if ("DNI".equals(tipoDocumento)) {
+                    // Solo permitir números y máximo 8 dígitos para DNI
+                    String text = s.toString().replaceAll("[^0-9]", "");
+                    if (text.length() > 8) {
+                        text = text.substring(0, 8);
+                    }
+                    if (!s.toString().equals(text)) {
+                        int cursorPosition = etAdminDocNumber.getSelectionStart();
+                        s.clear();
+                        s.append(text);
+                        int newPosition = Math.min(cursorPosition, text.length());
+                        etAdminDocNumber.setSelection(newPosition);
+                    }
+                }
+            }
+        });
+    }
+    
+    /**
+     * Actualiza el filtro del campo número de documento según el tipo seleccionado
+     */
+    private void updateDocumentNumberFilter() {
+        String tipoDocumento = actAdminDocType.getText().toString().trim();
+        if ("DNI".equals(tipoDocumento)) {
+            // Aplicar filtro: solo números, máximo 8 dígitos
+            etAdminDocNumber.setFilters(new android.text.InputFilter[]{
+                new android.text.InputFilter.LengthFilter(8),
+                (source, start, end, dest, dstart, dend) -> {
+                    // Solo permitir dígitos
+                    for (int i = start; i < end; i++) {
+                        if (!Character.isDigit(source.charAt(i))) {
+                            return "";
+                        }
+                    }
+                    return null; // Aceptar el texto
+                }
+            });
+        } else {
+            // Remover restricciones para otros tipos de documento
+            etAdminDocNumber.setFilters(new android.text.InputFilter[0]);
+        }
     }
 
     private void initViews() {
@@ -232,9 +313,19 @@ public class AdminRegistrationActivity extends AppCompatActivity {
             isValid = false;
         }
 
-        if (TextUtils.isEmpty(etAdminDocNumber.getText())) {
+        String tipoDocumento = actAdminDocType.getText().toString().trim();
+        String numeroDocumento = etAdminDocNumber.getText().toString().trim();
+        
+        if (TextUtils.isEmpty(numeroDocumento)) {
             etAdminDocNumber.setError("Número de documento es obligatorio");
             isValid = false;
+        } else if ("DNI".equals(tipoDocumento)) {
+            // Validar DNI: solo números, exactamente 8 cifras
+            String numeroSinEspacios = numeroDocumento.replaceAll("\\s+", "");
+            if (!numeroSinEspacios.matches("\\d{8}")) {
+                etAdminDocNumber.setError("El DNI debe tener exactamente 8 dígitos numéricos");
+                isValid = false;
+            }
         }
 
         // Validar teléfono (si está presente)

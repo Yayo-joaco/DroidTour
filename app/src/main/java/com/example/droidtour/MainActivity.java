@@ -106,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
         if (prefsManager.isLoggedIn()) {
             String usuario = prefsManager.getUserName();
             String tipoUsuario = prefsManager.getUserType();
+            String userId = prefsManager.getUserId();
 
             Toast.makeText(this, "Bienvenido de vuelta, " + usuario, Toast.LENGTH_SHORT).show();
 
@@ -121,8 +122,14 @@ public class MainActivity extends AppCompatActivity {
                     finish();
                     break;
                 case "GUIDE":
-                    startActivity(new Intent(this, TourGuideMainActivity.class));
-                    finish();
+                    // Validar estado de aprobación del guía antes de redirigir
+                    if (userId != null && !userId.isEmpty()) {
+                        checkGuideApprovalStatus(userId);
+                    } else {
+                        // Si no hay userId, redirigir a login
+                        startActivity(new Intent(this, LoginActivity.class));
+                        finish();
+                    }
                     break;
                 case "CLIENT":
                     startActivity(new Intent(this, ClientMainActivity.class));
@@ -130,6 +137,117 @@ public class MainActivity extends AppCompatActivity {
                     break;
             }
         }
+    }
+
+    /**
+     * Validar estado de aprobación del guía
+     */
+    private void checkGuideApprovalStatus(String userId) {
+        com.example.droidtour.firebase.FirestoreManager firestoreManager = 
+            com.example.droidtour.firebase.FirestoreManager.getInstance();
+        
+        firestoreManager.getUserById(userId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User userObj = (com.example.droidtour.models.User) result;
+                String statusField = userObj.getStatus();
+
+                if (statusField != null && ("inactive".equalsIgnoreCase(statusField) ||
+                        "suspended".equalsIgnoreCase(statusField))) {
+                    redirectToUserDisabled(userId);
+                    return;
+                }
+
+                // Revisar user_roles para verificar estado de aprobación
+                firestoreManager.getUserRoles(userId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        @SuppressWarnings("unchecked")
+                        java.util.Map<String, Object> rolesData = (java.util.Map<String, Object>) result;
+
+                        String guideStatus = extractGuideStatus(rolesData);
+
+                        if ("active".equals(guideStatus)) {
+                            // Guía aprobado - redirigir al dashboard
+                            startActivity(new Intent(MainActivity.this, TourGuideMainActivity.class));
+                            finish();
+                        } else {
+                            // Guía no aprobado - redirigir a pantalla de espera
+                            redirectToApprovalPending();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        android.util.Log.e("MainActivity", "Error al obtener user_roles", e);
+                        // Por seguridad, redirigir a pantalla de espera si no se puede verificar
+                        redirectToApprovalPending();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("MainActivity", "Error al obtener usuario", e);
+                // Por seguridad, redirigir a pantalla de espera si no se puede verificar
+                redirectToApprovalPending();
+            }
+        });
+    }
+
+    /**
+     * Extraer estado de guía desde diferentes estructuras posibles
+     */
+    private String extractGuideStatus(java.util.Map<String, Object> rolesData) {
+        // Estructura 1: directa
+        if (rolesData.containsKey("status")) {
+            return (String) rolesData.get("status");
+        }
+
+        // Estructura 2: bajo "guide"
+        if (rolesData.containsKey("guide")) {
+            Object guideObj = rolesData.get("guide");
+            if (guideObj instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> guideMap = (java.util.Map<String, Object>) guideObj;
+                if (guideMap.containsKey("status")) {
+                    return (String) guideMap.get("status");
+                }
+            }
+        }
+
+        // Estructura 3: bajo "roles.guide"
+        if (rolesData.containsKey("roles")) {
+            Object rolesObj = rolesData.get("roles");
+            if (rolesObj instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> rolesMap = (java.util.Map<String, Object>) rolesObj;
+                Object guideRole = rolesMap.get("guide");
+                if (guideRole instanceof java.util.Map) {
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, Object> guideMap = (java.util.Map<String, Object>) guideRole;
+                    return (String) guideMap.get("status");
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void redirectToApprovalPending() {
+        Intent intent = new Intent(this, com.example.droidtour.GuideApprovalPendingActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void redirectToUserDisabled(String userId) {
+        Intent intent = new Intent(this, com.example.droidtour.UserDisabledActivity.class);
+        intent.putExtra("userId", userId);
+        intent.putExtra("reason", "Tu cuenta ha sido desactivada. Contacta con soporte.");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
     
     /**

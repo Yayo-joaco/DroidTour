@@ -44,7 +44,19 @@ public class ClientRegistrationActivity extends AppCompatActivity {
 
         setupDocumentTypeSpinner();
         setupCountryCodePicker();
+        setupNameFilters();
         setupClickListeners();
+    }
+    
+    /**
+     * Configura filtros de entrada para limitar nombres y apellidos a 40 caracteres
+     */
+    private void setupNameFilters() {
+        android.text.InputFilter[] nameFilters = new android.text.InputFilter[]{
+            new android.text.InputFilter.LengthFilter(40)
+        };
+        etNombres.setFilters(nameFilters);
+        etApellidos.setFilters(nameFilters);
     }
 
     // Nuevo: rellenar campos si venimos desde Google Sign-In
@@ -90,9 +102,75 @@ public class ClientRegistrationActivity extends AppCompatActivity {
                 documentTypes
         );
         etDocumento.setAdapter(adapter);
+        
+        // Escuchar cambios en el tipo de documento para aplicar filtro dinámicamente
+        etDocumento.setOnItemClickListener((parent, view, position, id) -> {
+            updateDocumentNumberFilter();
+        });
+        
+        // Configurar filtro de entrada para DNI
+        setupDocumentNumberFilter();
 
         // Opcional: establecer valor por defecto
         // etDocumento.setText("DNI", false);
+    }
+    
+    /**
+     * Actualiza el filtro del campo número de documento según el tipo seleccionado
+     */
+    private void updateDocumentNumberFilter() {
+        String tipoDocumento = etDocumento.getText().toString().trim();
+        if ("DNI".equals(tipoDocumento)) {
+            // Aplicar filtro: solo números, máximo 8 dígitos
+            etNumeroDocumento.setFilters(new android.text.InputFilter[]{
+                new android.text.InputFilter.LengthFilter(8),
+                (source, start, end, dest, dstart, dend) -> {
+                    // Solo permitir dígitos
+                    for (int i = start; i < end; i++) {
+                        if (!Character.isDigit(source.charAt(i))) {
+                            return "";
+                        }
+                    }
+                    return null; // Aceptar el texto
+                }
+            });
+        } else {
+            // Remover restricciones para otros tipos de documento
+            etNumeroDocumento.setFilters(new android.text.InputFilter[0]);
+        }
+    }
+    
+    private void setupDocumentNumberFilter() {
+        // Aplicar filtro inicial si el tipo de documento es DNI
+        updateDocumentNumberFilter();
+        
+        // TextWatcher adicional para limpiar caracteres no numéricos en tiempo real
+        etNumeroDocumento.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                String tipoDocumento = etDocumento.getText().toString().trim();
+                if ("DNI".equals(tipoDocumento)) {
+                    // Solo permitir números y máximo 8 dígitos para DNI
+                    String text = s.toString().replaceAll("[^0-9]", "");
+                    if (text.length() > 8) {
+                        text = text.substring(0, 8);
+                    }
+                    if (!s.toString().equals(text)) {
+                        int cursorPosition = etNumeroDocumento.getSelectionStart();
+                        s.clear();
+                        s.append(text);
+                        int newPosition = Math.min(cursorPosition, text.length());
+                        etNumeroDocumento.setSelection(newPosition);
+                    }
+                }
+            }
+        });
     }
 
     private void setupCountryCodePicker() {
@@ -163,6 +241,20 @@ public class ClientRegistrationActivity extends AppCompatActivity {
         DatePickerDialog datePickerDialog = new DatePickerDialog(
                 this,
                 (view, year, month, dayOfMonth) -> {
+                    // Validar que la fecha no sea futura
+                    Calendar selectedDate = Calendar.getInstance();
+                    selectedDate.set(year, month, dayOfMonth);
+                    Calendar today = Calendar.getInstance();
+                    today.set(Calendar.HOUR_OF_DAY, 0);
+                    today.set(Calendar.MINUTE, 0);
+                    today.set(Calendar.SECOND, 0);
+                    today.set(Calendar.MILLISECOND, 0);
+                    
+                    if (selectedDate.after(today)) {
+                        android.widget.Toast.makeText(this, "La fecha de nacimiento no puede ser futura", android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
                     String date = String.format("%02d/%02d/%d", dayOfMonth, month + 1, year);
                     etFechaNacimiento.setText(date);
                 },
@@ -170,6 +262,8 @@ public class ClientRegistrationActivity extends AppCompatActivity {
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
         );
+        // Limitar la fecha máxima a hoy
+        datePickerDialog.getDatePicker().setMaxDate(calendar.getTimeInMillis());
         datePickerDialog.show();
     }
 
@@ -204,14 +298,35 @@ public class ClientRegistrationActivity extends AppCompatActivity {
             return false;
         }
 
-        if (etNumeroDocumento.getText().toString().trim().isEmpty()) {
+        String tipoDocumento = etDocumento.getText().toString().trim();
+        String numeroDocumento = etNumeroDocumento.getText().toString().trim();
+        
+        if (numeroDocumento.isEmpty()) {
             etNumeroDocumento.setError("Campo obligatorio");
             etNumeroDocumento.requestFocus();
             return false;
         }
+        
+        // Validar DNI: solo números, exactamente 8 cifras
+        if ("DNI".equals(tipoDocumento)) {
+            String numeroSinEspacios = numeroDocumento.replaceAll("\\s+", "");
+            if (!numeroSinEspacios.matches("\\d{8}")) {
+                etNumeroDocumento.setError("El DNI debe tener exactamente 8 dígitos numéricos");
+                etNumeroDocumento.requestFocus();
+                return false;
+            }
+        }
 
         if (etFechaNacimiento.getText().toString().trim().isEmpty()) {
             etFechaNacimiento.setError("Campo obligatorio");
+            etFechaNacimiento.requestFocus();
+            return false;
+        }
+        
+        // Validar que la fecha de nacimiento no sea futura
+        String fechaNacimiento = etFechaNacimiento.getText().toString().trim();
+        if (!isValidBirthDate(fechaNacimiento)) {
+            etFechaNacimiento.setError("La fecha de nacimiento no puede ser futura");
             etFechaNacimiento.requestFocus();
             return false;
         }
@@ -257,6 +372,35 @@ public class ClientRegistrationActivity extends AppCompatActivity {
         }
 
         return true;
+    }
+    
+    /**
+     * Valida que la fecha de nacimiento no sea futura
+     */
+    private boolean isValidBirthDate(String dateString) {
+        try {
+            // Formato esperado: DD/MM/YYYY
+            String[] parts = dateString.split("/");
+            if (parts.length != 3) return false;
+            
+            int day = Integer.parseInt(parts[0]);
+            int month = Integer.parseInt(parts[1]) - 1; // Calendar usa meses 0-11
+            int year = Integer.parseInt(parts[2]);
+            
+            Calendar selectedDate = Calendar.getInstance();
+            selectedDate.set(year, month, day, 0, 0, 0);
+            selectedDate.set(Calendar.MILLISECOND, 0);
+            
+            Calendar today = Calendar.getInstance();
+            today.set(Calendar.HOUR_OF_DAY, 0);
+            today.set(Calendar.MINUTE, 0);
+            today.set(Calendar.SECOND, 0);
+            today.set(Calendar.MILLISECOND, 0);
+            
+            return !selectedDate.after(today);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void proceedToNext() {

@@ -16,6 +16,8 @@ import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.managers.PrefsManager;
@@ -56,11 +58,13 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private TextView tvNotificationBadge;
     private ImageView ivAvatarAction;
     private int notificationCount = 0;
+    
+    // Flag para verificar si la actividad está completamente inicializada
+    private boolean isActivityInitialized = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tour_guide_main);
         
         // Inicializar helpers
         prefsManager = new PrefsManager(this);
@@ -79,6 +83,75 @@ public class TourGuideMainActivity extends AppCompatActivity {
             currentUserId = utilsPrefs.getUserId();
         }
         
+        // Validar estado de aprobación del guía antes de permitir acceso
+        if (currentUserId != null && !currentUserId.isEmpty()) {
+            checkGuideApprovalStatus();
+        } else {
+            // Si no hay userId, redirigir a login
+            redirectToLogin();
+            finish();
+            return;
+        }
+    }
+
+    /**
+     * Validar estado de aprobación del guía antes de permitir acceso
+     */
+    private void checkGuideApprovalStatus() {
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User userObj = (com.example.droidtour.models.User) result;
+                String statusField = userObj.getStatus();
+
+                if (statusField != null && ("inactive".equalsIgnoreCase(statusField) ||
+                        "suspended".equalsIgnoreCase(statusField))) {
+                    redirectToUserDisabled();
+                    return;
+                }
+
+                // Revisar user_roles para verificar estado de aprobación
+                firestoreManager.getUserRoles(currentUserId, new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        @SuppressWarnings("unchecked")
+                        java.util.Map<String, Object> rolesData = (java.util.Map<String, Object>) result;
+
+                        String guideStatus = extractGuideStatus(rolesData);
+
+                        if ("active".equals(guideStatus)) {
+                            // Guía aprobado - continuar con onCreate
+                            continueOnCreate();
+                        } else {
+                            // Guía no aprobado - redirigir a pantalla de espera
+                            redirectToApprovalPending();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        android.util.Log.e("TourGuideMain", "Error al obtener user_roles", e);
+                        // Por seguridad, redirigir a pantalla de espera si no se puede verificar
+                        redirectToApprovalPending();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("TourGuideMain", "Error al obtener usuario", e);
+                // Por seguridad, redirigir a pantalla de espera si no se puede verificar
+                redirectToApprovalPending();
+            }
+        });
+    }
+
+    /**
+     * Continuar con la inicialización normal de la actividad
+     */
+    private void continueOnCreate() {
+        setContentView(R.layout.activity_tour_guide_main);
+        
         initializeViews();
         setupToolbar();
         setupNavigationDrawer();
@@ -96,15 +169,83 @@ public class TourGuideMainActivity extends AppCompatActivity {
         
         // Cargar tour activo
         loadActiveTour();
+        
+        // Marcar la actividad como completamente inicializada
+        isActivityInitialized = true;
+    }
+
+    /**
+     * Extraer estado de guía desde diferentes estructuras posibles
+     */
+    private String extractGuideStatus(java.util.Map<String, Object> rolesData) {
+        // Estructura 1: directa
+        if (rolesData.containsKey("status")) {
+            return (String) rolesData.get("status");
+        }
+
+        // Estructura 2: bajo "guide"
+        if (rolesData.containsKey("guide")) {
+            Object guideObj = rolesData.get("guide");
+            if (guideObj instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> guideMap = (java.util.Map<String, Object>) guideObj;
+                if (guideMap.containsKey("status")) {
+                    return (String) guideMap.get("status");
+                }
+            }
+        }
+
+        // Estructura 3: bajo "roles.guide"
+        if (rolesData.containsKey("roles")) {
+            Object rolesObj = rolesData.get("roles");
+            if (rolesObj instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> rolesMap = (java.util.Map<String, Object>) rolesObj;
+                Object guideRole = rolesMap.get("guide");
+                if (guideRole instanceof java.util.Map) {
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, Object> guideMap = (java.util.Map<String, Object>) guideRole;
+                    return (String) guideMap.get("status");
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void redirectToApprovalPending() {
+        Intent intent = new Intent(this, GuideApprovalPendingActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void redirectToUserDisabled() {
+        Intent intent = new Intent(this, UserDisabledActivity.class);
+        intent.putExtra("userId", currentUserId);
+        intent.putExtra("reason", "Tu cuenta ha sido desactivada. Contacta con soporte.");
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void redirectToLogin() {
+        Intent intent = new Intent(this, LoginActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
     
     @Override
     protected void onResume() {
         super.onResume();
-        // ✅ RECARGAR DASHBOARD CADA VEZ QUE REGRESAS
-        setupRecyclerViews();
-        // Recargar contador de notificaciones
-        loadNotificationsCount();
+        // Solo ejecutar si la actividad está completamente inicializada
+        if (isActivityInitialized) {
+            // ✅ RECARGAR DASHBOARD CADA VEZ QUE REGRESAS
+            setupRecyclerViews();
+            // Recargar contador de notificaciones
+            loadNotificationsCount();
+        }
     }
 
     private void initializeViews() {
@@ -452,6 +593,32 @@ public class TourGuideMainActivity extends AppCompatActivity {
                 // Extraer nombre desde personalData
                 String fullName = extractFullName(user);
 
+                // Obtener URL de la imagen de perfil
+                String photoUrl = null;
+                if (user.getPersonalData() != null) {
+                    photoUrl = user.getPersonalData().getProfileImageUrl();
+                }
+                
+                // También intentar obtener desde getPhotoUrl() (método legacy)
+                if (photoUrl == null || photoUrl.isEmpty()) {
+                    photoUrl = user.getPhotoUrl();
+                }
+                
+                // 📸 CARGAR FOTO DE PERFIL EN EL AVATAR DEL TOOLBAR
+                if (ivAvatarAction != null) {
+                    if (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")) {
+                        android.util.Log.d("TourGuideMain", "📸 Cargando avatar en toolbar desde URL: " + photoUrl);
+                        Glide.with(TourGuideMainActivity.this)
+                                .load(photoUrl)
+                                .placeholder(R.drawable.ic_avatar_24)
+                                .error(R.drawable.ic_avatar_24)
+                                .transform(new CircleCrop())
+                                .into(ivAvatarAction);
+                    } else {
+                        ivAvatarAction.setImageResource(R.drawable.ic_avatar_24);
+                    }
+                }
+                
                 // Actualizar nombre en el header del drawer
                 NavigationView navigationView = findViewById(R.id.nav_view);
                 if (navigationView != null) {
@@ -461,6 +628,22 @@ public class TourGuideMainActivity extends AppCompatActivity {
                         if (tvUserNameHeader != null) {
                             String displayName = getDisplayName(fullName);
                             tvUserNameHeader.setText(displayName);
+                        }
+                        
+                        // 📸 CARGAR FOTO DE PERFIL EN EL DRAWER
+                        android.widget.ImageView ivAvatarHeader = headerView.findViewById(R.id.iv_avatar_header);
+                        if (ivAvatarHeader != null) {
+                            if (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")) {
+                                android.util.Log.d("TourGuideMain", "📸 Cargando avatar en drawer desde URL: " + photoUrl);
+                                Glide.with(TourGuideMainActivity.this)
+                                        .load(photoUrl)
+                                        .placeholder(R.drawable.ic_avatar_24)
+                                        .error(R.drawable.ic_avatar_24)
+                                        .transform(new CircleCrop())
+                                        .into(ivAvatarHeader);
+                            } else {
+                                ivAvatarHeader.setImageResource(R.drawable.ic_avatar_24);
+                            }
                         }
                     }
                 }

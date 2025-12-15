@@ -1,6 +1,7 @@
 package com.example.droidtour;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -14,6 +15,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.example.droidtour.models.User;
 import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.utils.ImageUploadManager;
+import com.google.firebase.storage.UploadTask;
 import android.util.Log;
 
 import java.util.HashMap;
@@ -198,29 +201,85 @@ public class GuideCreatePasswordActivity extends AppCompatActivity {
         personalData.setDateOfBirth(fechaNacimiento);
         personalData.setPhoneNumber(telefono);
 
-        // Agregar foto si existe
-        if (photoUri != null && !photoUri.isEmpty()) {
-            personalData.setProfileImageUrl(photoUri);
-        }
-
         newUser.setPersonalData(personalData);
+        
+        Log.d(TAG, "📸 Preparando guardado de guía. photoUri: " + (photoUri != null ? photoUri : "null"));
 
-        // 4. GUARDAR EN FIRESTORE usando FirestoreManager
+        // 4. SUBIR IMAGEN SI EXISTE Y LUEGO GUARDAR EN FIRESTORE
         FirestoreManager firestoreManager = FirestoreManager.getInstance();
-        firestoreManager.createUser(newUser, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                Log.d(TAG, "Guía guardado exitosamente en Firestore");
-                // 5. GUARDAR ROL DEL USUARIO con idiomas
-                saveUserRoleWithLanguages(userId);
+        
+        if (photoUri != null && !photoUri.isEmpty()) {
+            // Convertir String a Uri
+            Uri imageUri = Uri.parse(photoUri);
+            
+            // Subir imagen a Firebase Storage
+            UploadTask uploadTask = ImageUploadManager.uploadFromUri(imageUri, "profile_images", userId);
+            if (uploadTask == null) {
+                handleRegistrationError("Error al iniciar la subida de imagen");
+                return;
             }
+            
+            // Obtener URL de descarga después de subir
+            ImageUploadManager.getDownloadUrl(uploadTask, new ImageUploadManager.ImageUploadCallback() {
+                @Override
+                public void onSuccess(String downloadUrl) {
+                    Log.d(TAG, "✅ Imagen subida exitosamente. URL: " + downloadUrl);
+                    
+                    // Asegurar que personalData existe
+                    if (newUser.getPersonalData() == null) {
+                        Log.e(TAG, "❌ Error: personalData es null");
+                        handleRegistrationError("Error: datos personales no inicializados");
+                        return;
+                    }
+                    
+                    // Actualizar PersonalData con la URL de descarga
+                    newUser.getPersonalData().setProfileImageUrl(downloadUrl);
+                    Log.d(TAG, "✅ URL de imagen asignada a personalData.profileImageUrl: " + newUser.getPersonalData().getProfileImageUrl());
+                    
+                    // Guardar usuario en Firestore
+                    firestoreManager.createUser(newUser, new FirestoreManager.FirestoreCallback() {
+                        @Override
+                        public void onSuccess(Object result) {
+                            User savedUser = (User) result;
+                            String savedImageUrl = savedUser.getPersonalData() != null ? 
+                                    savedUser.getPersonalData().getProfileImageUrl() : null;
+                            Log.d(TAG, "✅ Guía con imagen guardado exitosamente en Firestore");
+                            Log.d(TAG, "✅ URL de imagen guardada en Firestore: " + savedImageUrl);
+                            // 5. GUARDAR ROL DEL USUARIO con idiomas
+                            saveUserRoleWithLanguages(userId);
+                        }
 
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error al guardar guía en Firestore para userId: " + userId, e);
-                handleRegistrationError("Error al guardar datos: " + e.getMessage());
-            }
-        });
+                        @Override
+                        public void onFailure(Exception e) {
+                            Log.e(TAG, "❌ Error al guardar guía en Firestore para userId: " + userId, e);
+                            handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                        }
+                    });
+                }
+
+                @Override
+                public void onFailure(Exception exception) {
+                    Log.e(TAG, "❌ Error al subir imagen: " + exception.getMessage(), exception);
+                    handleRegistrationError("Error al subir imagen: " + exception.getMessage());
+                }
+            });
+        } else {
+            // No hay imagen, guardar directamente
+            firestoreManager.createUser(newUser, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Log.d(TAG, "Guía guardado exitosamente en Firestore");
+                    // 5. GUARDAR ROL DEL USUARIO con idiomas
+                    saveUserRoleWithLanguages(userId);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error al guardar guía en Firestore para userId: " + userId, e);
+                    handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                }
+            });
+        }
     }
 
     /**

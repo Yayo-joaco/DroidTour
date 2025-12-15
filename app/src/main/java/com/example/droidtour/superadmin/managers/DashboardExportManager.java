@@ -44,6 +44,7 @@ public class DashboardExportManager {
     private final DashboardExportHelper exportHelper;
     private final NotificationHelper notificationHelper;
     private final int permissionRequestCode;
+    private boolean isExportingImages = false;
     
     // Referencias a UI components
     private TextView tvTotalUsers, tvActiveTours, tvRevenue, tvBookings;
@@ -106,6 +107,7 @@ public class DashboardExportManager {
      * Verifica permisos y prepara datos antes de exportar
      */
     public void requestExport() {
+        isExportingImages = false;
         // Verificar permisos para Android 9 y anteriores
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             if (ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -119,6 +121,79 @@ public class DashboardExportManager {
         
         // Si tiene permisos, proceder con exportación
         performExport();
+    }
+    
+    /**
+     * Inicia el proceso de exportación de imágenes
+     * Verifica permisos antes de exportar
+     */
+    public void requestExportImages() {
+        isExportingImages = true;
+        // Verificar permisos para Android 9 y anteriores
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(activity,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        permissionRequestCode);
+                return;
+            }
+        }
+        
+        // Si tiene permisos, proceder con exportación de imágenes
+        performExportImages();
+    }
+    
+    /**
+     * Realiza la exportación de imágenes después de verificar permisos
+     */
+    public void performExportImages() {
+        try {
+            // Preparar gráficos
+            List<DashboardExportHelper.ChartInfo> charts = prepareCharts();
+            
+            if (charts == null || charts.isEmpty()) {
+                Toast.makeText(activity, "No hay gráficos para exportar", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            // Exportar solo imágenes usando helper
+            exportHelper.exportChartsAsImages(charts, 
+                new DashboardExportHelper.ExportImagesCallback() {
+                    @Override
+                    public void onSuccess(List<String> imagePaths) {
+                        // Usar NotificationHelper para mostrar notificación
+                        if (notificationHelper != null) {
+                            notificationHelper.showExportImagesSuccessNotification(
+                                imagePaths != null ? imagePaths.size() : 0, 
+                                imagePaths != null ? imagePaths : new ArrayList<>()
+                            );
+                        }
+                        Toast.makeText(activity, 
+                            "✅ " + (imagePaths != null ? imagePaths.size() : 0) + " imágenes exportadas", 
+                            Toast.LENGTH_SHORT).show();
+                    }
+                    
+                    @Override
+                    public void onError(Exception error) {
+                        Log.e(TAG, "Error exportando imágenes", error);
+                        if (notificationHelper != null) {
+                            notificationHelper.showExportErrorNotification(error.getMessage());
+                        }
+                        Toast.makeText(activity, 
+                            "❌ Error al exportar imágenes: " + (error.getMessage() != null ? error.getMessage() : "Error desconocido"), 
+                            Toast.LENGTH_LONG).show();
+                    }
+                });
+        } catch (Exception e) {
+            Log.e(TAG, "Error en exportación de imágenes", e);
+            if (notificationHelper != null) {
+                notificationHelper.showExportErrorNotification(e.getMessage());
+            }
+            Toast.makeText(activity, 
+                "❌ Error al exportar imágenes: " + (e.getMessage() != null ? e.getMessage() : "Error desconocido"), 
+                Toast.LENGTH_LONG).show();
+        }
     }
     
     /**
@@ -242,7 +317,11 @@ public class DashboardExportManager {
     public void handlePermissionResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == permissionRequestCode) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                performExport();
+                if (isExportingImages) {
+                    performExportImages();
+                } else {
+                    performExport();
+                }
             } else {
                 Toast.makeText(activity, 
                     "❌ Permiso denegado. No se puede exportar sin permisos de almacenamiento.", 

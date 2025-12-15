@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import com.example.droidtour.R;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -243,6 +244,159 @@ public class NotificationHelper {
         } catch (Exception e) {
             Log.e(TAG, "Error mostrando notificación de exportación", e);
         }
+    }
+    
+    /**
+     * Muestra notificación de exportación exitosa de imágenes
+     */
+    public void showExportImagesSuccessNotification(int imageCount, List<String> imagePaths) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            
+            // Convertir paths a URIs y abrir imágenes
+            if (imagePaths != null && !imagePaths.isEmpty()) {
+                ArrayList<Uri> imageUris = new ArrayList<>();
+                
+                for (String imagePath : imagePaths) {
+                    Uri imageUri = convertPathToUri(imagePath);
+                    if (imageUri != null) {
+                        imageUris.add(imageUri);
+                    }
+                }
+                
+                if (!imageUris.isEmpty()) {
+                    if (imageUris.size() == 1) {
+                        // Una sola imagen: abrir directamente
+                        intent.setDataAndType(imageUris.get(0), "image/*");
+                    } else {
+                        // Múltiples imágenes: usar EXTRA_STREAM para permitir navegación
+                        intent.setAction(Intent.ACTION_VIEW);
+                        intent.setType("image/*");
+                        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, imageUris);
+                    }
+                } else {
+                    // Fallback: abrir carpeta si no se pudieron convertir los URIs
+                    Uri folderUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload%2FDroidTour");
+                    intent.setDataAndType(folderUri, "resource/folder");
+                }
+            } else {
+                // Fallback: abrir carpeta de descargas
+                Uri folderUri = Uri.parse("content://com.android.externalstorage.documents/document/primary%3ADownload%2FDroidTour");
+                intent.setDataAndType(folderUri, "resource/folder");
+            }
+            
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, 0, intent, 
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            
+            StringBuilder contentText = new StringBuilder();
+            contentText.append("✅ Exportación completada\n\n");
+            contentText.append("🖼️ ").append(imageCount).append(" imágenes guardadas\n");
+            if (imagePaths != null && !imagePaths.isEmpty()) {
+                for (int i = 0; i < Math.min(imagePaths.size(), 3); i++) {
+                    String imagePath = imagePaths.get(i);
+                    String fileName = extractImageFileName(imagePath);
+                    contentText.append("  • ").append(fileName != null ? fileName : "Gráfico " + (i + 1)).append("\n");
+                }
+                if (imagePaths.size() > 3) {
+                    contentText.append("  ... y ").append(imagePaths.size() - 3).append(" más\n");
+                }
+            }
+            contentText.append("📁 Ubicación: Descargas/DroidTour");
+            
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID_EXPORT)
+                .setSmallIcon(R.drawable.ic_download_24)
+                .setContentTitle("✅ Imágenes Exportadas")
+                .setContentText(imageCount + " imágenes guardadas en Descargas/DroidTour")
+                .setStyle(new NotificationCompat.BigTextStyle()
+                    .bigText(contentText.toString()))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setColor(ContextCompat.getColor(context, R.color.primary));
+            
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+            if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                notificationManager.notify(NOTIFICATION_ID_EXPORT + 2, builder.build());
+            } else {
+                Log.w(TAG, "Las notificaciones están deshabilitadas");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error mostrando notificación de exportación de imágenes", e);
+        }
+    }
+    
+    /**
+     * Convierte un path de imagen a URI, manejando content:// y file://
+     */
+    private Uri convertPathToUri(String imagePath) {
+        if (imagePath == null || imagePath.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            if (imagePath.startsWith("content://")) {
+                // Ya es un URI de MediaStore
+                return Uri.parse(imagePath);
+            } else {
+                // Es un path de archivo, convertir a URI
+                File imageFile = new File(imagePath);
+                if (imageFile.exists()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        // Android 7+ usar FileProvider
+                        try {
+                            return androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                context.getPackageName() + ".fileprovider",
+                                imageFile
+                            );
+                        } catch (Exception e) {
+                            Log.w(TAG, "Error usando FileProvider para imagen: " + imagePath, e);
+                            // Fallback a URI de archivo
+                            return Uri.fromFile(imageFile);
+                        }
+                    } else {
+                        // Android 6 y anteriores: URI de archivo directo
+                        return Uri.fromFile(imageFile);
+                    }
+                } else {
+                    Log.w(TAG, "El archivo de imagen no existe: " + imagePath);
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error convirtiendo path a URI: " + imagePath, e);
+            return null;
+        }
+    }
+    
+    /**
+     * Extrae nombre de archivo de imagen desde path
+     */
+    private String extractImageFileName(String path) {
+        if (path == null) return null;
+        try {
+            if (path.startsWith("content://")) {
+                String[] segments = path.split("/");
+                if (segments.length > 0) {
+                    String lastSegment = segments[segments.length - 1];
+                    if (lastSegment.contains(".")) {
+                        return lastSegment;
+                    }
+                }
+            } else {
+                File file = new File(path);
+                if (file.exists()) {
+                    return file.getName();
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error extrayendo nombre de imagen", e);
+        }
+        return null;
     }
     
     /**

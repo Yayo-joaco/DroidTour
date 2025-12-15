@@ -23,11 +23,15 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.example.droidtour.models.User;
 
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 public class SuperadminProfileActivity extends AppCompatActivity {
 
     private static final String TAG = "SuperadminProfile";
 
     private TextView tvUserName, tvUserEmail, tvUserRole;
+    private TextView tvFirstName, tvLastName, tvBirthDate;
     private TextView tvDocumentType, tvDocumentNumber, tvPhone;
     private CardView cardLanguages, cardStatistics;
     private FloatingActionButton fabEdit;
@@ -91,7 +95,10 @@ public class SuperadminProfileActivity extends AppCompatActivity {
         tvUserRole = findViewById(R.id.tv_user_role);
         ivProfilePhoto = findViewById(R.id.profile_image);
         
-        // Información personal
+        // Información personal - Campos nuevos
+        tvFirstName = findViewById(R.id.tv_first_name);
+        tvLastName = findViewById(R.id.tv_last_name);
+        tvBirthDate = findViewById(R.id.tv_birth_date);
         tvDocumentType = findViewById(R.id.tv_document_type);
         tvDocumentNumber = findViewById(R.id.tv_document_number);
         tvPhone = findViewById(R.id.tv_phone);
@@ -100,8 +107,11 @@ public class SuperadminProfileActivity extends AppCompatActivity {
         cardLanguages = findViewById(R.id.card_languages);
         cardStatistics = findViewById(R.id.card_statistics);
         
-        // FAB
+        // FAB - OCULTAR para superadministrador
         fabEdit = findViewById(R.id.fab_edit);
+        if (fabEdit != null) {
+            fabEdit.setVisibility(View.GONE);
+        }
     }
 
     private void loadUserDataFromFirestore() {
@@ -148,82 +158,155 @@ public class SuperadminProfileActivity extends AppCompatActivity {
     }
 
     private void updateUIWithUserData(User user) {
-        Log.d(TAG, "Actualizando UI con datos de User");
+        Log.d(TAG, "🔥 ==========================================");
+        Log.d(TAG, "🔥 Actualizando UI con datos de User");
+        Log.d(TAG, "🔥 ==========================================");
         
         // Obtener nombre completo
         String fullName = user.getFullName();
-        Log.d(TAG, "fullName desde User: " + fullName);
+        Log.d(TAG, "🔥 fullName desde User: " + fullName);
         if (fullName == null || fullName.isEmpty()) {
             String firstName = user.getFirstName();
             String lastName = user.getLastName();
-            Log.d(TAG, "firstName: " + firstName + ", lastName: " + lastName);
+            Log.d(TAG, "🔥 firstName: " + firstName + ", lastName: " + lastName);
             if (firstName != null && lastName != null) {
                 fullName = firstName + " " + lastName;
             } else if (firstName != null) {
                 fullName = firstName;
+            } else if (lastName != null) {
+                fullName = lastName;
             }
         }
-        Log.d(TAG, "fullName final: " + fullName);
+        Log.d(TAG, "🔥 fullName final: " + fullName);
         
         // Obtener email
         String email = user.getEmail();
-        Log.d(TAG, "email: " + email);
+        Log.d(TAG, "🔥 email: " + email);
         
         // Obtener teléfono
-        String phoneNumber = user.getPersonalData().getPhoneNumber();
-        Log.d(TAG, "phoneNumber: " + phoneNumber);
-        
-        // Obtener documento
-        String documentType = user.getPersonalData().getDocumentType();
-        String documentNumber = user.getPersonalData().getDocumentNumber();
-        Log.d(TAG, "documentType: " + documentType + ", documentNumber: " + documentNumber);
-
-
-        
-        // Obtener foto de perfil
-        String profileImageUrl = null;
-        if (user != null && user.getPersonalData() != null) {
-            profileImageUrl = user.getPersonalData().getProfileImageUrl();
+        String phoneNumber = null;
+        String documentType = null;
+        String documentNumber = null;
+        if (user.getPersonalData() != null) {
+            phoneNumber = user.getPersonalData().getPhoneNumber();
+            documentType = user.getPersonalData().getDocumentType();
+            documentNumber = user.getPersonalData().getDocumentNumber();
         }
-        Log.d(TAG, "profileImageUrl encontrada: " + profileImageUrl);
+        Log.d(TAG, "🔥 phoneNumber: " + phoneNumber);
+        Log.d(TAG, "🔥 documentType: " + documentType + ", documentNumber: " + documentNumber);
+        
+        // Obtener nombres y apellidos por separado
+        String firstName = user.getFirstName();
+        String lastName = user.getLastName();
+        Log.d(TAG, "🔥 firstName: " + firstName + ", lastName: " + lastName);
+        
+        // Obtener fecha de nacimiento
+        String birthDateStr = null;
+        if (user.getPersonalData() != null) {
+            birthDateStr = user.getPersonalData().getDateOfBirth();
+        }
+        Log.d(TAG, "🔥 birthDateStr: " + birthDateStr);
 
-        // Actualizar UI
+        // Actualizar UI - NOMBRE COMPLETO
+        if (tvUserName != null) {
+            tvUserName.setText(fullName != null && !fullName.isEmpty() ? fullName : "Usuario");
+            Log.d(TAG, "✅ tvUserName actualizado: " + fullName);
+        } else {
+            Log.w(TAG, "⚠️ tvUserName es null");
+        }
+        
+        // Actualizar UI - EMAIL
         if (tvUserEmail != null) {
             tvUserEmail.setText(email != null && !email.isEmpty() ? email : "");
+            Log.d(TAG, "✅ tvUserEmail actualizado: " + email);
         }
         
+        // Actualizar UI - ROL
         if (tvUserRole != null) {
             tvUserRole.setText("SUPER ADMINISTRADOR");
         }
+        
+        // Actualizar UI - NOMBRES Y APELLIDOS POR SEPARADO
+        if (tvFirstName != null) {
+            tvFirstName.setText(firstName != null && !firstName.isEmpty() ? firstName : "N/A");
+            Log.d(TAG, "✅ tvFirstName actualizado: " + firstName);
+        }
+        
+        if (tvLastName != null) {
+            tvLastName.setText(lastName != null && !lastName.isEmpty() ? lastName : "N/A");
+            Log.d(TAG, "✅ tvLastName actualizado: " + lastName);
+        }
+        
+        // Actualizar UI - FECHA DE NACIMIENTO
+        if (tvBirthDate != null) {
+            if (birthDateStr != null && !birthDateStr.isEmpty()) {
+                try {
+                    String formattedDate = formatBirthDate(birthDateStr);
+                    tvBirthDate.setText(formattedDate);
+                    Log.d(TAG, "✅ tvBirthDate actualizado: " + formattedDate);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error formateando fecha de nacimiento: " + e.getMessage());
+                    tvBirthDate.setText(birthDateStr);
+                }
+            } else {
+                tvBirthDate.setText("N/A");
+                Log.d(TAG, "✅ tvBirthDate actualizado: N/A");
+            }
+        }
 
+        // Actualizar UI - DOCUMENTO
         if (tvDocumentType != null) {
             tvDocumentType.setText(documentType != null && !documentType.isEmpty() ? documentType : "DNI");
+            Log.d(TAG, "✅ tvDocumentType actualizado: " + documentType);
         }
         
         if (tvDocumentNumber != null) {
             tvDocumentNumber.setText(documentNumber != null && !documentNumber.isEmpty() ? documentNumber : "N/A");
+            Log.d(TAG, "✅ tvDocumentNumber actualizado: " + documentNumber);
         }
         
+        // Actualizar UI - TELÉFONO
         if (tvPhone != null) {
             tvPhone.setText(phoneNumber != null && !phoneNumber.isEmpty() ? phoneNumber : "N/A");
+            Log.d(TAG, "✅ tvPhone actualizado: " + phoneNumber);
         }
+
+        // 📸 CARGAR FOTO DE PERFIL DESDE FIREBASE (mejorado como en ClientProfileActivity)
+        String profileImageUrl = null;
+        if (user.getPersonalData() != null) {
+            profileImageUrl = user.getPersonalData().getProfileImageUrl();
+            Log.d(TAG, "📸 PersonalData encontrado");
+            Log.d(TAG, "📸 profileImageUrl desde PersonalData: " + profileImageUrl);
+        } else {
+            Log.w(TAG, "⚠️ PersonalData es null");
+        }
+
+        // También intentar obtener desde getPhotoUrl() (método legacy)
+        if (profileImageUrl == null || profileImageUrl.isEmpty()) {
+            profileImageUrl = user.getPhotoUrl();
+            Log.d(TAG, "📸 Intentando obtener desde getPhotoUrl(): " + profileImageUrl);
+        }
+
+        Log.d(TAG, "📸 URL final de foto de perfil: " + profileImageUrl);
+        Log.d(TAG, "📸 ¿URL es válida? " + (profileImageUrl != null && !profileImageUrl.isEmpty() && profileImageUrl.startsWith("http")));
 
         // Cargar imagen de perfil
         if (ivProfilePhoto != null) {
-            if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
-                Log.d(TAG, "Cargando imagen desde URL: " + profileImageUrl);
+            if (profileImageUrl != null && !profileImageUrl.isEmpty() && profileImageUrl.startsWith("http")) {
+                Log.d(TAG, "📸 Cargando imagen con Glide desde URL: " + profileImageUrl);
                 Glide.with(this)
                         .load(profileImageUrl)
                         .transform(new CircleCrop())
                         .placeholder(R.drawable.ic_avatar_24)
                         .error(R.drawable.ic_avatar_24)
                         .into(ivProfilePhoto);
+                Log.d(TAG, "✅ Glide configurado para cargar imagen");
             } else {
-                Log.d(TAG, "No hay URL de imagen, usando placeholder");
+                Log.w(TAG, "⚠️ URL de imagen no válida o vacía, usando placeholder");
                 ivProfilePhoto.setImageResource(R.drawable.ic_avatar_24);
             }
         } else {
-            Log.w(TAG, "ivProfilePhoto es null");
+            Log.e(TAG, "❌ ivProfilePhoto es null, no se puede cargar la foto");
         }
 
         // Actualizar PreferencesManager con los datos más recientes
@@ -272,6 +355,34 @@ public class SuperadminProfileActivity extends AppCompatActivity {
         if (ivProfilePhoto != null) {
             ivProfilePhoto.setImageResource(R.drawable.ic_avatar_24);
         }
+        
+        // Campos de información personal con valores por defecto
+        if (tvFirstName != null) {
+            tvFirstName.setText("N/A");
+        }
+        if (tvLastName != null) {
+            tvLastName.setText("N/A");
+        }
+        if (tvBirthDate != null) {
+            tvBirthDate.setText("N/A");
+        }
+    }
+    
+    /**
+     * Formatear fecha de nacimiento
+     */
+    private String formatBirthDate(Object birthDate) {
+        if (birthDate instanceof com.google.firebase.Timestamp) {
+            // Si es un Timestamp de Firebase
+            com.google.firebase.Timestamp timestamp = (com.google.firebase.Timestamp) birthDate;
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            return sdf.format(timestamp.toDate());
+        } else if (birthDate instanceof String) {
+            // Si es un string, devolverlo tal cual (ya está formateado en el modelo)
+            return (String) birthDate;
+        } else {
+            return birthDate.toString();
+        }
     }
 
     private void hideLanguagesSection() {
@@ -296,12 +407,7 @@ public class SuperadminProfileActivity extends AppCompatActivity {
             });
         }
 
-        // FAB editar
-        if (fabEdit != null) {
-            fabEdit.setOnClickListener(v -> {
-                Toast.makeText(this, "Edición de perfil próximamente", Toast.LENGTH_SHORT).show();
-            });
-        }
+        // FAB editar - NO necesario para superadministrador (ya está oculto)
     }
 
     @Override

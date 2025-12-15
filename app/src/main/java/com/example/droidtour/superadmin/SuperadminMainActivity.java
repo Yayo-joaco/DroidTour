@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -28,9 +29,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.bumptech.glide.Glide;
 import com.example.droidtour.LoginActivity;
 import com.example.droidtour.R;
 import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.User;
 import com.example.droidtour.superadmin.helpers.DashboardChartHelper;
 import com.example.droidtour.superadmin.helpers.DashboardDateHelper;
 import com.example.droidtour.superadmin.helpers.DashboardExportHelper;
@@ -92,7 +95,7 @@ public class SuperadminMainActivity extends AppCompatActivity
     private ExtendedFloatingActionButton fabExport;
     private TextView tvTotalUsers, tvActiveTours, tvRevenue, tvBookings;
     private TextView tvNotificationBadge;
-    private ImageView ivAvatarAction;
+    private ImageView ivAvatarAction, ivProfileHeader;
     private FrameLayout notificationActionLayout, avatarActionLayout;
     private MaterialButton btnSelectDate;
     private LinearLayout dateSelectionContainer;
@@ -169,6 +172,7 @@ public class SuperadminMainActivity extends AppCompatActivity
         setupSwipeRefresh();
         updateKPIs();
         loadUserDataInDrawer();
+        refreshUserImagesFromFirestore();
     }
     
     // ========== INITIALIZATION ==========
@@ -218,9 +222,16 @@ public class SuperadminMainActivity extends AppCompatActivity
         View headerView = navigationView.getHeaderView(0);
         if (headerView != null && prefsManager != null && prefsManager.sesionActiva()) {
             TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+            ivProfileHeader = headerView.findViewById(R.id.iv_profile_picture_header);
+            
             if (tvUserNameHeader != null) {
                 String userName = prefsManager.obtenerUsuario();
                 tvUserNameHeader.setText(userName != null && !userName.isEmpty() ? userName : "Gabrielle Ivonne");
+            }
+            
+            // Placeholder inicial para la foto del header
+            if (ivProfileHeader != null) {
+                ivProfileHeader.setImageResource(R.drawable.ic_avatar_24);
             }
         }
     }
@@ -229,6 +240,90 @@ public class SuperadminMainActivity extends AppCompatActivity
         if (swipeRefresh != null) {
             swipeRefresh.setOnRefreshListener(this::refreshDashboardData);
         }
+    }
+    
+    /**
+     * Carga URL de foto desde Firestore y actualiza:
+     * - ivAvatarAction (toolbar)
+     * - ivProfileHeader (navigation drawer header)
+     */
+    private void refreshUserImagesFromFirestore() {
+        String userId = prefsManager.getUserId();
+        if (userId == null || userId.trim().isEmpty()) {
+            Log.w(TAG, "userId es null o vacío, no se puede cargar foto");
+            return;
+        }
+        
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.getUserById(userId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                if (!(result instanceof User)) {
+                    Log.w(TAG, "Result no es instancia de User");
+                    return;
+                }
+                
+                User user = (User) result;
+                
+                // Obtener URL de foto de perfil
+                String photoUrl = null;
+                if (user.getPersonalData() != null) {
+                    photoUrl = user.getPersonalData().getProfileImageUrl();
+                }
+                
+                // También intentar obtener desde getPhotoUrl() (método legacy)
+                if (photoUrl == null || photoUrl.isEmpty()) {
+                    photoUrl = user.getPhotoUrl();
+                }
+                
+                Log.d(TAG, "📸 URL de foto obtenida: " + photoUrl);
+                
+                // Toolbar avatar (parte superior derecha)
+                if (ivAvatarAction != null) {
+                    if (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")) {
+                        Glide.with(SuperadminMainActivity.this)
+                                .load(photoUrl)
+                                .placeholder(R.drawable.ic_avatar_24)
+                                .error(R.drawable.ic_avatar_24)
+                                .circleCrop()
+                                .into(ivAvatarAction);
+                        Log.d(TAG, "✅ Foto cargada en toolbar avatar");
+                    } else {
+                        ivAvatarAction.setImageResource(R.drawable.ic_avatar_24);
+                        Log.d(TAG, "⚠️ URL no válida, usando placeholder en toolbar");
+                    }
+                }
+                
+                // Navigation drawer header avatar
+                if (ivProfileHeader != null) {
+                    if (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")) {
+                        Glide.with(SuperadminMainActivity.this)
+                                .load(photoUrl)
+                                .placeholder(R.drawable.ic_avatar_24)
+                                .error(R.drawable.ic_avatar_24)
+                                .circleCrop()
+                                .into(ivProfileHeader);
+                        Log.d(TAG, "✅ Foto cargada en drawer header");
+                    } else {
+                        ivProfileHeader.setImageResource(R.drawable.ic_avatar_24);
+                        Log.d(TAG, "⚠️ URL no válida, usando placeholder en drawer");
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando foto de perfil desde Firestore", e);
+                
+                // Usar placeholders en caso de error
+                if (ivAvatarAction != null) {
+                    ivAvatarAction.setImageResource(R.drawable.ic_avatar_24);
+                }
+                if (ivProfileHeader != null) {
+                    ivProfileHeader.setImageResource(R.drawable.ic_avatar_24);
+                }
+            }
+        });
     }
     
     // ========== TABS & DATE SELECTION ==========
@@ -790,14 +885,50 @@ public class SuperadminMainActivity extends AppCompatActivity
     private void setupFAB() {
         if (fabExport != null) {
             fabExport.setOnClickListener(v -> {
-                Toast.makeText(this, "Iniciando exportación...", Toast.LENGTH_SHORT).show();
-                if (exportManager != null) {
-                    exportManager.requestExport();
-                }
-                notificationCount++;
-                updateNotificationBadge();
+                showExportOptionsDialog();
             });
         }
+    }
+    
+    /**
+     * Muestra diálogo con opciones de exportación
+     */
+    private void showExportOptionsDialog() {
+        String[] options = {"Exportar PDF", "Exportar Imágenes", "Cancelar"};
+        
+        new AlertDialog.Builder(this)
+            .setTitle("Exportar Reportes")
+            .setItems(options, (dialog, which) -> {
+                switch (which) {
+                    case 0: // Exportar PDF
+                        Toast.makeText(this, "Iniciando exportación de PDF...", Toast.LENGTH_SHORT).show();
+                        if (exportManager != null) {
+                            exportManager.requestExport();
+                        }
+                        notificationCount++;
+                        updateNotificationBadge();
+                        break;
+                    case 1: // Exportar Imágenes
+                        Toast.makeText(this, "Iniciando exportación de imágenes...", Toast.LENGTH_SHORT).show();
+                        if (exportManager != null) {
+                            exportManager.requestExportImages();
+                        }
+                        notificationCount++;
+                        updateNotificationBadge();
+                        break;
+                    case 2: // Cancelar
+                        dialog.dismiss();
+                        break;
+                }
+            })
+            .show();
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Refrescar foto por si la cambiaron en otra pantalla
+        refreshUserImagesFromFirestore();
     }
     
     @Override

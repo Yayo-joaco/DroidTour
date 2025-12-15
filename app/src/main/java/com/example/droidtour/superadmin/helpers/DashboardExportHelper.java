@@ -638,10 +638,54 @@ public class DashboardExportHelper {
     }
     
     /**
+     * Exporta solo imágenes de gráficos (sin PDF)
+     */
+    public void exportChartsAsImages(List<ChartInfo> charts, ExportImagesCallback callback) {
+        try {
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10+ usar MediaStore
+                List<String> imagePaths = exportImagesWithMediaStore(charts, timestamp);
+                if (callback != null) {
+                    callback.onSuccess(imagePaths);
+                }
+            } else {
+                // Android 9 y anteriores usar directorio tradicional
+                File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                File droidTourDir = new File(downloadsDir, "DroidTour");
+                if (!droidTourDir.exists() && !droidTourDir.mkdirs()) {
+                    if (callback != null) {
+                        callback.onError(new IOException("No se pudo crear el directorio de descarga"));
+                    }
+                    return;
+                }
+                List<String> imagePaths = exportImagesWithFileSystem(charts, timestamp, droidTourDir);
+                if (callback != null) {
+                    callback.onSuccess(imagePaths);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error exportando imágenes", e);
+            if (callback != null) {
+                callback.onError(e);
+            }
+        }
+    }
+    
+    /**
      * Callback para exportación completa
      */
     public interface ExportCompleteCallback {
         void onSuccess(String pdfPath, List<String> imagePaths);
+        void onError(Exception error);
+    }
+    
+    /**
+     * Callback para exportación de imágenes
+     */
+    public interface ExportImagesCallback {
+        void onSuccess(List<String> imagePaths);
         void onError(Exception error);
     }
 }

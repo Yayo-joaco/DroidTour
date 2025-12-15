@@ -19,7 +19,9 @@ import com.example.droidtour.utils.ImageUploadManager;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
@@ -239,6 +241,394 @@ public class FirestoreManager {
                     callback.onSuccess(user);
                 })
                 .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Elimina un usuario de Firestore y TODOS sus datos relacionados
+     * Elimina: 
+     * - Reservaciones (userId, guideId)
+     * - Notificaciones (userId)
+     * - Reseñas (userId, guideId)
+     * - Mensajes (senderId, receiverId)
+     * - Métodos de pago (userId)
+     * - Sesiones de usuario (userId)
+     * - Tour offers (guideId si es GUIDE)
+     * - guides/{userId} (si es GUIDE)
+     * - user_roles/{userId}
+     * - users/{userId}
+     */
+    public void deleteUser(String userId, String userType, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty()) {
+            callback.onFailure(new Exception("User ID is required"));
+            return;
+        }
+
+        Log.d(TAG, "Iniciando eliminación completa del usuario: " + userId);
+
+        // Eliminar primero todos los datos relacionados, luego el usuario
+        deleteUserRelatedData(userId, userType, new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                // Después de eliminar datos relacionados, eliminar el usuario principal
+                deleteUserMainData(userId, userType, callback);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error eliminando datos relacionados del usuario, continuando...", e);
+                // Continuar con eliminación del usuario principal aunque haya errores en datos relacionados
+                deleteUserMainData(userId, userType, callback);
+            }
+        });
+    }
+
+    /**
+     * Elimina todos los datos relacionados con un usuario
+     */
+    private void deleteUserRelatedData(String userId, String userType, FirestoreCallback callback) {
+        final int[] completedTasks = {0};
+        final int totalTasks = 7; // Número de tareas de eliminación
+        final boolean[] hasError = {false};
+
+        FirestoreCallback taskCallback = new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                synchronized (completedTasks) {
+                    completedTasks[0]++;
+                    if (completedTasks[0] >= totalTasks) {
+                        if (hasError[0]) {
+                            Log.w(TAG, "Algunas eliminaciones de datos relacionados fallaron, pero se continuará");
+                        }
+                        callback.onSuccess(true);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                synchronized (completedTasks) {
+                    hasError[0] = true;
+                    completedTasks[0]++;
+                    Log.w(TAG, "Error en una tarea de eliminación: " + e.getMessage());
+                    if (completedTasks[0] >= totalTasks) {
+                        callback.onSuccess(true); // Continuar aunque haya errores
+                    }
+                }
+            }
+        };
+
+        // 1. Eliminar reservaciones
+        deleteUserReservations(userId, userType, taskCallback);
+
+        // 2. Eliminar notificaciones
+        deleteUserNotifications(userId, taskCallback);
+
+        // 3. Eliminar reseñas
+        deleteUserReviews(userId, userType, taskCallback);
+
+        // 4. Eliminar mensajes
+        deleteUserMessages(userId, taskCallback);
+
+        // 5. Eliminar métodos de pago
+        deleteUserPaymentMethods(userId, taskCallback);
+
+        // 6. Eliminar sesiones de usuario
+        deleteUserSessions(userId, taskCallback);
+
+        // 7. Eliminar tour offers (si es guía)
+        if ("GUIDE".equals(userType)) {
+            deleteUserTourOffers(userId, taskCallback);
+        } else {
+            // Si no es guía, contar esta tarea como completada
+            taskCallback.onSuccess(true);
+        }
+    }
+
+    /**
+     * Elimina las reservaciones del usuario (como cliente o guía)
+     */
+    private void deleteUserReservations(String userId, String userType, FirestoreCallback callback) {
+        // Buscar reservaciones donde el usuario es cliente (userId) o guía (guideId)
+        db.collection(COLLECTION_RESERVATIONS)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<DocumentReference> toDelete = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        toDelete.add(doc.getReference());
+                    }
+                    
+                    // Si es guía, también buscar por guideId
+                    if ("GUIDE".equals(userType)) {
+                        db.collection(COLLECTION_RESERVATIONS)
+                                .whereEqualTo("guideId", userId)
+                                .get()
+                                .addOnSuccessListener(guideQuerySnapshot -> {
+                                    for (QueryDocumentSnapshot doc : guideQuerySnapshot) {
+                                        toDelete.add(doc.getReference());
+                                    }
+                                    deleteDocuments(toDelete, "reservaciones", callback);
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.w(TAG, "Error buscando reservaciones por guideId", e);
+                                    deleteDocuments(toDelete, "reservaciones", callback);
+                                });
+                    } else {
+                        deleteDocuments(toDelete, "reservaciones", callback);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Error buscando reservaciones", e);
+                    callback.onSuccess(true); // Continuar aunque falle
+                });
+    }
+
+    /**
+     * Elimina las notificaciones del usuario
+     */
+    private void deleteUserNotifications(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_NOTIFICATIONS)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<DocumentReference> toDelete = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        toDelete.add(doc.getReference());
+                    }
+                    deleteDocuments(toDelete, "notificaciones", callback);
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Error buscando notificaciones", e);
+                    callback.onSuccess(true);
+                });
+    }
+
+    /**
+     * Elimina las reseñas del usuario (como cliente o guía)
+     */
+    private void deleteUserReviews(String userId, String userType, FirestoreCallback callback) {
+        // Buscar reseñas donde el usuario es el autor (userId)
+        db.collection(COLLECTION_REVIEWS)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<DocumentReference> toDelete = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        toDelete.add(doc.getReference());
+                    }
+                    
+                    // Nota: Las reseñas también pueden tener guideId, pero generalmente se busca por userId
+                    deleteDocuments(toDelete, "reseñas", callback);
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Error buscando reseñas", e);
+                    callback.onSuccess(true);
+                });
+    }
+
+    /**
+     * Elimina los mensajes donde el usuario es remitente o receptor
+     */
+    private void deleteUserMessages(String userId, FirestoreCallback callback) {
+        // Buscar mensajes como sender
+        db.collection(COLLECTION_MESSAGES)
+                .whereEqualTo("senderId", userId)
+                .get()
+                .addOnSuccessListener(senderQuerySnapshot -> {
+                    List<DocumentReference> toDelete = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : senderQuerySnapshot) {
+                        toDelete.add(doc.getReference());
+                    }
+                    
+                    // Buscar mensajes como receiver
+                    db.collection(COLLECTION_MESSAGES)
+                            .whereEqualTo("receiverId", userId)
+                            .get()
+                            .addOnSuccessListener(receiverQuerySnapshot -> {
+                                for (QueryDocumentSnapshot doc : receiverQuerySnapshot) {
+                                    toDelete.add(doc.getReference());
+                                }
+                                deleteDocuments(toDelete, "mensajes", callback);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.w(TAG, "Error buscando mensajes como receiver", e);
+                                deleteDocuments(toDelete, "mensajes", callback);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Error buscando mensajes como sender", e);
+                    callback.onSuccess(true);
+                });
+    }
+
+    /**
+     * Elimina los métodos de pago del usuario
+     */
+    private void deleteUserPaymentMethods(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_PAYMENT_METHODS)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<DocumentReference> toDelete = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        toDelete.add(doc.getReference());
+                    }
+                    deleteDocuments(toDelete, "métodos de pago", callback);
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Error buscando métodos de pago", e);
+                    callback.onSuccess(true);
+                });
+    }
+
+    /**
+     * Elimina las sesiones del usuario
+     */
+    private void deleteUserSessions(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_USER_SESSIONS)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<DocumentReference> toDelete = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        toDelete.add(doc.getReference());
+                    }
+                    deleteDocuments(toDelete, "sesiones de usuario", callback);
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Error buscando sesiones de usuario", e);
+                    callback.onSuccess(true);
+                });
+    }
+
+    /**
+     * Elimina las ofertas de tours del guía
+     */
+    private void deleteUserTourOffers(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_TOUR_OFFERS)
+                .whereEqualTo("guideId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<DocumentReference> toDelete = new ArrayList<>();
+                    for (QueryDocumentSnapshot doc : querySnapshot) {
+                        toDelete.add(doc.getReference());
+                    }
+                    deleteDocuments(toDelete, "ofertas de tours", callback);
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "Error buscando ofertas de tours", e);
+                    callback.onSuccess(true);
+                });
+    }
+
+    /**
+     * Elimina múltiples documentos usando batch writes
+     */
+    private void deleteDocuments(List<DocumentReference> documents, String typeName, FirestoreCallback callback) {
+        if (documents.isEmpty()) {
+            Log.d(TAG, "No hay " + typeName + " para eliminar");
+            callback.onSuccess(true);
+            return;
+        }
+
+        Log.d(TAG, "Eliminando " + documents.size() + " " + typeName);
+        
+        // Firestore permite máximo 500 operaciones por batch
+        final int BATCH_SIZE = 500;
+        int totalBatches = (documents.size() + BATCH_SIZE - 1) / BATCH_SIZE;
+        final int[] completedBatches = {0};
+        final boolean[] hasError = {false};
+
+        for (int i = 0; i < totalBatches; i++) {
+            int start = i * BATCH_SIZE;
+            int end = Math.min(start + BATCH_SIZE, documents.size());
+            List<DocumentReference> batch = documents.subList(start, end);
+
+            WriteBatch writeBatch = db.batch();
+            for (DocumentReference docRef : batch) {
+                writeBatch.delete(docRef);
+            }
+
+            writeBatch.commit()
+                    .addOnSuccessListener(aVoid -> {
+                        synchronized (completedBatches) {
+                            completedBatches[0]++;
+                            if (completedBatches[0] >= totalBatches) {
+                                if (!hasError[0]) {
+                                    Log.d(TAG, "Todas las " + typeName + " eliminadas correctamente");
+                                }
+                                callback.onSuccess(true);
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        synchronized (completedBatches) {
+                            hasError[0] = true;
+                            completedBatches[0]++;
+                            Log.e(TAG, "Error eliminando batch de " + typeName, e);
+                            if (completedBatches[0] >= totalBatches) {
+                                callback.onSuccess(true); // Continuar aunque haya errores
+                            }
+                        }
+                    });
+        }
+    }
+
+    /**
+     * Elimina los datos principales del usuario (users, guides, user_roles)
+     */
+    private void deleteUserMainData(String userId, String userType, FirestoreCallback callback) {
+        // Eliminar de guides si es GUIDE
+        if ("GUIDE".equals(userType)) {
+            db.collection(COLLECTION_GUIDES)
+                    .document(userId)
+                    .delete()
+                    .addOnSuccessListener(unused -> {
+                        Log.d(TAG, "Guide eliminado: " + userId);
+                        deleteUserRoleAndUser(userId, callback);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.w(TAG, "No se pudo eliminar de guides (puede ser normal si no existe): " + e.getMessage());
+                        deleteUserRoleAndUser(userId, callback);
+                    });
+        } else {
+            deleteUserRoleAndUser(userId, callback);
+        }
+    }
+
+    /**
+     * Elimina user_roles y luego el usuario
+     */
+    private void deleteUserRoleAndUser(String userId, FirestoreCallback callback) {
+        // Eliminar de user_roles
+        db.collection(COLLECTION_USER_ROLES)
+                .document(userId)
+                .delete()
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "User role eliminado: " + userId);
+                    deleteFinalUser(userId, callback);
+                })
+                .addOnFailureListener(e -> {
+                    Log.w(TAG, "No se encontró user_roles para eliminar (puede ser normal): " + e.getMessage());
+                    deleteFinalUser(userId, callback);
+                });
+    }
+
+    /**
+     * Elimina el documento principal del usuario
+     */
+    private void deleteFinalUser(String userId, FirestoreCallback callback) {
+        db.collection(COLLECTION_USERS)
+                .document(userId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Usuario eliminado completamente: " + userId);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error eliminando usuario principal", e);
+                    callback.onFailure(e);
+                });
     }
 
     public void updateUserStatus(String userId, String status, FirestoreCallback callback) {

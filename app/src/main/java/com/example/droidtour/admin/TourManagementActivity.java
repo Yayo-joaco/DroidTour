@@ -134,8 +134,8 @@ public class TourManagementActivity extends AppCompatActivity implements AdminTo
     }
     
     private void loadTours() {
-        // Cargar tours de la compañía desde Firebase
-        firestoreManager.getToursByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+        // Cargar TODOS los tours de la compañía desde Firebase (públicos y no públicos)
+        firestoreManager.getAllToursByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 allTours.clear();

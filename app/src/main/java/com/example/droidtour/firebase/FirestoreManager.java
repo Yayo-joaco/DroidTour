@@ -1088,6 +1088,47 @@ public class FirestoreManager {
     }
 
     /**
+     * Crear una nueva oferta de tour (propuesta a guía)
+     */
+    public void createTourOffer(TourOffer offer, FirestoreCallback callback) {
+        if (offer == null) {
+            callback.onFailure(new Exception("TourOffer is null"));
+            return;
+        }
+        if (offer.getGuideId() == null || offer.getGuideId().trim().isEmpty()) {
+            callback.onFailure(new Exception("guideId is required"));
+            return;
+        }
+        if (offer.getTourId() == null || offer.getTourId().trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+        if (offer.getAgencyId() == null || offer.getAgencyId().trim().isEmpty()) {
+            callback.onFailure(new Exception("agencyId is required"));
+            return;
+        }
+
+        // Crear documento con ID automático
+        DocumentReference docRef = db.collection(COLLECTION_TOUR_OFFERS).document();
+        offer.setId(docRef.getId());
+
+        // Establecer campos por defecto
+        if (offer.getStatus() == null || offer.getStatus().trim().isEmpty()) {
+            offer.setStatus("PENDIENTE");
+        }
+
+        docRef.set(offer)
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "TourOffer created with ID: " + docRef.getId());
+                    callback.onSuccess(offer);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error creating TourOffer", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
      * Actualizar estado de una oferta (ACEPTADA / RECHAZADA)
      */
     public void updateOfferStatus(String offerId, String status, FirestoreCallback callback) {
@@ -1335,14 +1376,43 @@ public class FirestoreManager {
         getCompanyById(companyId, callback);
     }
 
+    /**
+     * Obtener tours públicos de una empresa (para clientes)
+     */
     public void getToursByCompany(String companyId, FirestoreCallback callback) {
         if (companyId == null || companyId.trim().isEmpty()) { callback.onFailure(new Exception("companyId is required")); return; }
-        db.collection(COLLECTION_TOURS).whereEqualTo("companyId", companyId).get()
+        db.collection(COLLECTION_TOURS)
+                .whereEqualTo("companyId", companyId)
+                .whereEqualTo("isPublic", true)  // Solo tours públicos (con guía asignado)
+                .get()
                 .addOnSuccessListener(qs -> {
                     List<Tour> list = new ArrayList<>();
                     for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
                         Tour t = doc.toObject(Tour.class);
                         if (t != null && (t.getTourId() == null || t.getTourId().isEmpty())) t.setTourId(doc.getId());
+                        list.add(t);
+                    }
+                    callback.onSuccess(list);
+                }).addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener TODOS los tours de una empresa (para admin/gestión interna)
+     */
+    public void getAllToursByCompany(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) { 
+            callback.onFailure(new Exception("companyId is required")); 
+            return; 
+        }
+        db.collection(COLLECTION_TOURS)
+                .whereEqualTo("companyId", companyId)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<Tour> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Tour t = doc.toObject(Tour.class);
+                        if (t != null && (t.getTourId() == null || t.getTourId().isEmpty())) 
+                            t.setTourId(doc.getId());
                         list.add(t);
                     }
                     callback.onSuccess(list);
@@ -1373,7 +1443,7 @@ public class FirestoreManager {
     }
 
     /**
-     * Actualizar un tour existente
+     * Actualizar un tour existente (con objeto Tour completo)
      */
     public void updateTour(Tour tour, FirestoreCallback callback) {
         if (tour == null || tour.getTourId() == null) {
@@ -1390,6 +1460,32 @@ public class FirestoreManager {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error updating tour", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Actualizar campos específicos de un tour (con Map)
+     */
+    public void updateTour(String tourId, Map<String, Object> updates, FirestoreCallback callback) {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+        if (updates == null || updates.isEmpty()) {
+            callback.onFailure(new Exception("updates map is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_TOURS)
+                .document(tourId)
+                .update(updates)
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Tour fields updated: " + tourId);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating tour fields", e);
                     callback.onFailure(e);
                 });
     }

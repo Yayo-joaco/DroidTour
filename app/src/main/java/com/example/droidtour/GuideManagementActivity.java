@@ -63,7 +63,7 @@ public class GuideManagementActivity extends AppCompatActivity {
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
                 case 0:
-                    tab.setText("Tours Activos");
+                    tab.setText("Guías Activos");
                     break;
                 case 1:
                     tab.setText("Buscar Guías");
@@ -95,13 +95,13 @@ public class GuideManagementActivity extends AppCompatActivity {
         public Fragment createFragment(int position) {
             switch (position) {
                 case 0:
-                    return new ActiveToursFragment();
+                    return new ActiveGuidesFragment();
                 case 1:
                     return new SearchGuidesFragment();
                 case 2:
                     return new GuideProposalsFragment();
                 default:
-                    return new ActiveToursFragment();
+                    return new ActiveGuidesFragment();
             }
         }
         

@@ -29,7 +29,9 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TourGuideMainActivity extends AppCompatActivity {
 
@@ -967,16 +969,36 @@ public class TourGuideMainActivity extends AppCompatActivity {
 
             holder.btnAccept.setOnClickListener(v -> {
                 // Aceptar oferta directamente desde el dashboard
-                if (offer.getOfferId() != null) {
+                if (offer.getOfferId() != null && offer.getTourId() != null) {
+                    // 1. Actualizar estado de la oferta
                     firestoreManager.updateOfferStatus(offer.getOfferId(), "ACEPTADA", 
                         new FirestoreManager.FirestoreCallback() {
                             @Override
                             public void onSuccess(Object result) {
-                                Toast.makeText(TourGuideMainActivity.this, 
-                                    "✅ Oferta aceptada: " + offer.getTourName(), 
-                                    Toast.LENGTH_LONG).show();
-                                // Recargar ofertas
-                                loadPendingOffersFromFirebase();
+                                // 2. Hacer el tour público y asignar el guía
+                                Map<String, Object> tourUpdates = new HashMap<>();
+                                tourUpdates.put("isPublic", true);
+                                tourUpdates.put("assignedGuideId", currentUserId);
+                                tourUpdates.put("isActive", true);
+                                
+                                firestoreManager.updateTour(offer.getTourId(), tourUpdates, 
+                                    new FirestoreManager.FirestoreCallback() {
+                                        @Override
+                                        public void onSuccess(Object result) {
+                                            Toast.makeText(TourGuideMainActivity.this, 
+                                                "✅ Oferta aceptada. Tour ahora público para clientes", 
+                                                Toast.LENGTH_LONG).show();
+                                            loadPendingOffersFromFirebase();
+                                        }
+                                        
+                                        @Override
+                                        public void onFailure(Exception e) {
+                                            Toast.makeText(TourGuideMainActivity.this, 
+                                                "⚠️ Oferta aceptada pero error al publicar tour", 
+                                                Toast.LENGTH_SHORT).show();
+                                            loadPendingOffersFromFirebase();
+                                        }
+                                    });
                             }
                             
                             @Override

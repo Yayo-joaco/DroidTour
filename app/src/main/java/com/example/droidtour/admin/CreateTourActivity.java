@@ -53,7 +53,8 @@ public class CreateTourActivity extends AppCompatActivity {
     private Double meetingPointLng = null;
     private ExtendedFloatingActionButton btnSave;
     private RecyclerView rvLocations, rvTourImages, rvServices;
-    private android.widget.TextView tvNoServices, tvImagesCount;
+    private android.widget.LinearLayout tvNoServices;
+    private android.widget.TextView tvImagesCount;
     private android.widget.LinearLayout placeholderImages;
     private TourImagesAdapter tourImagesAdapter;
     private static final int MAX_IMAGES = 5;
@@ -778,6 +779,7 @@ public class CreateTourActivity extends AppCompatActivity {
         tour.setMainImageUrl(mainImage);
         tour.setImageUrls(uploadedImageUrls.isEmpty() ? null : uploadedImageUrls);
         tour.setActive(false); // false por defecto, true solo cuando se asigna guía
+        tour.setPublic(false); // false por defecto, true cuando guía acepte propuesta
         tour.setFeatured(false);
         tour.setAverageRating(0.0);
         tour.setTotalReviews(0);
@@ -811,6 +813,8 @@ public class CreateTourActivity extends AppCompatActivity {
             // Mantener valores originales que no se deben cambiar
             if (currentTour != null) {
                 tour.setActive(currentTour.getActive() != null && currentTour.getActive());
+                tour.setPublic(currentTour.getPublic() != null && currentTour.getPublic());
+                tour.setAssignedGuideId(currentTour.getAssignedGuideId());
                 tour.setTotalBookings(currentTour.getTotalBookings());
                 tour.setAverageRating(currentTour.getAverageRating());
                 tour.setTotalReviews(currentTour.getTotalReviews());
@@ -1007,6 +1011,11 @@ public class CreateTourActivity extends AppCompatActivity {
             // Cambiar título
             if (getSupportActionBar() != null) {
                 getSupportActionBar().setTitle("Editar Tour");
+            }
+            // Ocultar el header de "Crear Nuevo Tour"
+            View headerCard = findViewById(R.id.card_header);
+            if (headerCard != null) {
+                headerCard.setVisibility(View.GONE);
             }
             // Cambiar texto del botón
             if (btnSave != null) {

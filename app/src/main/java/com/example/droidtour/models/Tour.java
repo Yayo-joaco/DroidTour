@@ -53,6 +53,8 @@ public class Tour {
     // Campos de estado
     private Boolean isActive;
     private Boolean isFeatured;
+    private Boolean isPublic;  // True cuando un guía ha aceptado la propuesta
+    private String assignedGuideId;  // ID del guía asignado (cuando acepta propuesta)
     @ServerTimestamp
     private Date createdAt;
     @ServerTimestamp
@@ -73,6 +75,7 @@ public class Tour {
         this.maxGroupSize = maxGroupSize;
         this.isActive = true;
         this.isFeatured = false;
+        this.isPublic = false;  // Por defecto NO público hasta que guía acepte
         this.averageRating = 0.0;
         this.totalReviews = 0;
         this.totalBookings = 0;
@@ -194,6 +197,8 @@ public class Tour {
         map.put("totalBookings", totalBookings);
         map.put("isActive", isActive);
         map.put("isFeatured", isFeatured);
+        map.put("isPublic", isPublic);
+        map.put("assignedGuideId", assignedGuideId);
         return map;
     }
 
@@ -276,6 +281,16 @@ public class Tour {
 
     public Boolean getFeatured() { return isFeatured; }
     public void setFeatured(Boolean featured) { isFeatured = featured; }
+
+    public Boolean getPublic() { return isPublic; }
+    public void setPublic(Boolean isPublic) { this.isPublic = isPublic; }
+    
+    // Alias para compatibilidad
+    public Boolean getIsPublic() { return isPublic; }
+    public void setIsPublic(Boolean isPublic) { this.isPublic = isPublic; }
+
+    public String getAssignedGuideId() { return assignedGuideId; }
+    public void setAssignedGuideId(String assignedGuideId) { this.assignedGuideId = assignedGuideId; }
 
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }

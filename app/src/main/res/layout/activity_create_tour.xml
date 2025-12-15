@@ -42,6 +42,7 @@
 
             <!-- Header informativo -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
@@ -728,16 +729,40 @@
                         android:layout_marginBottom="16dp"/>
 
                     <!-- Lista dinámica de servicios de la empresa -->
-                    <TextView
+                    <LinearLayout
                         android:id="@+id/tv_no_services"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="No hay servicios disponibles. Cree servicios primero."
-                        android:textColor="#757575"
-                        android:textSize="14sp"
-                        android:visibility="gone"
+                        android:orientation="vertical"
                         android:gravity="center"
-                        android:padding="16dp" />
+                        android:padding="24dp"
+                        android:visibility="gone">
+                        
+                        <ImageView
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:src="@drawable/ic_service"
+                            android:alpha="0.3"
+                            app:tint="#9E9E9E" />
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No hay servicios registrados"
+                            android:textColor="#424242"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="12dp" />
+                        
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Crea tu primer servicio desde Servicios"
+                            android:textColor="#757575"
+                            android:textSize="14sp"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center" />
+                    </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_services"

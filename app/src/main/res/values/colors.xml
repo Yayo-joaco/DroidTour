@@ -13,7 +13,10 @@
     <color name="orange">#FF9800</color>
     <color name="blue">#2196F3</color>
     <color name="success">#4CAF50</color>
+    <color name="success_light">#E8F5E9</color>
     <color name="warning">#FF9800</color>
+    <color name="warning_light">#FFF3E0</color>
+    <color name="error_light">#FFEBEE</color>
     <color name="turista_color">#FF7648</color>
     <color name="turista_color_luces">#FFEBE6</color>
     <color name="guia_turista_color">#825252</color>
@@ -55,4 +58,10 @@
     <!-- Colores para chips de estado de tours -->
     <color name="chip_green_bg">#E8F5E9</color>
     <color name="chip_orange_bg">#FFF3E0</color>
+    
+    <!-- Colores adicionales para el sistema -->
+    <color name="background">#F5F5F5</color>
+    <color name="text_secondary">#757575</color>
+    <color name="divider">#E0E0E0</color>
+    <color name="error">#F44336</color>
 </resources>

@@ -9,10 +9,11 @@ import java.util.Map;
  */
 public class TourOffer {
     
-    private String offerId;
+    private String offerId;          // También accesible como id
     private String guideId;          // ID del guía al que se envió la oferta
     private String guideName;
-    private String companyId;        // ID de la empresa que envió la oferta
+    private String companyId;        // Ahora usamos agencyId para consistencia
+    private String agencyId;         // ID de la empresa que envió la oferta
     private String companyName;
     private String tourId;           // ID del tour ofrecido
     private String tourName;
@@ -25,6 +26,7 @@ public class TourOffer {
     private Date createdAt;
     private Date respondedAt;
     private String additionalNotes;
+    private String notes;            // Alias para additionalNotes
     
     // Constructor vacío requerido por Firestore
     public TourOffer() {}
@@ -54,7 +56,8 @@ public class TourOffer {
         map.put("offerId", offerId);
         map.put("guideId", guideId);
         map.put("guideName", guideName);
-        map.put("companyId", companyId);
+        map.put("companyId", companyId != null ? companyId : agencyId); // Compatibilidad
+        map.put("agencyId", agencyId != null ? agencyId : companyId);   // Compatibilidad
         map.put("companyName", companyName);
         map.put("tourId", tourId);
         map.put("tourName", tourName);
@@ -66,7 +69,8 @@ public class TourOffer {
         map.put("status", status);
         map.put("createdAt", createdAt);
         map.put("respondedAt", respondedAt);
-        map.put("additionalNotes", additionalNotes);
+        map.put("additionalNotes", additionalNotes != null ? additionalNotes : notes);
+        map.put("notes", notes != null ? notes : additionalNotes);
         return map;
     }
     
@@ -74,14 +78,28 @@ public class TourOffer {
     public String getOfferId() { return offerId; }
     public void setOfferId(String offerId) { this.offerId = offerId; }
     
+    // Alias para compatibilidad con código que use "id"
+    public String getId() { return offerId; }
+    public void setId(String id) { this.offerId = id; }
+    
     public String getGuideId() { return guideId; }
     public void setGuideId(String guideId) { this.guideId = guideId; }
     
     public String getGuideName() { return guideName; }
     public void setGuideName(String guideName) { this.guideName = guideName; }
     
-    public String getCompanyId() { return companyId; }
-    public void setCompanyId(String companyId) { this.companyId = companyId; }
+    public String getCompanyId() { return companyId != null ? companyId : agencyId; }
+    public void setCompanyId(String companyId) { 
+        this.companyId = companyId;
+        if (this.agencyId == null) this.agencyId = companyId;
+    }
+    
+    // Alias para agencyId
+    public String getAgencyId() { return agencyId != null ? agencyId : companyId; }
+    public void setAgencyId(String agencyId) { 
+        this.agencyId = agencyId;
+        if (this.companyId == null) this.companyId = agencyId;
+    }
     
     public String getCompanyName() { return companyName; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }
@@ -118,7 +136,17 @@ public class TourOffer {
     public Date getRespondedAt() { return respondedAt; }
     public void setRespondedAt(Date respondedAt) { this.respondedAt = respondedAt; }
     
-    public String getAdditionalNotes() { return additionalNotes; }
-    public void setAdditionalNotes(String additionalNotes) { this.additionalNotes = additionalNotes; }
+    public String getAdditionalNotes() { return additionalNotes != null ? additionalNotes : notes; }
+    public void setAdditionalNotes(String additionalNotes) { 
+        this.additionalNotes = additionalNotes;
+        if (this.notes == null) this.notes = additionalNotes;
+    }
+    
+    // Alias para notes
+    public String getNotes() { return notes != null ? notes : additionalNotes; }
+    public void setNotes(String notes) { 
+        this.notes = notes;
+        if (this.additionalNotes == null) this.additionalNotes = notes;
+    }
 }
 

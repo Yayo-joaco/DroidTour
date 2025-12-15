@@ -2,15 +2,10 @@ package com.example.droidtour.superadmin;
 
 import android.Manifest;
 import android.app.DatePickerDialog;
-import android.app.PendingIntent;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,8 +21,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -43,6 +36,7 @@ import com.example.droidtour.superadmin.helpers.DashboardDateHelper;
 import com.example.droidtour.superadmin.helpers.DashboardExportHelper;
 import com.example.droidtour.superadmin.managers.DashboardDataRepository;
 import com.example.droidtour.superadmin.managers.DashboardKPIManager;
+import com.example.droidtour.superadmin.managers.DashboardExportManager;
 import com.example.droidtour.utils.PreferencesManager;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
@@ -61,7 +55,6 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -126,6 +119,7 @@ public class SuperadminMainActivity extends AppCompatActivity
     private DashboardDataRepository dataRepository;
     private DashboardKPIManager kpiManager;
     private DashboardExportHelper exportHelper;
+    private DashboardExportManager exportManager;
     
     // ========== LIFECYCLE ==========
     
@@ -140,6 +134,7 @@ public class SuperadminMainActivity extends AppCompatActivity
         dataRepository = new DashboardDataRepository(db);
         kpiManager = new DashboardKPIManager(db);
         exportHelper = new DashboardExportHelper(this);
+        exportManager = new DashboardExportManager(this, exportHelper, PERMISSION_REQUEST_CODE);
         
         // Validar sesión
         if (!prefsManager.isLoggedIn()) {
@@ -169,6 +164,7 @@ public class SuperadminMainActivity extends AppCompatActivity
         setupDrawer();
         setupTabs();
         setupCharts();
+        setupExportManager();
         setupFAB();
         setupSwipeRefresh();
         updateKPIs();
@@ -240,6 +236,14 @@ public class SuperadminMainActivity extends AppCompatActivity
     private void setupTabs() {
         setupMonthSpinner();
         setupYearSpinners();
+        
+        // Aplicar colores después de que el layout esté completamente medido
+        View rootView = findViewById(android.R.id.content);
+        if (rootView != null) {
+            rootView.post(() -> setupTextInputLayoutColors());
+        } else {
+            setupTextInputLayoutColors();
+        }
         
         if (tabLayout != null) {
             tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -343,6 +347,42 @@ public class SuperadminMainActivity extends AppCompatActivity
                 Log.e(TAG, "Error parseando año", e);
             }
         });
+    }
+    
+    private void setupTextInputLayoutColors() {
+        int whiteColor = ContextCompat.getColor(this, android.R.color.white);
+        android.content.res.ColorStateList whiteColorStateList = android.content.res.ColorStateList.valueOf(whiteColor);
+        
+        // Crear un ColorStateList que siempre devuelva blanco para todos los estados
+        int[][] states = new int[][]{
+            new int[]{android.R.attr.state_focused},
+            new int[]{android.R.attr.state_hovered},
+            new int[]{-android.R.attr.state_enabled},
+            new int[]{}
+        };
+        int[] colors = new int[]{whiteColor, whiteColor, whiteColor, whiteColor};
+        android.content.res.ColorStateList whiteStateList = new android.content.res.ColorStateList(states, colors);
+        
+        if (tilMonth != null) {
+            tilMonth.setBoxStrokeColorStateList(whiteColorStateList);
+            tilMonth.setDefaultHintTextColor(whiteStateList);
+            tilMonth.setHintTextColor(whiteStateList);
+            tilMonth.setEndIconTintList(whiteColorStateList);
+        }
+        
+        if (tilYear != null) {
+            tilYear.setBoxStrokeColorStateList(whiteColorStateList);
+            tilYear.setDefaultHintTextColor(whiteStateList);
+            tilYear.setHintTextColor(whiteStateList);
+            tilYear.setEndIconTintList(whiteColorStateList);
+        }
+        
+        if (tilYearOnly != null) {
+            tilYearOnly.setBoxStrokeColorStateList(whiteColorStateList);
+            tilYearOnly.setDefaultHintTextColor(whiteStateList);
+            tilYearOnly.setHintTextColor(whiteStateList);
+            tilYearOnly.setEndIconTintList(whiteColorStateList);
+        }
     }
     
     private void initializeSpinnerDefaults() {
@@ -737,164 +777,34 @@ public class SuperadminMainActivity extends AppCompatActivity
     
     // ========== EXPORT ==========
     
+    private void setupExportManager() {
+        if (exportManager != null) {
+            // Configurar referencias a KPIs
+            exportManager.setKPIViews(tvTotalUsers, tvActiveTours, tvRevenue, tvBookings);
+            // Configurar referencias a gráficos
+            exportManager.setCharts(lineChartRevenue, lineChartAveragePrice, 
+                                   pieChartTours, barChartBookings, barChartPeople);
+        }
+    }
+    
     private void setupFAB() {
         if (fabExport != null) {
             fabExport.setOnClickListener(v -> {
                 Toast.makeText(this, "Iniciando exportación...", Toast.LENGTH_SHORT).show();
-                exportAnalyticsReport();
+                if (exportManager != null) {
+                    exportManager.requestExport();
+                }
                 notificationCount++;
                 updateNotificationBadge();
             });
         }
     }
     
-    private void exportAnalyticsReport() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                        PERMISSION_REQUEST_CODE);
-                return;
-            }
-        }
-        
-        try {
-            // Preparar datos de KPIs
-            String[] kpiLabels = {"Total Usuarios", "Tours Activos", "Ingresos", "Reservas"};
-            String[] kpiValues = {
-                tvTotalUsers != null ? tvTotalUsers.getText().toString() : "N/A",
-                tvActiveTours != null ? tvActiveTours.getText().toString() : "N/A",
-                tvRevenue != null ? tvRevenue.getText().toString() : "N/A",
-                tvBookings != null ? tvBookings.getText().toString() : "N/A"
-            };
-            
-            // Preparar gráficos
-            List<DashboardExportHelper.ChartInfo> charts = new ArrayList<>();
-            if (lineChartRevenue != null && lineChartRevenue.getData() != null) {
-                charts.add(new DashboardExportHelper.ChartInfo(lineChartRevenue, "Ingresos Mensuales"));
-            }
-            if (lineChartAveragePrice != null && lineChartAveragePrice.getData() != null) {
-                charts.add(new DashboardExportHelper.ChartInfo(lineChartAveragePrice, "Precio Promedio por Persona"));
-            }
-            if (pieChartTours != null && pieChartTours.getData() != null) {
-                charts.add(new DashboardExportHelper.ChartInfo(pieChartTours, "Tours por Categoría"));
-            }
-            if (barChartBookings != null && barChartBookings.getData() != null) {
-                charts.add(new DashboardExportHelper.ChartInfo(barChartBookings, "Reservas por Mes"));
-            }
-            if (barChartPeople != null && barChartPeople.getData() != null) {
-                charts.add(new DashboardExportHelper.ChartInfo(barChartPeople, "Personas por Mes"));
-            }
-            
-            // Exportar usando helper
-            exportHelper.exportAnalyticsReport(charts, kpiLabels, kpiValues, 
-                new DashboardExportHelper.ExportCompleteCallback() {
-                    @Override
-                    public void onSuccess(String pdfPath, List<String> imagePaths) {
-                        showExportSuccessNotification(pdfPath, imagePaths);
-                        String message = "✅ Exportación completada\n" + 
-                                       "1 PDF y " + imagePaths.size() + " imágenes guardadas\n" +
-                                       "Archivos en Descargas/DroidTour";
-                        Toast.makeText(SuperadminMainActivity.this, message, Toast.LENGTH_LONG).show();
-                    }
-                    
-                    @Override
-                    public void onError(Exception error) {
-                        Log.e(TAG, "Error en exportación", error);
-                        showExportErrorNotification();
-                        Toast.makeText(SuperadminMainActivity.this, 
-                            "❌ Error al exportar: " + error.getMessage(), Toast.LENGTH_LONG).show();
-                    }
-                });
-        } catch (Exception e) {
-            Log.e(TAG, "Error en exportación", e);
-            showExportErrorNotification();
-            Toast.makeText(this, "❌ Error al exportar: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
-    }
-    
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                exportAnalyticsReport();
-            } else {
-                Toast.makeText(this, "❌ Permiso denegado. No se puede exportar sin permisos de almacenamiento.", 
-                    Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-    
-    private void showExportSuccessNotification(String pdfPath, List<String> imagePaths) {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        
-        String pdfFileName = pdfPath;
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                pdfFileName = Uri.parse(pdfPath).getLastPathSegment();
-            } else {
-                pdfFileName = new File(pdfPath).getName();
-            }
-        } catch (Exception e) {
-            // Ignorar
-        }
-        
-        StringBuilder imagesText = new StringBuilder();
-        imagesText.append("✅ PDF: ").append(pdfFileName != null ? pdfFileName : "Reporte_Analytics.pdf");
-        imagesText.append("\n📊 Imágenes: ").append(imagePaths.size()).append(" gráficos");
-        for (int i = 0; i < Math.min(imagePaths.size(), 3); i++) {
-            String imagePath = imagePaths.get(i);
-            String imageName = imagePath;
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    imageName = Uri.parse(imagePath).getLastPathSegment();
-                } else {
-                    imageName = new File(imagePath).getName();
-                }
-            } catch (Exception e) {
-                // Ignorar
-            }
-            imagesText.append("\n  • ").append(imageName != null ? imageName : "Gráfico " + (i + 1));
-        }
-        if (imagePaths.size() > 3) {
-            imagesText.append("\n  ... y ").append(imagePaths.size() - 3).append(" más");
-        }
-        imagesText.append("\n📁 Ubicación: Descargas/DroidTour");
-        
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_download_24)
-                .setContentTitle("✅ Exportación Completada")
-                .setContentText("Reporte guardado en Descargas/DroidTour")
-                .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText(imagesText.toString()))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingIntent)
-                .setAutoCancel(true)
-                .setColor(getResources().getColor(R.color.primary));
-        
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-            notificationManager.notify(NOTIFICATION_ID, builder.build());
-        }
-    }
-    
-    private void showExportErrorNotification() {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_download_24)
-                .setContentTitle("❌ Error en Exportación")
-                .setContentText("No se pudo completar la exportación")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setAutoCancel(true)
-                .setColor(android.graphics.Color.RED);
-        
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-            notificationManager.notify(NOTIFICATION_ID + 1, builder.build());
+        if (exportManager != null) {
+            exportManager.handlePermissionResult(requestCode, permissions, grantResults);
         }
     }
     
@@ -923,13 +833,8 @@ public class SuperadminMainActivity extends AppCompatActivity
     private void setupVisualMenuElements(Menu menu) {
         MenuItem notificationItem = menu.findItem(R.id.action_notifications);
         if (notificationItem != null) {
-            notificationActionLayout = (FrameLayout) notificationItem.getActionView();
-            if (notificationActionLayout != null) {
-                tvNotificationBadge = notificationActionLayout.findViewById(R.id.tv_notification_badge);
-                updateNotificationBadge();
-                notificationActionLayout.setOnClickListener(v ->
-                        Toast.makeText(this, "por implementr xd", Toast.LENGTH_SHORT).show());
-            }
+            // Ocultar la campana de notificaciones
+            notificationItem.setVisible(false);
         }
         
         MenuItem avatarItem = menu.findItem(R.id.action_profile);

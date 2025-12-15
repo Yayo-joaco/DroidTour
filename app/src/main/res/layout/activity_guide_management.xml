@@ -12,8 +12,10 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
         app:title="Gestión de Guías"
+        app:titleCentered="true"
+        app:titleTextAppearance="@style/Toolbar.TitleText2"
         app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert"
+        app:navigationIcon="@drawable/ic_back"
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Tab Layout -->

@@ -51,6 +51,8 @@
             android:layout_height="wrap_content"
             android:text="Filtros"
             app:icon="@drawable/ic_expand_less"
+            app:iconTint="@color/primary"
+            android:textColor="@color/primary"
             app:iconGravity="textStart"
             style="@style/Widget.Material3.Button.TextButton"
             android:textSize="13sp"
@@ -84,7 +86,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:background="@color/white">
 
             <!-- Filtro por Rating -->
             <LinearLayout
@@ -127,8 +130,13 @@
                 android:valueFrom="0.0"
                 android:valueTo="5.0"
                 android:stepSize="0.5"
-                android:value="0.0"
-                app:labelBehavior="gone" />
+                android:value="0.5"
+                app:labelBehavior="gone"
+                app:thumbColor="@color/primary"
+                app:trackColorInactive="@color/primary_light"
+                app:trackColorActive="@color/primary"
+
+                />
 
             <!-- Divider -->
             <View
@@ -166,6 +174,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Limpiar"
+                    android:textColor="@color/primary"
                     android:textSize="12sp"
                     style="@style/Widget.Material3.Button.TextButton"
                     android:minWidth="0dp"

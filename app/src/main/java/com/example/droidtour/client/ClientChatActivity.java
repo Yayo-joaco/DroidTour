@@ -18,16 +18,32 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.droidtour.R;
+import com.example.droidtour.utils.ConversationHelper;
+import com.example.droidtour.utils.PresenceManager;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.models.Company;
+import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.MaterialToolbar;
+import android.widget.ImageView;
+
+import android.util.Log;
+import android.widget.Toast;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Locale;
 
 public class ClientChatActivity extends AppCompatActivity {
     
+    private static final String TAG = "ClientChatActivity";
     private RecyclerView rvCompanyChats;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private ConversationHelper conversationHelper;
+    private PresenceManager presenceManager;
     private EditText etSearch;
     private ImageButton btnClearSearch;
     private View layoutNoResults;
     private ClientCompanyChatsAdapter adapter;
+    private String currentClientId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,9 +70,15 @@ public class ClientChatActivity extends AppCompatActivity {
         setContentView(R.layout.activity_client_chat);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
         
+        // Inicializar managers
+        conversationHelper = new ConversationHelper();
+        presenceManager = new PresenceManager();
+        currentClientId = prefsManager.getUserId();
+        
         setupToolbar();
         initializeViews();
         setupRecyclerView();
+        loadClientConversations();
     }
     
     private void setupToolbar() {
@@ -79,6 +101,7 @@ public class ClientChatActivity extends AppCompatActivity {
              // Abrir chat con empresa específica usando el chat unificado
              Intent intent = new Intent(this, CompanyChatActivity.class);
              intent.putExtra("company_name", company.name);
+             intent.putExtra("company_id", company.companyId);
              startActivity(intent);
         });
         rvCompanyChats.setAdapter(adapter);
@@ -103,6 +126,78 @@ public class ClientChatActivity extends AppCompatActivity {
             @Override public void afterTextChanged(Editable s) {}
         });
     }
+    
+    private void loadClientConversations() {
+        if (currentClientId == null || currentClientId.isEmpty()) {
+            Log.e(TAG, "currentClientId es null o vacío");
+            return;
+        }
+        
+        // Cargar conversaciones del cliente desde Realtime Database
+        conversationHelper.getConversationsForClient(currentClientId, new ConversationHelper.ConversationsCallback() {
+            @Override
+            public void onConversationsLoaded(List<ConversationHelper.ConversationData> conversations) {
+                java.util.List<CompanyChat> companyChats = new java.util.ArrayList<>();
+                SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                
+                for (ConversationHelper.ConversationData conv : conversations) {
+                    String companyId = conv.getCompanyId();
+                    String companyName = conv.getCompanyName() != null ? conv.getCompanyName() : "Empresa";
+                    String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+                    
+                    // Formatear timestamp
+                    long timestamp = conv.getLastMessageTimestamp();
+                    String timeStr = "";
+                    if (timestamp > 0) {
+                        // Verificar si es de hoy, ayer, o fecha anterior
+                        long now = System.currentTimeMillis();
+                        long diff = now - timestamp;
+                        long daysDiff = diff / (24 * 60 * 60 * 1000);
+                        
+                        if (daysDiff == 0) {
+                            // Hoy: mostrar hora
+                            timeStr = sdf.format(new java.util.Date(timestamp));
+                        } else if (daysDiff == 1) {
+                            // Ayer
+                            timeStr = "Ayer";
+                        } else if (daysDiff < 7) {
+                            // Esta semana: mostrar día
+                            SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.getDefault());
+                            timeStr = dayFormat.format(new java.util.Date(timestamp));
+                        } else {
+                            // Más de una semana: mostrar fecha
+                            SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                            timeStr = dateFormat.format(new java.util.Date(timestamp));
+                        }
+                    }
+                    
+                    // Obtener contador de no leídos (desde perspectiva del cliente)
+                    int unreadCount = conv.getUnreadCountClient();
+                    
+                    CompanyChat chat = new CompanyChat(
+                        companyId,
+                        companyName,
+                        lastMessage,
+                        timeStr,
+                        unreadCount > 0,
+                        unreadCount
+                    );
+                    companyChats.add(chat);
+                }
+                
+                adapter.updateData(companyChats);
+                updateNoResultsVisibility();
+                Log.d(TAG, "Chats cargados: " + companyChats.size());
+            }
+            
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Error al cargar conversaciones", e);
+                Toast.makeText(ClientChatActivity.this, "Error al cargar chats", Toast.LENGTH_SHORT).show();
+                updateNoResultsVisibility();
+            }
+        });
+    }
 
     private void updateNoResultsVisibility() {
         if (adapter == null) return;
@@ -110,6 +205,86 @@ public class ClientChatActivity extends AppCompatActivity {
             layoutNoResults.setVisibility(View.VISIBLE);
         } else {
             layoutNoResults.setVisibility(View.GONE);
+        }
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Establecer usuario como en línea
+        if (currentClientId != null) {
+            presenceManager.setOnline(currentClientId);
+        }
+        
+        // Recargar conversaciones y escuchar cambios en tiempo real
+        if (currentClientId != null) {
+            conversationHelper.listenToClientConversations(currentClientId, new ConversationHelper.ConversationsCallback() {
+                @Override
+                public void onConversationsLoaded(List<ConversationHelper.ConversationData> conversations) {
+                    java.util.List<CompanyChat> companyChats = new java.util.ArrayList<>();
+                    SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                    
+                    for (ConversationHelper.ConversationData conv : conversations) {
+                        String companyId = conv.getCompanyId();
+                        String companyName = conv.getCompanyName() != null ? conv.getCompanyName() : "Empresa";
+                        String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+                        
+                        long timestamp = conv.getLastMessageTimestamp();
+                        String timeStr = "";
+                        if (timestamp > 0) {
+                            long now = System.currentTimeMillis();
+                            long diff = now - timestamp;
+                            long daysDiff = diff / (24 * 60 * 60 * 1000);
+                            
+                            if (daysDiff == 0) {
+                                timeStr = sdf.format(new java.util.Date(timestamp));
+                            } else if (daysDiff == 1) {
+                                timeStr = "Ayer";
+                            } else if (daysDiff < 7) {
+                                SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE", Locale.getDefault());
+                                timeStr = dayFormat.format(new java.util.Date(timestamp));
+                            } else {
+                                SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                                timeStr = dateFormat.format(new java.util.Date(timestamp));
+                            }
+                        }
+                        
+                        int unreadCount = conv.getUnreadCountClient();
+                        
+                        CompanyChat chat = new CompanyChat(
+                            companyId,
+                            companyName,
+                            lastMessage,
+                            timeStr,
+                            unreadCount > 0,
+                            unreadCount
+                        );
+                        companyChats.add(chat);
+                    }
+                    
+                    adapter.updateData(companyChats);
+                    updateNoResultsVisibility();
+                }
+                
+                @Override
+                public void onError(Exception e) {
+                    Log.e(TAG, "Error escuchando conversaciones", e);
+                }
+            });
+        }
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // El heartbeat seguirá actualizando lastSeen
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (presenceManager != null && currentClientId != null) {
+            presenceManager.setOffline(currentClientId);
         }
     }
     
@@ -131,13 +306,15 @@ public class ClientChatActivity extends AppCompatActivity {
 
 // Clase para representar una empresa con chat
 class CompanyChat {
+    public String companyId;
     public String name;
     public String lastMessage;
     public String timestamp;
     public boolean hasUnreadMessages;
     public int unreadCount;
 
-    public CompanyChat(String name, String lastMessage, String timestamp, boolean hasUnreadMessages, int unreadCount) {
+    public CompanyChat(String companyId, String name, String lastMessage, String timestamp, boolean hasUnreadMessages, int unreadCount) {
+        this.companyId = companyId;
         this.name = name;
         this.lastMessage = lastMessage;
         this.timestamp = timestamp;
@@ -156,14 +333,14 @@ class ClientCompanyChatsAdapter extends RecyclerView.Adapter<ClientCompanyChatsA
 
     ClientCompanyChatsAdapter(OnCompanyChatClick listener) {
         this.onCompanyChatClick = listener;
-        // Datos mock de chats con empresas (inicializar lista completa)
-        allCompanyChats.add(new CompanyChat("Tours Cusco Adventures", "Perfecto, nos vemos mañana a las 8 AM", "2:30 PM", false, 0));
-        allCompanyChats.add(new CompanyChat("Lima City Travel", "Su reserva ha sido confirmada", "1:15 PM", true, 2));
-        allCompanyChats.add(new CompanyChat("Peru Explorer Tours", "¿Necesita transporte desde el hotel?", "11:45 AM", true, 1));
-        allCompanyChats.add(new CompanyChat("Sacred Valley Tours", "Gracias por su valoración", "Ayer", false, 0));
-
-        // Inicialmente mostrar todos
-        filteredCompanyChats.addAll(allCompanyChats);
+    }
+    
+    public void updateData(java.util.List<CompanyChat> newData) {
+        allCompanyChats.clear();
+        if (newData != null) {
+            allCompanyChats.addAll(newData);
+        }
+        filter(""); // Aplicar filtro actual (puede estar vacío)
     }
 
     @Override
@@ -181,14 +358,68 @@ class ClientCompanyChatsAdapter extends RecyclerView.Adapter<ClientCompanyChatsA
         holder.tvLastMessage.setText(company.lastMessage);
         holder.tvTimestamp.setText(company.timestamp);
         
-        if (company.hasUnreadMessages) {
-            holder.tvUnreadCount.setVisibility(View.VISIBLE);
-            holder.tvUnreadCount.setText(String.valueOf(company.unreadCount));
+        // Mostrar/ocultar badge de mensajes no leídos
+        if (company.hasUnreadMessages && company.unreadCount > 0) {
+            if (holder.cvUnreadBadge != null) {
+                holder.cvUnreadBadge.setVisibility(View.VISIBLE);
+            }
+            if (holder.tvUnreadCount != null) {
+                holder.tvUnreadCount.setVisibility(View.VISIBLE);
+                holder.tvUnreadCount.setText(String.valueOf(company.unreadCount));
+            }
         } else {
-            holder.tvUnreadCount.setVisibility(View.GONE);
+            if (holder.cvUnreadBadge != null) {
+                holder.cvUnreadBadge.setVisibility(View.GONE);
+            }
+            if (holder.tvUnreadCount != null) {
+                holder.tvUnreadCount.setVisibility(View.GONE);
+            }
         }
         
+        // Cargar logo de la empresa desde Firestore
+        loadCompanyLogo(holder, company.companyId);
+        
         holder.itemView.setOnClickListener(v -> onCompanyChatClick.onClick(company));
+    }
+    
+    private void loadCompanyLogo(ViewHolder holder, String companyId) {
+        if (companyId == null || companyId.isEmpty() || companyId.equals("unknown_company")) {
+            // Usar placeholder por defecto
+            if (holder.ivCompanyAvatar != null) {
+                holder.ivCompanyAvatar.setImageResource(R.drawable.ic_mountain);
+            }
+            return;
+        }
+        
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.getCompanyById(companyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                if (result instanceof Company && holder.ivCompanyAvatar != null) {
+                    Company company = (Company) result;
+                    String logoUrl = company.getLogoUrl();
+                    
+                    if (logoUrl != null && !logoUrl.isEmpty()) {
+                        Glide.with(holder.ivCompanyAvatar.getContext())
+                                .load(logoUrl)
+                                .placeholder(R.drawable.ic_mountain)
+                                .error(R.drawable.ic_mountain)
+                                .circleCrop()
+                                .into(holder.ivCompanyAvatar);
+                    } else {
+                        holder.ivCompanyAvatar.setImageResource(R.drawable.ic_mountain);
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // Usar placeholder por defecto si falla
+                if (holder.ivCompanyAvatar != null) {
+                    holder.ivCompanyAvatar.setImageResource(R.drawable.ic_mountain);
+                }
+            }
+        });
     }
 
     @Override
@@ -214,6 +445,8 @@ class ClientCompanyChatsAdapter extends RecyclerView.Adapter<ClientCompanyChatsA
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvCompanyName, tvLastMessage, tvTimestamp, tvUnreadCount;
+        ImageView ivCompanyAvatar;
+        android.view.View cvUnreadBadge;
 
         ViewHolder(View view) {
             super(view);
@@ -221,6 +454,8 @@ class ClientCompanyChatsAdapter extends RecyclerView.Adapter<ClientCompanyChatsA
             tvLastMessage = view.findViewById(R.id.tv_last_message);
             tvTimestamp = view.findViewById(R.id.tv_timestamp);
             tvUnreadCount = view.findViewById(R.id.tv_unread_count);
+            ivCompanyAvatar = view.findViewById(R.id.iv_company_avatar);
+            cvUnreadBadge = view.findViewById(R.id.cv_unread_badge);
         }
     }
 }

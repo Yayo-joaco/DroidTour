@@ -89,6 +89,7 @@ public class MyReservationsActivity extends AppCompatActivity {
         }
     }
     
+    @SuppressWarnings("unchecked")
     private void loadReservationsFromFirebase() {
         firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override

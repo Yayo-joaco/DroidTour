@@ -263,6 +263,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         if (tvNotificationBadge != null && currentUserId != null) {
             firestoreManager.getUnreadNotifications(currentUserId, new FirestoreManager.FirestoreCallback() {
                 @Override
+                @SuppressWarnings("unchecked")
                 public void onSuccess(Object result) {
                     if (result instanceof List) {
                         List<?> notifications = (List<?>) result;
@@ -483,6 +484,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         // Cargar empresas desde Firebase
         firestoreManager.getAllCompaniesNoFilter(new FirestoreManager.FirestoreCallback() {
             @Override
+            @SuppressWarnings("unchecked")
             public void onSuccess(Object result) {
                 if (result instanceof List) {
                     List<Company> allCompanies = (List<Company>) result;
@@ -617,6 +619,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
         firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
+            @SuppressWarnings("unchecked")
             public void onSuccess(Object result) {
                 if (result instanceof List) {
                     List<Reservation> reservations = (List<Reservation>) result;

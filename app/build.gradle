@@ -5,11 +5,11 @@ plugins {
 
 
 android {
-    namespace 'com.example.droidtour'
-    compileSdk 34
+    namespace = 'com.example.droidtour'
+    compileSdk = 34
 
     buildFeatures {
-        buildConfig true
+        buildConfig = true
     }
 
     defaultConfig {
@@ -38,8 +38,8 @@ android {
     }
 
     lint {
-        abortOnError false
-        checkReleaseBuilds false
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 
     buildTypes {

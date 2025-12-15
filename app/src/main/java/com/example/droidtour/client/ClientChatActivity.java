@@ -143,7 +143,9 @@ public class ClientChatActivity extends AppCompatActivity {
                 for (ConversationHelper.ConversationData conv : conversations) {
                     String companyId = conv.getCompanyId();
                     String companyName = conv.getCompanyName() != null ? conv.getCompanyName() : "Empresa";
-                    String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+                    
+                    // Formatear último mensaje con "Tú: " si es del usuario actual
+                    String lastMessage = formatLastMessage(conv, currentClientId);
                     
                     // Formatear timestamp
                     long timestamp = conv.getLastMessageTimestamp();
@@ -227,7 +229,9 @@ public class ClientChatActivity extends AppCompatActivity {
                     for (ConversationHelper.ConversationData conv : conversations) {
                         String companyId = conv.getCompanyId();
                         String companyName = conv.getCompanyName() != null ? conv.getCompanyName() : "Empresa";
-                        String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+                        
+                        // Formatear último mensaje con "Tú: " si es del usuario actual
+                        String lastMessage = formatLastMessage(conv, currentClientId);
                         
                         long timestamp = conv.getLastMessageTimestamp();
                         String timeStr = "";
@@ -302,6 +306,30 @@ public class ClientChatActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
+    
+    /**
+     * Formatea el último mensaje agregando "Tú: " si es del usuario actual
+     */
+    private String formatLastMessage(ConversationHelper.ConversationData conv, String currentUserId) {
+        String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+        String lastSenderId = conv.getLastMessageSenderId();
+        
+        // Si el último mensaje es del usuario actual, agregar "Tú: "
+        if (lastSenderId != null && lastSenderId.equals(currentUserId)) {
+            if (conv.getLastMessageHasAttachment()) {
+                String attachmentType = conv.getLastMessageAttachmentType();
+                if (attachmentType != null && attachmentType.equals("IMAGE")) {
+                    return "Tú: Imagen";
+                } else {
+                    return "Tú: Archivo";
+                }
+            } else {
+                return "Tú: " + lastMessage;
+            }
+        }
+        
+        return lastMessage;
+    }
 }
 
 // Clase para representar una empresa con chat
@@ -364,16 +392,16 @@ class ClientCompanyChatsAdapter extends RecyclerView.Adapter<ClientCompanyChatsA
                 holder.cvUnreadBadge.setVisibility(View.VISIBLE);
             }
             if (holder.tvUnreadCount != null) {
-                holder.tvUnreadCount.setVisibility(View.VISIBLE);
-                holder.tvUnreadCount.setText(String.valueOf(company.unreadCount));
+            holder.tvUnreadCount.setVisibility(View.VISIBLE);
+            holder.tvUnreadCount.setText(String.valueOf(company.unreadCount));
             }
         } else {
             if (holder.cvUnreadBadge != null) {
                 holder.cvUnreadBadge.setVisibility(View.GONE);
             }
             if (holder.tvUnreadCount != null) {
-                holder.tvUnreadCount.setVisibility(View.GONE);
-            }
+            holder.tvUnreadCount.setVisibility(View.GONE);
+        }
         }
         
         // Cargar logo de la empresa desde Firestore

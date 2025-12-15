@@ -1,17 +1,27 @@
 package com.example.droidtour;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.utils.ChatManagerRealtime;
@@ -23,6 +33,7 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
 import android.view.inputmethod.InputMethodManager;
 import android.content.Context;
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,6 +60,19 @@ public class AdminChatDetailActivity extends AppCompatActivity {
     private String currentUserName;
     private AdminChatMessagesAdapter messagesAdapter;
     private List<AdminChatMessage> messagesList;
+    
+    // Constantes para selección de archivos
+    private static final int REQUEST_CODE_CAMERA = 1001;
+    private static final int REQUEST_CODE_GALLERY = 1002;
+    private static final int REQUEST_CODE_DOCUMENT = 1003;
+    private static final int REQUEST_CODE_PERMISSION_CAMERA = 2001;
+    private static final int REQUEST_CODE_PERMISSION_STORAGE = 2002;
+    
+    // Variables para archivos adjuntos
+    private Uri selectedFileUri;
+    private String selectedFileType; // "IMAGE" o "PDF"
+    private String selectedFileName;
+    private File photoFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -145,12 +169,7 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         }
 
         if (ivAttach != null) {
-            ivAttach.setOnClickListener(v -> {
-                Toast.makeText(this, "Adjuntar archivo", Toast.LENGTH_SHORT).show();
-                // No manipulamos el TextInputLayout: el hint está dentro del EditText
-                // Si quieres restaurar el texto del hint manualmente, podemos hacerlo con etMessage.setHint(...)
-                // TODO: Implementar adjuntar archivos
-            });
+            ivAttach.setOnClickListener(v -> showAttachmentOptions());
         }
     }
     
@@ -346,17 +365,201 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         if (message.getTimestamp() != null) {
             timeStr = sdf.format(message.getTimestamp().toDate());
         }
-        return new AdminChatMessage(message.getMessageText(), isFromClient, timeStr);
+        
+        if (message.hasAttachment()) {
+            return new AdminChatMessage(
+                message.getMessageText() != null ? message.getMessageText() : "",
+                isFromClient,
+                timeStr,
+                true,
+                message.getAttachmentUrl(),
+                message.getAttachmentType(),
+                message.getAttachmentName(),
+                message.getAttachmentSize()
+            );
+        } else {
+            return new AdminChatMessage(message.getMessageText(), isFromClient, timeStr);
+        }
     }
     
     private void sendMessage() {
         String messageText = etMessage.getText().toString().trim();
         
-        if (messageText.isEmpty() || conversationId == null) {
-            Toast.makeText(this, "Escriba un mensaje", Toast.LENGTH_SHORT).show();
+        // Validar que haya mensaje o archivo adjunto
+        if ((messageText.isEmpty() && selectedFileUri == null) || conversationId == null) {
+            if (selectedFileUri == null) {
+                Toast.makeText(this, "Escriba un mensaje", Toast.LENGTH_SHORT).show();
+            }
             return;
         }
         
+        // Si hay archivo adjunto, subirlo primero
+        if (selectedFileUri != null && selectedFileType != null) {
+            uploadAndSendMessage(messageText);
+        } else {
+            // Enviar mensaje sin adjunto
+            sendTextMessage(messageText);
+        }
+    }
+    
+    private void uploadAndSendMessage(String messageText) {
+        // Mostrar indicador de progreso
+        final View previewLayout = findViewById(R.id.layout_attachment_preview);
+        final ProgressBar progressBar = previewLayout != null ? previewLayout.findViewById(R.id.progress_upload) : null;
+        final TextView tvProgress = previewLayout != null ? previewLayout.findViewById(R.id.tv_upload_progress) : null;
+        
+        if (progressBar != null) {
+            progressBar.setVisibility(View.VISIBLE);
+            progressBar.setProgress(0);
+        }
+        if (tvProgress != null) {
+            tvProgress.setVisibility(View.VISIBLE);
+            tvProgress.setText("Subiendo... 0%");
+        }
+        
+        // Deshabilitar botón de enviar durante la subida
+        if (ivSendMessage != null) {
+            ivSendMessage.setEnabled(false);
+        }
+        
+        // Generar messageId temporal para la subida
+        final String tempMessageId = java.util.UUID.randomUUID().toString();
+        
+        // Hacer finales las variables que se usarán en callbacks
+        final String finalMessageText = messageText;
+        final Uri finalSelectedFileUri = selectedFileUri;
+        final String finalSelectedFileType = selectedFileType;
+        final String finalSelectedFileName = selectedFileName;
+        
+        // Subir archivo a Firebase Storage
+        com.example.droidtour.firebase.FirebaseStorageManager storageManager = 
+            com.example.droidtour.firebase.FirebaseStorageManager.getInstance();
+        
+        storageManager.uploadChatAttachment(
+            conversationId,
+            tempMessageId,
+            finalSelectedFileUri,
+            finalSelectedFileType,
+            finalSelectedFileName,
+            new com.example.droidtour.firebase.FirebaseStorageManager.StorageCallback() {
+                @Override
+                public void onSuccess(String downloadUrl) {
+                    // Ocultar indicador de progreso
+                    if (progressBar != null) {
+                        progressBar.setVisibility(View.GONE);
+                    }
+                    if (tvProgress != null) {
+                        tvProgress.setVisibility(View.GONE);
+                    }
+                    
+                    // Obtener tamaño del archivo
+                    Long fileSize = null;
+                    try {
+                        android.content.ContentResolver resolver = getContentResolver();
+                        android.database.Cursor cursor = resolver.query(finalSelectedFileUri, null, null, null, null);
+                        if (cursor != null && cursor.moveToFirst()) {
+                            int sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE);
+                            if (sizeIndex >= 0) {
+                                fileSize = cursor.getLong(sizeIndex);
+                            }
+                        }
+                        if (cursor != null) {
+                            cursor.close();
+                        }
+                    } catch (Exception e) {
+                        // Ignorar error
+                    }
+                    
+                    // Crear mensaje con adjunto
+                    Message msg = new Message();
+                    msg.setSenderId(currentUserId);
+                    msg.setSenderName(currentUserName != null ? currentUserName : "Administrador");
+                    msg.setReceiverId(clientId);
+                    msg.setReceiverName(clientName);
+                    msg.setSenderType(prefsManager.getUserType());
+                    msg.setMessageText(finalMessageText);
+                    msg.setConversationId(conversationId);
+                    msg.setCompanyId(companyId);
+                    msg.setHasAttachment(true);
+                    msg.setAttachmentUrl(downloadUrl);
+                    msg.setAttachmentType(finalSelectedFileType);
+                    msg.setAttachmentName(finalSelectedFileName);
+                    msg.setAttachmentSize(fileSize);
+                    
+                    // Enviar mensaje
+                    chatManager.sendMessage(conversationId, msg, new ChatManagerRealtime.SendCallback() {
+                        @Override
+                        public void onSuccess(String messageId) {
+                            runOnUiThread(() -> {
+                                etMessage.setText("");
+                                // Limpiar adjunto
+                                AdminChatDetailActivity.this.selectedFileUri = null;
+                                AdminChatDetailActivity.this.selectedFileType = null;
+                                AdminChatDetailActivity.this.selectedFileName = null;
+                                if (previewLayout != null) {
+                                    previewLayout.setVisibility(View.GONE);
+                                }
+                                // Habilitar botón de enviar
+                                if (ivSendMessage != null) {
+                                    ivSendMessage.setEnabled(true);
+                                }
+                            });
+                        }
+                        
+                        @Override
+                        public void onFailure(Exception e) {
+                            runOnUiThread(() -> {
+                                Toast.makeText(AdminChatDetailActivity.this, "Error al enviar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                // Habilitar botón de enviar
+                                if (ivSendMessage != null) {
+                                    ivSendMessage.setEnabled(true);
+                                }
+                                // Ocultar indicador de progreso
+                                if (progressBar != null) {
+                                    progressBar.setVisibility(View.GONE);
+                                }
+                                if (tvProgress != null) {
+                                    tvProgress.setVisibility(View.GONE);
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    runOnUiThread(() -> {
+                        Toast.makeText(AdminChatDetailActivity.this, "Error al subir archivo: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        // Habilitar botón de enviar
+                        if (ivSendMessage != null) {
+                            ivSendMessage.setEnabled(true);
+                        }
+                        // Ocultar indicador de progreso
+                        if (progressBar != null) {
+                            progressBar.setVisibility(View.GONE);
+                        }
+                        if (tvProgress != null) {
+                            tvProgress.setVisibility(View.GONE);
+                        }
+                    });
+                }
+                
+                @Override
+                public void onProgress(int progress) {
+                    runOnUiThread(() -> {
+                        if (progressBar != null) {
+                            progressBar.setProgress(progress);
+                        }
+                        if (tvProgress != null) {
+                            tvProgress.setText("Subiendo... " + progress + "%");
+                        }
+                    });
+                }
+            }
+        );
+    }
+    
+    private void sendTextMessage(String messageText) {
         // Construir Message
         Message msg = new Message();
         msg.setSenderId(currentUserId);
@@ -427,6 +630,258 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
+    
+    // ==================== MÉTODOS PARA ARCHIVOS ADJUNTOS ====================
+    
+    private void showAttachmentOptions() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Seleccionar archivo");
+        String[] options = {"Cámara", "Galería", "Documento PDF"};
+        builder.setItems(options, (dialog, which) -> {
+            switch (which) {
+                case 0: // Cámara
+                    openCamera();
+                    break;
+                case 1: // Galería
+                    openGallery();
+                    break;
+                case 2: // PDF
+                    openDocumentPicker();
+                    break;
+            }
+        });
+        builder.show();
+    }
+    
+    private void openCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CODE_PERMISSION_CAMERA);
+            return;
+        }
+        
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            try {
+                photoFile = createImageFile();
+                if (photoFile != null) {
+                    Uri photoURI = FileProvider.getUriForFile(this,
+                            getApplicationContext().getPackageName() + ".fileprovider",
+                            photoFile);
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                    startActivityForResult(intent, REQUEST_CODE_CAMERA);
+                }
+            } catch (Exception e) {
+                Toast.makeText(this, "Error al abrir la cámara", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+    
+    private void openGallery() {
+        String[] permissions;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions = new String[]{Manifest.permission.READ_MEDIA_IMAGES};
+        } else {
+            permissions = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
+        }
+        
+        if (ContextCompat.checkSelfPermission(this, permissions[0]) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE_PERMISSION_STORAGE);
+            return;
+        }
+        
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setType("image/*");
+        startActivityForResult(intent, REQUEST_CODE_GALLERY);
+    }
+    
+    private void openDocumentPicker() {
+        String[] permissions;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions = new String[]{Manifest.permission.READ_MEDIA_IMAGES};
+        } else {
+            permissions = new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
+        }
+        
+        if (ContextCompat.checkSelfPermission(this, permissions[0]) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE_PERMISSION_STORAGE);
+            return;
+        }
+        
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("application/pdf");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(Intent.createChooser(intent, "Seleccionar PDF"), REQUEST_CODE_DOCUMENT);
+    }
+    
+    private File createImageFile() throws Exception {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(imageFileName, ".jpg", storageDir);
+        return image;
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (resultCode != RESULT_OK) {
+            return;
+        }
+        
+        switch (requestCode) {
+            case REQUEST_CODE_CAMERA:
+                if (photoFile != null && photoFile.exists()) {
+                    selectedFileUri = Uri.fromFile(photoFile);
+                    selectedFileType = "IMAGE";
+                    selectedFileName = photoFile.getName();
+                    showAttachmentPreview();
+                }
+                break;
+                
+            case REQUEST_CODE_GALLERY:
+                if (data != null && data.getData() != null) {
+                    selectedFileUri = data.getData();
+                    selectedFileType = "IMAGE";
+                    selectedFileName = getFileName(selectedFileUri);
+                    showAttachmentPreview();
+                }
+                break;
+                
+            case REQUEST_CODE_DOCUMENT:
+                if (data != null && data.getData() != null) {
+                    selectedFileUri = data.getData();
+                    selectedFileType = "PDF";
+                    selectedFileName = getFileName(selectedFileUri);
+                    showAttachmentPreview();
+                }
+                break;
+        }
+    }
+    
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            switch (requestCode) {
+                case REQUEST_CODE_PERMISSION_CAMERA:
+                    openCamera();
+                    break;
+                case REQUEST_CODE_PERMISSION_STORAGE:
+                    // El usuario debe seleccionar nuevamente la opción
+                    break;
+            }
+        } else {
+            Toast.makeText(this, "Permiso denegado", Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private String getFileName(Uri uri) {
+        String result = null;
+        if (uri.getScheme().equals("content")) {
+            try (android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(MediaStore.Images.Media.DISPLAY_NAME);
+                    if (nameIndex >= 0) {
+                        result = cursor.getString(nameIndex);
+                    }
+                }
+            } catch (Exception e) {
+                // Ignorar error
+            }
+        }
+        if (result == null) {
+            result = uri.getPath();
+            if (result != null) {
+                int cut = result.lastIndexOf('/');
+                if (cut != -1) {
+                    result = result.substring(cut + 1);
+                }
+            }
+        }
+        return result != null ? result : "archivo";
+    }
+    
+    private void showAttachmentPreview() {
+        View previewLayout = findViewById(R.id.layout_attachment_preview);
+        if (previewLayout == null) {
+            Toast.makeText(this, "Archivo seleccionado: " + selectedFileName, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        previewLayout.setVisibility(View.VISIBLE);
+        
+        ImageView ivImagePreview = previewLayout.findViewById(R.id.iv_image_preview);
+        LinearLayout layoutPdfPreview = previewLayout.findViewById(R.id.layout_pdf_preview);
+        TextView tvPdfName = previewLayout.findViewById(R.id.tv_pdf_name);
+        TextView tvPdfSize = previewLayout.findViewById(R.id.tv_pdf_size);
+        ImageView ivRemoveAttachment = previewLayout.findViewById(R.id.iv_remove_attachment);
+        
+        if (selectedFileType != null && selectedFileType.equals("IMAGE")) {
+            // Mostrar preview de imagen
+            if (ivImagePreview != null) {
+                ivImagePreview.setVisibility(View.VISIBLE);
+                Glide.with(this)
+                        .load(selectedFileUri)
+                        .centerCrop()
+                        .into(ivImagePreview);
+            }
+            if (layoutPdfPreview != null) {
+                layoutPdfPreview.setVisibility(View.GONE);
+            }
+        } else if (selectedFileType != null && selectedFileType.equals("PDF")) {
+            // Mostrar preview de PDF
+            if (ivImagePreview != null) {
+                ivImagePreview.setVisibility(View.GONE);
+            }
+            if (layoutPdfPreview != null) {
+                layoutPdfPreview.setVisibility(View.VISIBLE);
+            }
+            if (tvPdfName != null && selectedFileName != null) {
+                tvPdfName.setText(selectedFileName);
+            }
+            // Obtener tamaño del archivo
+            if (tvPdfSize != null && selectedFileUri != null) {
+                try {
+                    android.content.ContentResolver resolver = getContentResolver();
+                    android.database.Cursor cursor = resolver.query(selectedFileUri, null, null, null, null);
+                    if (cursor != null && cursor.moveToFirst()) {
+                        int sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE);
+                        if (sizeIndex >= 0) {
+                            long size = cursor.getLong(sizeIndex);
+                            tvPdfSize.setText(formatFileSize(size));
+                        }
+                    }
+                    if (cursor != null) {
+                        cursor.close();
+                    }
+                } catch (Exception e) {
+                    tvPdfSize.setText("");
+                }
+            }
+        }
+        
+        // Botón para eliminar adjunto
+        if (ivRemoveAttachment != null) {
+            ivRemoveAttachment.setOnClickListener(v -> {
+                selectedFileUri = null;
+                selectedFileType = null;
+                selectedFileName = null;
+                previewLayout.setVisibility(View.GONE);
+            });
+        }
+    }
+    
+    private String formatFileSize(long size) {
+        if (size < 1024) {
+            return size + " B";
+        } else if (size < 1024 * 1024) {
+            return String.format(Locale.getDefault(), "%.1f KB", size / 1024.0);
+        } else {
+            return String.format(Locale.getDefault(), "%.1f MB", size / (1024.0 * 1024.0));
+        }
+    }
 }
 
 // Clase para representar un mensaje de chat del administrador
@@ -434,11 +889,30 @@ class AdminChatMessage {
     public String message;
     public boolean isFromClient; // true = cliente, false = administrador
     public String timestamp;
+    public boolean hasAttachment;
+    public String attachmentUrl;
+    public String attachmentType; // "IMAGE" o "PDF"
+    public String attachmentName;
+    public Long attachmentSize;
 
     public AdminChatMessage(String message, boolean isFromClient, String timestamp) {
         this.message = message;
         this.isFromClient = isFromClient;
         this.timestamp = timestamp;
+        this.hasAttachment = false;
+    }
+    
+    public AdminChatMessage(String message, boolean isFromClient, String timestamp, 
+                           boolean hasAttachment, String attachmentUrl, String attachmentType,
+                           String attachmentName, Long attachmentSize) {
+        this.message = message;
+        this.isFromClient = isFromClient;
+        this.timestamp = timestamp;
+        this.hasAttachment = hasAttachment;
+        this.attachmentUrl = attachmentUrl;
+        this.attachmentType = attachmentType;
+        this.attachmentName = attachmentName;
+        this.attachmentSize = attachmentSize;
     }
 }
 
@@ -474,7 +948,58 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
             holder.layoutIncoming.setVisibility(View.VISIBLE);
             holder.layoutOutgoing.setVisibility(View.GONE);
 
-            holder.tvIncomingMessage.setText(message.message);
+            // Manejar adjuntos
+            if (message.hasAttachment && message.attachmentType != null) {
+                if (message.attachmentType.equals("IMAGE")) {
+                    // Mostrar imagen
+                    if (holder.ivCompanyMessageImage != null) {
+                        holder.ivCompanyMessageImage.setVisibility(View.VISIBLE);
+                        Glide.with(holder.itemView.getContext())
+                                .load(message.attachmentUrl)
+                                .centerCrop()
+                                .into(holder.ivCompanyMessageImage);
+                    }
+                    if (holder.layoutCompanyPdf != null) {
+                        holder.layoutCompanyPdf.setVisibility(View.GONE);
+                    }
+                } else if (message.attachmentType.equals("PDF")) {
+                    // Mostrar PDF
+                    if (holder.ivCompanyMessageImage != null) {
+                        holder.ivCompanyMessageImage.setVisibility(View.GONE);
+                    }
+                    if (holder.layoutCompanyPdf != null) {
+                        holder.layoutCompanyPdf.setVisibility(View.VISIBLE);
+                        if (holder.tvCompanyPdfName != null) {
+                            holder.tvCompanyPdfName.setText(message.attachmentName != null ? message.attachmentName : "documento.pdf");
+                        }
+                        if (holder.tvCompanyPdfSize != null && message.attachmentSize != null) {
+                            holder.tvCompanyPdfSize.setText(formatFileSize(message.attachmentSize));
+                        }
+                    }
+                }
+                // Ocultar texto si no hay mensaje de texto
+                if (holder.tvIncomingMessage != null) {
+                    if (message.message != null && !message.message.isEmpty()) {
+                        holder.tvIncomingMessage.setVisibility(View.VISIBLE);
+                        holder.tvIncomingMessage.setText(message.message);
+                    } else {
+                        holder.tvIncomingMessage.setVisibility(View.GONE);
+                    }
+                }
+            } else {
+                // Sin adjunto, mostrar solo texto
+                if (holder.ivCompanyMessageImage != null) {
+                    holder.ivCompanyMessageImage.setVisibility(View.GONE);
+                }
+                if (holder.layoutCompanyPdf != null) {
+                    holder.layoutCompanyPdf.setVisibility(View.GONE);
+                }
+                if (holder.tvIncomingMessage != null) {
+                    holder.tvIncomingMessage.setVisibility(View.VISIBLE);
+                    holder.tvIncomingMessage.setText(message.message);
+                }
+            }
+            
             if (holder.tvIncomingTime != null) {
                 holder.tvIncomingTime.setText(message.timestamp);
             }
@@ -488,8 +1013,58 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
             holder.layoutIncoming.setVisibility(View.GONE);
             holder.layoutOutgoing.setVisibility(View.VISIBLE);
 
-            holder.tvOutgoingMessage.setText(message.message);
-            // Establecer el tiempo del mensaje
+            // Manejar adjuntos
+            if (message.hasAttachment && message.attachmentType != null) {
+                if (message.attachmentType.equals("IMAGE")) {
+                    // Mostrar imagen
+                    if (holder.ivUserMessageImage != null) {
+                        holder.ivUserMessageImage.setVisibility(View.VISIBLE);
+                        Glide.with(holder.itemView.getContext())
+                                .load(message.attachmentUrl)
+                                .centerCrop()
+                                .into(holder.ivUserMessageImage);
+                    }
+                    if (holder.layoutUserPdf != null) {
+                        holder.layoutUserPdf.setVisibility(View.GONE);
+                    }
+                } else if (message.attachmentType.equals("PDF")) {
+                    // Mostrar PDF
+                    if (holder.ivUserMessageImage != null) {
+                        holder.ivUserMessageImage.setVisibility(View.GONE);
+                    }
+                    if (holder.layoutUserPdf != null) {
+                        holder.layoutUserPdf.setVisibility(View.VISIBLE);
+                        if (holder.tvUserPdfName != null) {
+                            holder.tvUserPdfName.setText(message.attachmentName != null ? message.attachmentName : "documento.pdf");
+                        }
+                        if (holder.tvUserPdfSize != null && message.attachmentSize != null) {
+                            holder.tvUserPdfSize.setText(formatFileSize(message.attachmentSize));
+                        }
+                    }
+                }
+                // Ocultar texto si no hay mensaje de texto
+                if (holder.tvOutgoingMessage != null) {
+                    if (message.message != null && !message.message.isEmpty()) {
+                        holder.tvOutgoingMessage.setVisibility(View.VISIBLE);
+                        holder.tvOutgoingMessage.setText(message.message);
+                    } else {
+                        holder.tvOutgoingMessage.setVisibility(View.GONE);
+                    }
+                }
+            } else {
+                // Sin adjunto, mostrar solo texto
+                if (holder.ivUserMessageImage != null) {
+                    holder.ivUserMessageImage.setVisibility(View.GONE);
+                }
+                if (holder.layoutUserPdf != null) {
+                    holder.layoutUserPdf.setVisibility(View.GONE);
+                }
+                if (holder.tvOutgoingMessage != null) {
+                    holder.tvOutgoingMessage.setVisibility(View.VISIBLE);
+                    holder.tvOutgoingMessage.setText(message.message);
+                }
+            }
+            
             if (holder.tvOutgoingTime != null) {
                 holder.tvOutgoingTime.setText(message.timestamp);
             }
@@ -507,25 +1082,41 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
         TextView tvOutgoingMessage, tvOutgoingTime;
         TextView tvSystemMessage;
         ImageView ivCompanyAvatar;
+        // Adjuntos para mensajes entrantes (cliente)
+        ImageView ivCompanyMessageImage;
+        LinearLayout layoutCompanyPdf;
+        TextView tvCompanyPdfName, tvCompanyPdfSize;
+        // Adjuntos para mensajes salientes (admin)
+        ImageView ivUserMessageImage;
+        LinearLayout layoutUserPdf;
+        TextView tvUserPdfName, tvUserPdfSize;
 
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
 
             layoutIncoming = itemView.findViewById(R.id.layout_company_message);
             layoutOutgoing = itemView.findViewById(R.id.layout_user_message);
-            // No hay layout_system_message en el layout actual
             layoutSystem = null;
 
             tvIncomingMessage = itemView.findViewById(R.id.tv_company_message);
-            // ID correcto para el tiempo de mensaje de la empresa
             tvIncomingTime = itemView.findViewById(R.id.tv_company_message_time);
             ivCompanyAvatar = itemView.findViewById(R.id.iv_company_avatar);
+            
+            // Adjuntos entrantes
+            ivCompanyMessageImage = itemView.findViewById(R.id.iv_company_message_image);
+            layoutCompanyPdf = itemView.findViewById(R.id.layout_company_pdf);
+            tvCompanyPdfName = itemView.findViewById(R.id.tv_company_pdf_name);
+            tvCompanyPdfSize = itemView.findViewById(R.id.tv_company_pdf_size);
 
             tvOutgoingMessage = itemView.findViewById(R.id.tv_user_message);
-            // Campo de tiempo para mensaje de usuario (saliente)
             tvOutgoingTime = itemView.findViewById(R.id.tv_user_message_time);
+            
+            // Adjuntos salientes
+            ivUserMessageImage = itemView.findViewById(R.id.iv_user_message_image);
+            layoutUserPdf = itemView.findViewById(R.id.layout_user_pdf);
+            tvUserPdfName = itemView.findViewById(R.id.tv_user_pdf_name);
+            tvUserPdfSize = itemView.findViewById(R.id.tv_user_pdf_size);
 
-            // No hay tv_system_message en el layout actual
             tvSystemMessage = null;
         }
     }
@@ -572,5 +1163,15 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
                 }
             }
         });
+    }
+    
+    private String formatFileSize(long size) {
+        if (size < 1024) {
+            return size + " B";
+        } else if (size < 1024 * 1024) {
+            return String.format(Locale.getDefault(), "%.1f KB", size / 1024.0);
+        } else {
+            return String.format(Locale.getDefault(), "%.1f MB", size / (1024.0 * 1024.0));
+        }
     }
 }

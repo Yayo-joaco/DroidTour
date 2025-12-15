@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <!-- Header con título y botón cerrar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Archivo adjunto"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#2C2C2C" />
+
+            <ImageView
+                android:id="@+id/iv_remove_attachment"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_close"
+                android:tint="#757575"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="4dp"
+                android:clickable="true"
+                android:focusable="true" />
+        </LinearLayout>
+
+        <!-- Preview de imagen -->
+        <ImageView
+            android:id="@+id/iv_image_preview"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:scaleType="centerCrop"
+            android:background="#F5F5F5"
+            android:visibility="gone" />
+
+        <!-- Preview de PDF -->
+        <LinearLayout
+            android:id="@+id/layout_pdf_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:background="#F5F5F5"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_pdf"
+                android:tint="#E53935"
+                android:layout_marginEnd="12dp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_pdf_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="documento.pdf"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#2C2C2C"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/tv_pdf_size"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2.5 MB"
+                    android:textSize="12sp"
+                    android:textColor="#757575"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Indicador de progreso -->
+        <ProgressBar
+            android:id="@+id/progress_upload"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            style="?android:attr/progressBarStyleHorizontal" />
+
+        <TextView
+            android:id="@+id/tv_upload_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Subiendo... 0%"
+            android:textSize="12sp"
+            android:textColor="#757575"
+            android:gravity="center"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
+

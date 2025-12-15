@@ -41,6 +41,7 @@ public class ChatManagerRealtime {
     public interface SendCallback {
         void onSuccess(String messageId);
         void onFailure(Exception e);
+        default void onUploadProgress(int progress) {} // Método opcional para progreso de subida
     }
     
     public interface MessagesListener {
@@ -139,10 +140,29 @@ public class ChatManagerRealtime {
         messageData.put("senderType", message.getSenderType());
         messageData.put("receiverId", message.getReceiverId());
         messageData.put("receiverName", message.getReceiverName());
-        messageData.put("messageText", message.getMessageText());
+        messageData.put("messageText", message.getMessageText() != null ? message.getMessageText() : "");
         messageData.put("status", "SENT");
         messageData.put("timestamp", ServerValue.TIMESTAMP);
         messageData.put("isRead", false);
+        
+        // Agregar campos de archivos adjuntos si existen
+        if (message.hasAttachment()) {
+            messageData.put("hasAttachment", true);
+            if (message.getAttachmentUrl() != null) {
+                messageData.put("attachmentUrl", message.getAttachmentUrl());
+            }
+            if (message.getAttachmentType() != null) {
+                messageData.put("attachmentType", message.getAttachmentType());
+            }
+            if (message.getAttachmentName() != null) {
+                messageData.put("attachmentName", message.getAttachmentName());
+            }
+            if (message.getAttachmentSize() != null) {
+                messageData.put("attachmentSize", message.getAttachmentSize());
+            }
+        } else {
+            messageData.put("hasAttachment", false);
+        }
         
         // Guardar mensaje
         messagesRef.setValue(messageData)
@@ -371,9 +391,26 @@ public class ChatManagerRealtime {
         DatabaseReference conversationRef = conversationsRef.child(conversationId);
         
         Map<String, Object> updates = new HashMap<>();
-        updates.put("lastMessage", message.getMessageText());
+        // Si el mensaje tiene adjunto, mostrar texto especial
+        String lastMessageText = message.getMessageText();
+        if (message.hasAttachment()) {
+            if (message.getAttachmentType() != null) {
+                if (message.getAttachmentType().equals("IMAGE")) {
+                    lastMessageText = "Imagen";
+                } else if (message.getAttachmentType().equals("PDF")) {
+                    lastMessageText = "Archivo";
+                }
+            } else {
+                lastMessageText = "Archivo";
+            }
+        }
+        updates.put("lastMessage", lastMessageText != null ? lastMessageText : "");
         updates.put("lastMessageTimestamp", ServerValue.TIMESTAMP);
         updates.put("lastMessageSenderId", message.getSenderId());
+        updates.put("lastMessageHasAttachment", message.hasAttachment());
+        if (message.hasAttachment() && message.getAttachmentType() != null) {
+            updates.put("lastMessageAttachmentType", message.getAttachmentType());
+        }
         updates.put("updatedAt", ServerValue.TIMESTAMP);
         
         // Incrementar contador de no leídos del receptor
@@ -458,6 +495,21 @@ public class ChatManagerRealtime {
             String status = snapshot.child("status").getValue(String.class);
             Boolean isRead = snapshot.child("isRead").getValue(Boolean.class);
             message.setIsRead(isRead != null && isRead);
+            
+            // Archivos adjuntos
+            Boolean hasAttachment = snapshot.child("hasAttachment").getValue(Boolean.class);
+            if (hasAttachment != null && hasAttachment) {
+                message.setHasAttachment(true);
+                message.setAttachmentUrl(snapshot.child("attachmentUrl").getValue(String.class));
+                message.setAttachmentType(snapshot.child("attachmentType").getValue(String.class));
+                message.setAttachmentName(snapshot.child("attachmentName").getValue(String.class));
+                Long attachmentSize = snapshot.child("attachmentSize").getValue(Long.class);
+                if (attachmentSize != null) {
+                    message.setAttachmentSize(attachmentSize);
+                }
+            } else {
+                message.setHasAttachment(false);
+            }
             
             return message;
         } catch (Exception e) {

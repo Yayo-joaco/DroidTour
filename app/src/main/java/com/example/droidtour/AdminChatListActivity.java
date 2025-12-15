@@ -103,7 +103,9 @@ public class AdminChatListActivity extends AppCompatActivity {
                 for (ConversationHelper.ConversationData conv : conversations) {
                     String clientId = conv.getClientId();
                     String clientName = conv.getClientName() != null ? conv.getClientName() : "Cliente";
-                    String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+                    
+                    // Formatear último mensaje con "Tú: " si es del usuario actual
+                    String lastMessage = formatLastMessage(conv, currentUserId);
                     
                     // Formatear timestamp
                     long timestamp = conv.getLastMessageTimestamp();
@@ -181,7 +183,9 @@ public class AdminChatListActivity extends AppCompatActivity {
                     for (ConversationHelper.ConversationData conv : conversations) {
                         String clientId = conv.getClientId();
                         String clientName = conv.getClientName() != null ? conv.getClientName() : "Cliente";
-                        String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+                        
+                        // Formatear último mensaje con "Tú: " si es del usuario actual
+                        String lastMessage = formatLastMessage(conv, currentUserId);
                         
                         long timestamp = conv.getLastMessageTimestamp();
                         String timeStr = "";
@@ -240,6 +244,30 @@ public class AdminChatListActivity extends AppCompatActivity {
         Intent intent = new Intent(this, com.example.droidtour.LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
+    }
+    
+    /**
+     * Formatea el último mensaje agregando "Tú: " si es del usuario actual
+     */
+    private String formatLastMessage(ConversationHelper.ConversationData conv, String currentUserId) {
+        String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
+        String lastSenderId = conv.getLastMessageSenderId();
+        
+        // Si el último mensaje es del usuario actual, agregar "Tú: "
+        if (lastSenderId != null && lastSenderId.equals(currentUserId)) {
+            if (conv.getLastMessageHasAttachment()) {
+                String attachmentType = conv.getLastMessageAttachmentType();
+                if (attachmentType != null && attachmentType.equals("IMAGE")) {
+                    return "Tú: Imagen";
+                } else {
+                    return "Tú: Archivo";
+                }
+            } else {
+                return "Tú: " + lastMessage;
+            }
+        }
+        
+        return lastMessage;
     }
 }
 

@@ -19,6 +19,13 @@ public class Message {
     private boolean isRead;
     private String conversationId; // Para agrupar mensajes
     private String companyId;
+    
+    // Campos para archivos adjuntos
+    private boolean hasAttachment;
+    private String attachmentUrl;
+    private String attachmentType; // "IMAGE" o "PDF"
+    private String attachmentName;
+    private Long attachmentSize; // Tamaño en bytes
 
     public Message() {}
 
@@ -49,6 +56,11 @@ public class Message {
         map.put("timestamp", timestamp);
         map.put("isRead", isRead);
         map.put("conversationId", conversationId);
+        map.put("hasAttachment", hasAttachment);
+        if (attachmentUrl != null) map.put("attachmentUrl", attachmentUrl);
+        if (attachmentType != null) map.put("attachmentType", attachmentType);
+        if (attachmentName != null) map.put("attachmentName", attachmentName);
+        if (attachmentSize != null) map.put("attachmentSize", attachmentSize);
         return map;
     }
 
@@ -65,6 +77,13 @@ public class Message {
     public boolean getIsRead() { return isRead; }
     public String getConversationId() { return conversationId; }
     public String getCompanyId() { return companyId; }
+    
+    // Getters para archivos adjuntos
+    public boolean hasAttachment() { return hasAttachment; }
+    public String getAttachmentUrl() { return attachmentUrl; }
+    public String getAttachmentType() { return attachmentType; }
+    public String getAttachmentName() { return attachmentName; }
+    public Long getAttachmentSize() { return attachmentSize; }
     
     // Alias getters
     public String getContent() { 
@@ -91,4 +110,11 @@ public class Message {
     public void setCompanyId(String companyId) { this.companyId = companyId; }
     public void setContent(String content) { this.content = content; this.messageText = content; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; this.timestamp = createdAt; }
+    
+    // Setters para archivos adjuntos
+    public void setHasAttachment(boolean hasAttachment) { this.hasAttachment = hasAttachment; }
+    public void setAttachmentUrl(String attachmentUrl) { this.attachmentUrl = attachmentUrl; }
+    public void setAttachmentType(String attachmentType) { this.attachmentType = attachmentType; }
+    public void setAttachmentName(String attachmentName) { this.attachmentName = attachmentName; }
+    public void setAttachmentSize(Long attachmentSize) { this.attachmentSize = attachmentSize; }
 }

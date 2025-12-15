@@ -4,5 +4,9 @@
     <external-path name="downloads" path="Download/DroidTour" />
     <!-- Ruta para archivos en almacenamiento externo -->
     <external-path name="external" path="." />
+    <!-- Ruta para archivos de imágenes de la app -->
+    <external-files-path name="images" path="Pictures" />
+    <!-- Ruta para archivos de la app -->
+    <external-files-path name="files" path="." />
 </paths>
 

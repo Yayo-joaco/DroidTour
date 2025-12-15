@@ -38,6 +38,9 @@ public class ConversationHelper {
         String getCompanyName();
         String getLastMessage();
         long getLastMessageTimestamp();
+        String getLastMessageSenderId();
+        boolean getLastMessageHasAttachment();
+        String getLastMessageAttachmentType();
         int getUnreadCountClient();
         int getUnreadCountAdmin();
     }
@@ -271,6 +274,22 @@ public class ConversationHelper {
             public long getLastMessageTimestamp() {
                 Long timestamp = snapshot.child("lastMessageTimestamp").getValue(Long.class);
                 return timestamp != null ? timestamp : 0;
+            }
+            
+            @Override
+            public String getLastMessageSenderId() {
+                return snapshot.child("lastMessageSenderId").getValue(String.class);
+            }
+            
+            @Override
+            public boolean getLastMessageHasAttachment() {
+                Boolean hasAttachment = snapshot.child("lastMessageHasAttachment").getValue(Boolean.class);
+                return hasAttachment != null && hasAttachment;
+            }
+            
+            @Override
+            public String getLastMessageAttachmentType() {
+                return snapshot.child("lastMessageAttachmentType").getValue(String.class);
             }
             
             @Override

@@ -29,6 +29,10 @@ public class FirebaseStorageManager {
     private static final String FOLDER_COMPANY_COVERS = "company_covers";
     private static final String FOLDER_SERVICE_IMAGES = "service_images";
     private static final String FOLDER_DOCUMENTS = "documents";
+    private static final String FOLDER_CHAT_ATTACHMENTS = "chat_attachments";
+    
+    // Tamaño máximo de archivo adjunto (10 MB)
+    private static final long MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 
     private FirebaseStorageManager() {
         this.storage = FirebaseStorage.getInstance();
@@ -312,6 +316,78 @@ public class FirebaseStorageManager {
 
     public interface MultipleUploadCallback {
         void onComplete(java.util.List<String> downloadUrls);
+    }
+
+    // ==================== SUBIR ARCHIVOS ADJUNTOS DE CHAT ====================
+    
+    /**
+     * Subir archivo adjunto de chat (imagen o PDF)
+     * @param conversationId ID de la conversación
+     * @param messageId ID del mensaje (se genera si es null)
+     * @param fileUri URI del archivo local
+     * @param fileType Tipo de archivo: "IMAGE" o "PDF"
+     * @param fileName Nombre original del archivo
+     * @param callback Callback con la URL de descarga
+     */
+    public void uploadChatAttachment(String conversationId, String messageId, Uri fileUri, 
+                                     String fileType, String fileName, StorageCallback callback) {
+        if (conversationId == null || conversationId.isEmpty()) {
+            callback.onFailure(new Exception("Conversation ID is required"));
+            return;
+        }
+        
+        if (fileUri == null) {
+            callback.onFailure(new Exception("File URI is required"));
+            return;
+        }
+        
+        if (fileType == null || (!fileType.equals("IMAGE") && !fileType.equals("PDF"))) {
+            callback.onFailure(new Exception("File type must be IMAGE or PDF"));
+            return;
+        }
+        
+        // Generar messageId si no se proporciona
+        String finalMessageId = messageId != null ? messageId : UUID.randomUUID().toString();
+        
+        // Generar nombre único para el archivo
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String extension = "";
+        if (fileName != null && fileName.contains(".")) {
+            extension = fileName.substring(fileName.lastIndexOf("."));
+        } else {
+            extension = fileType.equals("IMAGE") ? ".jpg" : ".pdf";
+        }
+        String uniqueFileName = timestamp + "_" + (fileName != null ? fileName.replaceAll("[^a-zA-Z0-9._-]", "_") : "file" + extension);
+        
+        // Construir ruta: chat_attachments/{conversationId}/{messageId}/{filename}
+        StorageReference attachmentRef = storageRef
+                .child(FOLDER_CHAT_ATTACHMENTS)
+                .child(conversationId)
+                .child(finalMessageId)
+                .child(uniqueFileName);
+        
+        // Subir archivo
+        UploadTask uploadTask = attachmentRef.putFile(fileUri);
+        
+        uploadTask.addOnProgressListener(taskSnapshot -> {
+            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+            callback.onProgress((int) progress);
+        })
+        .addOnSuccessListener(taskSnapshot -> {
+            // Obtener URL de descarga
+            attachmentRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                String downloadUrl = uri.toString();
+                Log.d(TAG, "Chat attachment uploaded: " + downloadUrl);
+                callback.onSuccess(downloadUrl);
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Error getting download URL", e);
+                callback.onFailure(e);
+            });
+        })
+        .addOnFailureListener(e -> {
+            Log.e(TAG, "Error uploading chat attachment", e);
+            callback.onFailure(e);
+        });
     }
 
     // ==================== SUBIR DOCUMENTOS ====================

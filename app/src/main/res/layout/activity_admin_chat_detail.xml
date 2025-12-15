@@ -84,6 +84,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- ================= ATTACHMENT PREVIEW ================= -->
+    <include
+        android:id="@+id/layout_attachment_preview"
+        layout="@layout/layout_attachment_preview"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/layout_message_input"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- ================= MESSAGE INPUT ================= -->
     <LinearLayout
         android:id="@+id/layout_message_input"

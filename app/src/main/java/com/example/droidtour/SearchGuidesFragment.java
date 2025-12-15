@@ -28,7 +28,9 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
@@ -52,6 +54,22 @@ public class SearchGuidesFragment extends Fragment {
     private Set<String> selectedLanguages = new HashSet<>();
     private float minRating = 0.0f;
     private boolean sortByRatingDesc = true; // true = mayor a menor, false = menor a mayor
+    
+    // Mapeo de nombres completos a códigos ISO de idiomas
+    private static final Map<String, String> LANGUAGE_CODES = new HashMap<String, String>() {{
+        put("Español", "es");
+        put("Inglés", "en");
+        put("Portugués", "pt");
+        put("Francés", "fr");
+        put("Quechua", "qu");
+        put("Alemán", "de");
+        put("Italiano", "it");
+        put("Chino", "zh");
+        put("Japonés", "ja");
+        put("Coreano", "ko");
+        put("Ruso", "ru");
+        put("Árabe", "ar");
+    }};
     
     private FirestoreManager firestoreManager;
     private PreferencesManager prefsManager;
@@ -354,7 +372,10 @@ public class SearchGuidesFragment extends Fragment {
     
     private boolean hasActiveTour(String guideId) {
         for (TourOffer offer : activeOffers) {
-            if (guideId.equals(offer.getGuideId()) && "ACEPTADA".equals(offer.getStatus())) {
+            // Excluir guías con ofertas PENDIENTES o ACEPTADAS
+            if (guideId.equals(offer.getGuideId()) && 
+                ("PENDIENTE".equals(offer.getStatus()) || "ACEPTADA".equals(offer.getStatus()))) {
+                Log.d(TAG, "❌ Guía " + guideId + " tiene oferta " + offer.getStatus() + " - EXCLUIDO");
                 return true;
             }
         }
@@ -441,24 +462,41 @@ public class SearchGuidesFragment extends Fragment {
             return false;
         }
         
-        // Verificar si el guía habla AL MENOS UNO de los idiomas seleccionados
+        // Verificar si el guía habla TODOS los idiomas seleccionados (AND, no OR)
         for (String selectedLang : selectedLangs) {
+            // Convertir nombre completo a código ISO
+            String selectedCode = LANGUAGE_CODES.get(selectedLang);
+            if (selectedCode == null) {
+                selectedCode = selectedLang; // Si no está en el mapa, usar tal cual
+            }
+            
+            boolean foundThisLanguage = false;
+            
             for (String guideLang : guideLanguages) {
-                // Comparación ignorando mayúsculas y espacios
-                String selectedClean = selectedLang.trim().toLowerCase();
+                // Comparación flexible: código ISO o nombre completo
+                String selectedClean = selectedCode.trim().toLowerCase();
                 String guideClean = guideLang.trim().toLowerCase();
                 
+                // Verificar si coincide el código o el nombre
                 if (guideClean.equals(selectedClean) || 
                     guideClean.contains(selectedClean) || 
                     selectedClean.contains(guideClean)) {
-                    Log.d(TAG, "✅ Idioma coincidente: Guía habla '" + guideLang + "', buscado: '" + selectedLang + "'");
-                    return true; // Encontró al menos un idioma en común
+                    foundThisLanguage = true;
+                    Log.d(TAG, "✅ Idioma encontrado: Guía habla '" + guideLang + "', buscado: '" + selectedLang + "' (código: " + selectedCode + ")");
+                    break;
                 }
+            }
+            
+            // Si no encontró este idioma específico, el guía no cumple el filtro
+            if (!foundThisLanguage) {
+                Log.d(TAG, "❌ Guía NO habla '" + selectedLang + "'. Idiomas del guía: " + guideLanguages);
+                return false;
             }
         }
         
-        Log.d(TAG, "❌ Sin idiomas coincidentes. Guía: " + guideLanguages + ", Buscados: " + selectedLangs);
-        return false;
+        // Si llegó aquí, el guía habla TODOS los idiomas seleccionados
+        Log.d(TAG, "✅ Guía habla TODOS los idiomas requeridos. Guía: " + guideLanguages + ", Requeridos: " + selectedLangs);
+        return true;
     }
     
     private void showProposalDialog(GuideWithUser guideWithUser) {
@@ -471,7 +509,7 @@ public class SearchGuidesFragment extends Fragment {
         RecyclerView rvTours = dialog.findViewById(R.id.recycler_tours);
         TextInputEditText etPaymentAmount = dialog.findViewById(R.id.et_payment);
         TextInputEditText etNotes = dialog.findViewById(R.id.et_notes);
-        MaterialButton btnSend = dialog.findViewById(R.id.btn_send_proposal);
+        MaterialButton btnSend = dialog.findViewById(R.id.btn_send);
         MaterialButton btnCancel = dialog.findViewById(R.id.btn_cancel);
         
         String guideName = guideWithUser.user.getPersonalData() != null ? 
@@ -500,6 +538,21 @@ public class SearchGuidesFragment extends Fragment {
                 return;
             }
             
+            // Validar que el guía hable TODOS los idiomas requeridos por el tour
+            if (!guideHasRequiredLanguages(guideWithUser.guide, selectedTour)) {
+                String tourLanguages = selectedTour.getLanguages() != null ? 
+                    String.join(", ", selectedTour.getLanguages()) : "ninguno";
+                String guideLanguages = guideWithUser.guide.getLanguages() != null ? 
+                    String.join(", ", guideWithUser.guide.getLanguages()) : "ninguno";
+                
+                Toast.makeText(getContext(), 
+                    "❌ El guía no habla todos los idiomas requeridos.\n" +
+                    "Tour requiere: " + tourLanguages + "\n" +
+                    "Guía habla: " + guideLanguages, 
+                    Toast.LENGTH_LONG).show();
+                return;
+            }
+            
             try {
                 double paymentAmount = Double.parseDouble(paymentStr);
                 sendProposal(guideWithUser, selectedTour, paymentAmount, notes);
@@ -510,6 +563,47 @@ public class SearchGuidesFragment extends Fragment {
         });
         
         dialog.show();
+    }
+    
+    /**
+     * Verifica si el guía habla TODOS los idiomas requeridos por el tour
+     */
+    private boolean guideHasRequiredLanguages(Guide guide, Tour tour) {
+        // Si el tour no requiere idiomas específicos, permitir
+        if (tour.getLanguages() == null || tour.getLanguages().isEmpty()) {
+            return true;
+        }
+        
+        // Si el guía no tiene idiomas, rechazar
+        if (guide.getLanguages() == null || guide.getLanguages().isEmpty()) {
+            return false;
+        }
+        
+        // Verificar que el guía hable TODOS los idiomas del tour
+        for (String requiredLang : tour.getLanguages()) {
+            boolean hasThisLanguage = false;
+            
+            for (String guideLang : guide.getLanguages()) {
+                String requiredClean = requiredLang.trim().toLowerCase();
+                String guideClean = guideLang.trim().toLowerCase();
+                
+                if (guideClean.equals(requiredClean) || 
+                    guideClean.contains(requiredClean) || 
+                    requiredClean.contains(guideClean)) {
+                    hasThisLanguage = true;
+                    break;
+                }
+            }
+            
+            // Si el guía no habla este idioma requerido, fallar
+            if (!hasThisLanguage) {
+                Log.d(TAG, "❌ Guía no habla el idioma requerido: " + requiredLang);
+                return false;
+            }
+        }
+        
+        Log.d(TAG, "✅ Guía habla todos los idiomas requeridos por el tour");
+        return true;
     }
     
     private void sendProposal(GuideWithUser guideWithUser, Tour tour, double paymentAmount, String notes) {
@@ -530,6 +624,12 @@ public class SearchGuidesFragment extends Fragment {
             tour.getMaxGroupSize()
         );
         offer.setAdditionalNotes(notes);
+        
+        Log.d(TAG, "📤 Creando propuesta:");
+        Log.d(TAG, "  - CompanyId: " + currentCompanyId);
+        Log.d(TAG, "  - GuideId: " + guideWithUser.guide.getGuideId());
+        Log.d(TAG, "  - TourId: " + tour.getTourId());
+        Log.d(TAG, "  - AgencyId (getter): " + offer.getAgencyId());
         
         firestoreManager.createTourOffer(offer, new FirestoreManager.FirestoreCallback() {
             @Override
@@ -634,6 +734,17 @@ public class SearchGuidesFragment extends Fragment {
                     listener.onGuideClick(gwu);
                 }
             });
+            
+            // Click listener for info button
+            holder.btnShowDetails.setOnClickListener(v -> {
+                String guideId = gwu.guide.getGuideId();
+                if (guideId != null && !guideId.isEmpty() && holder.itemView.getContext() instanceof androidx.fragment.app.FragmentActivity) {
+                    com.example.droidtour.ui.GuideDetailsBottomSheet sheet = 
+                        com.example.droidtour.ui.GuideDetailsBottomSheet.newInstance(guideId);
+                    sheet.show(((androidx.fragment.app.FragmentActivity) holder.itemView.getContext())
+                        .getSupportFragmentManager(), "guide_details");
+                }
+            });
         }
         
         @Override
@@ -645,6 +756,7 @@ public class SearchGuidesFragment extends Fragment {
             TextView tvGuideName, tvLanguages, tvRating;
             ImageView ivGuidePhoto;
             MaterialButton btnSendProposal;
+            View btnShowDetails;
             
             ViewHolder(View view) {
                 super(view);
@@ -653,6 +765,7 @@ public class SearchGuidesFragment extends Fragment {
                 tvRating = view.findViewById(R.id.tv_rating);
                 ivGuidePhoto = view.findViewById(R.id.img_guide);
                 btnSendProposal = view.findViewById(R.id.btn_send_proposal);
+                btnShowDetails = view.findViewById(R.id.btn_show_guide_details);
             }
         }
     }
@@ -683,9 +796,27 @@ public class SearchGuidesFragment extends Fragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Tour tour = tours.get(position);
             holder.tvTourName.setText(tour.getTourName());
-            holder.tvTourDate.setText(tour.getTourDate() + " - " + tour.getStartTime());
+            holder.tvTourDate.setText(tour.getTourDate() != null ? tour.getTourDate() : "");
+            holder.tvTourTime.setText(tour.getStartTime() != null ? tour.getStartTime() : "");
+            holder.tvTourDuration.setText(tour.getDuration() != null ? tour.getDuration() : "");
             
-            holder.itemView.setSelected(position == selectedPosition);
+            boolean isSelected = position == selectedPosition;
+            holder.itemView.setSelected(isSelected);
+            holder.ivCheck.setVisibility(isSelected ? View.VISIBLE : View.GONE);
+            
+            // Cambiar el color del borde si está seleccionado
+            if (isSelected) {
+                ((com.google.android.material.card.MaterialCardView) holder.itemView)
+                    .setStrokeColor(holder.itemView.getContext().getColor(R.color.primary));
+                ((com.google.android.material.card.MaterialCardView) holder.itemView)
+                    .setStrokeWidth(4);
+            } else {
+                ((com.google.android.material.card.MaterialCardView) holder.itemView)
+                    .setStrokeColor(holder.itemView.getContext().getColor(R.color.divider));
+                ((com.google.android.material.card.MaterialCardView) holder.itemView)
+                    .setStrokeWidth(2);
+            }
+            
             holder.itemView.setOnClickListener(v -> {
                 int oldPosition = selectedPosition;
                 selectedPosition = holder.getAdapterPosition();
@@ -700,12 +831,16 @@ public class SearchGuidesFragment extends Fragment {
         }
         
         static class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvTourName, tvTourDate;
+            TextView tvTourName, tvTourDate, tvTourTime, tvTourDuration;
+            ImageView ivCheck;
             
             ViewHolder(View view) {
                 super(view);
                 tvTourName = view.findViewById(R.id.tv_tour_name);
                 tvTourDate = view.findViewById(R.id.tv_tour_date);
+                tvTourTime = view.findViewById(R.id.tv_tour_time);
+                tvTourDuration = view.findViewById(R.id.tv_tour_duration);
+                ivCheck = view.findViewById(R.id.iv_check);
             }
         }
     }

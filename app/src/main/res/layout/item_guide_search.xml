@@ -159,6 +159,16 @@
                 app:iconGravity="start"
                 style="@style/Widget.Material3.Button.ElevatedButton" />
 
+            <ImageButton
+                android:id="@+id/btn_show_guide_details"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_info"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="@color/primary"
+                android:contentDescription="Ver detalles del guía" />
+
         </LinearLayout>
 
     </LinearLayout>

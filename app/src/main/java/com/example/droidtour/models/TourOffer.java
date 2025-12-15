@@ -38,6 +38,7 @@ public class TourOffer {
         this.guideId = guideId;
         this.guideName = guideName;
         this.companyId = companyId;
+        this.agencyId = companyId;  // Sincronizar agencyId con companyId
         this.companyName = companyName;
         this.tourId = tourId;
         this.tourName = tourName;

@@ -66,13 +66,13 @@ public class AdminTourAdapter extends RecyclerView.Adapter<AdminTourAdapter.View
             holder.chipPlaces.setText(stops + (stops == 1 ? " parada" : " paradas"));
         }
         
-        // Estado (Activo/Sin Guía)
-        boolean isActive = tour.getActive() != null && tour.getActive();
-        holder.chipStatus.setText(isActive ? "Activo" : "Sin Guía");
+        // Estado (Activo/Sin Guía) - basado en si tiene guía asignado
+        boolean hasGuide = tour.getAssignedGuideId() != null && !tour.getAssignedGuideId().isEmpty();
+        holder.chipStatus.setText(hasGuide ? "Activo" : "Sin Guía");
         holder.chipStatus.setChipBackgroundColor(holder.itemView.getContext().getResources()
-                .getColorStateList(isActive ? R.color.chip_green_bg : R.color.chip_orange_bg));
+                .getColorStateList(hasGuide ? R.color.chip_green_bg : R.color.chip_orange_bg));
         holder.chipStatus.setTextColor(holder.itemView.getContext().getResources()
-                .getColor(isActive ? R.color.success : R.color.warning));
+                .getColor(hasGuide ? R.color.success : R.color.warning));
         
         // Imagen principal (primera imagen del tour)
         if (tour.getMainImageUrl() != null && !tour.getMainImageUrl().isEmpty()) {

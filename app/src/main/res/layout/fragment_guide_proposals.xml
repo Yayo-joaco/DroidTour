@@ -64,6 +64,13 @@
                     android:text="Rechazadas"
                     style="@style/Widget.Material3.Chip.Filter" />
 
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_cancelled"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Canceladas"
+                    style="@style/Widget.Material3.Chip.Filter" />
+
             </com.google.android.material.chip.ChipGroup>
 
         </LinearLayout>

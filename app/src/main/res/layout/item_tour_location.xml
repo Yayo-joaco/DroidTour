@@ -4,9 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="1dp"
+    android:layout_marginVertical="4dp"
+    android:layout_marginHorizontal="2dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
     app:strokeColor="#E0E0E0"
     app:strokeWidth="1dp">
 
@@ -14,7 +15,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <!-- Handle para arrastrar -->
+        <ImageView
+            android:id="@+id/iv_drag_handle"
+            android:layout_width="24dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_drag_handle"
+            app:tint="#9E9E9E"
+            android:contentDescription="Arrastrar para reordenar"
+            android:layout_marginEnd="8dp" />
 
         <!-- Número de orden -->
         <TextView
@@ -36,62 +48,78 @@
             android:layout_marginStart="12dp"
             android:orientation="vertical">
 
+            <!-- Nombre de la ubicación -->
             <TextView
                 android:id="@+id/tv_location_name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Machu Picchu"
-                android:textSize="16sp"
+                android:text="Nombre de la parada"
+                android:textSize="15sp"
                 android:textStyle="bold"
-                android:textColor="#2C2C2C" />
+                android:textColor="#2C2C2C"
+                android:maxLines="1"
+                android:ellipsize="end" />
 
-            <TextView
-                android:id="@+id/tv_location_address"
+            <!-- Hora -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Aguas Calientes, Cusco"
-                android:textSize="13sp"
-                android:textColor="#757575"
-                android:layout_marginTop="2dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
 
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_time"
+                    app:tint="#4CAF50"
+                    android:layout_marginEnd="4dp" />
+
+                <TextView
+                    android:id="@+id/tv_location_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sin hora asignada"
+                    android:textSize="13sp"
+                    android:textColor="#4CAF50" />
+
+            </LinearLayout>
+
+            <!-- Descripción -->
             <TextView
-                android:id="@+id/tv_location_duration"
+                android:id="@+id/tv_location_description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="2 horas"
+                android:text="Sin descripción"
                 android:textSize="12sp"
-                android:textColor="#9E9E9E"
-                android:layout_marginTop="2dp" />
+                android:textColor="#757575"
+                android:layout_marginTop="2dp"
+                android:maxLines="2"
+                android:ellipsize="end" />
 
         </LinearLayout>
 
-        <!-- Botones de acción -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+        <!-- Botón editar -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_edit_location"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:icon="@drawable/ic_edit"
+            app:iconTint="@color/primary"
+            app:iconSize="20dp"
+            android:contentDescription="Editar parada" />
 
-            <!-- Botón editar -->
-            <ImageButton
-                android:id="@+id/btn_edit_location"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_edit"
-                app:tint="@color/primary"
-                android:contentDescription="Editar ubicación" />
-
-            <!-- Botón eliminar -->
-            <ImageButton
-                android:id="@+id/btn_delete_location"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_trash_form"
-                app:tint="#F44336"
-                android:contentDescription="Eliminar ubicación" />
-
-        </LinearLayout>
+        <!-- Botón eliminar -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_delete_location"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            app:icon="@drawable/ic_delete"
+            app:iconTint="#F44336"
+            app:iconSize="20dp"
+            android:contentDescription="Eliminar parada" />
 
     </LinearLayout>
 

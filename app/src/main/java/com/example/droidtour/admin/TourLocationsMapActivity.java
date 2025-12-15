@@ -1,12 +1,17 @@
 package com.example.droidtour.admin;
 
 import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -36,6 +41,11 @@ public class TourLocationsMapActivity extends AppCompatActivity
     private final ArrayList<TourLocation> locations = new ArrayList<>();
     private TourLocationsAdapter adapter;
     private BottomSheetBehavior<View> bottomSheetBehavior;
+    
+    // Modo de punto único (para punto de encuentro)
+    private boolean singleLocationMode = false;
+    private String customTitle = "Ubicaciones del Tour";
+    private TourLocation singleSelectedLocation = null;
 
     private final List<Marker> markers = new ArrayList<>();
     private Polyline routePolyline;
@@ -59,6 +69,14 @@ public class TourLocationsMapActivity extends AppCompatActivity
         setContentView(R.layout.activity_tour_locations_map);
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
+        // Verificar si es modo de punto único
+        Intent intent = getIntent();
+        if (intent != null) {
+            singleLocationMode = intent.getBooleanExtra("singleLocationMode", false);
+            customTitle = intent.getStringExtra("title");
+            if (customTitle == null) customTitle = "Ubicaciones del Tour";
+        }
+
         setupToolbar();
         setupPeekView();
         setupBottomSheet();
@@ -76,7 +94,16 @@ public class TourLocationsMapActivity extends AppCompatActivity
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(customTitle);
         }
+        
+        // Actualizar subtitle dependiendo del modo
+        if (singleLocationMode) {
+            toolbar.setSubtitle("Toca el mapa para agregar el punto");
+        } else {
+            toolbar.setSubtitle("Toca el mapa para agregar paradas");
+        }
+        
         toolbar.setNavigationOnClickListener(v -> finish());
     }
 
@@ -86,6 +113,14 @@ public class TourLocationsMapActivity extends AppCompatActivity
         tvPeekSummary = findViewById(R.id.tv_peek_summary);
         ivExpandIndicator = findViewById(R.id.iv_expand_indicator);
 
+        // Ocultar peek view en modo de selección única (punto de encuentro)
+        if (singleLocationMode) {
+            if (peekViewContainer != null) {
+                peekViewContainer.setVisibility(View.GONE);
+            }
+            return;
+        }
+
         // Click en el peek para abrir el bottom sheet modal
         peekViewContainer.setOnClickListener(v -> openBottomSheet());
 
@@ -94,6 +129,15 @@ public class TourLocationsMapActivity extends AppCompatActivity
 
     private void setupBottomSheet() {
         bottomSheetModal = findViewById(R.id.bottom_sheet_modal);
+        
+        // Ocultar bottom sheet en modo de selección única (punto de encuentro)
+        if (singleLocationMode) {
+            if (bottomSheetModal != null) {
+                bottomSheetModal.setVisibility(View.GONE);
+            }
+            return;
+        }
+        
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetModal);
 
         // Configurar como modal (oculto por defecto)
@@ -217,6 +261,7 @@ public class TourLocationsMapActivity extends AppCompatActivity
                 // Bottom sheet oculto - peek visible
                 bottomSheetModal.setVisibility(View.GONE);
                 if (peekViewContainer != null) {
+                    peekViewContainer.setVisibility(View.VISIBLE);
                     peekViewContainer.setAlpha(1f);
                 }
                 if (ivExpandIndicator != null) {
@@ -225,8 +270,11 @@ public class TourLocationsMapActivity extends AppCompatActivity
                 break;
 
             case BottomSheetBehavior.STATE_EXPANDED:
-                // Bottom sheet expandido
+                // Bottom sheet expandido - ocultar peek view
                 bottomSheetModal.setVisibility(View.VISIBLE);
+                if (peekViewContainer != null) {
+                    peekViewContainer.setVisibility(View.GONE);
+                }
                 if (ivExpandIndicator != null) {
                     ivExpandIndicator.setRotation(180);
                 }
@@ -252,36 +300,45 @@ public class TourLocationsMapActivity extends AppCompatActivity
         LatLng initialPosition = new LatLng(-12.0464, -77.0428);
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(initialPosition, 12));
 
-        // Listener para agregar ubicaciones
-        map.setOnMapClickListener(this::addNewLocation);
+        if (singleLocationMode) {
+            // Modo de selección única para punto de encuentro
+            map.setOnMapClickListener(this::selectSingleLocation);
+        } else {
+            // Modo normal para múltiples ubicaciones
+            map.setOnMapClickListener(this::addNewLocation);
 
-        // Listener para clicks en marcadores
-        map.setOnMarkerClickListener(marker -> {
-            for (int i = 0; i < markers.size(); i++) {
-                if (markers.get(i).equals(marker)) {
-                    onMarkerSelected(i);
-                    return true;
+            // Listener para clicks en marcadores
+            map.setOnMarkerClickListener(marker -> {
+                for (int i = 0; i < markers.size(); i++) {
+                    if (markers.get(i).equals(marker)) {
+                        onMarkerSelected(i);
+                        return true;
+                    }
                 }
-            }
-            return false;
-        });
+                return false;
+            });
+        }
     }
 
     private void addNewLocation(LatLng latLng) {
+        // Crear ubicación temporal con nombre genérico primero
+        final int position = locations.size();
+        String tempName = "Parada " + (position + 1);
+        
         TourLocation location = new TourLocation(
                 latLng.latitude,
                 latLng.longitude,
-                "Parada " + (locations.size() + 1),
-                locations.size() + 1
+                tempName,
+                position + 1
         );
 
         locations.add(location);
         adapter.notifyItemInserted(locations.size() - 1);
 
-        // Agregar marcador
+        // Agregar marcador temporal
         Marker marker = googleMap.addMarker(new MarkerOptions()
                 .position(latLng)
-                .title(location.name)
+                .title(tempName)
                 .snippet("Orden: " + location.order));
 
         if (marker != null) {
@@ -292,6 +349,23 @@ public class TourLocationsMapActivity extends AppCompatActivity
         updatePeekInfo();
         updateBottomSheetInfo();
         updateEmptyState();
+
+        // Obtener nombre del lugar en segundo plano
+        new Thread(() -> {
+            String locationName = getAddressFromLatLng(latLng);
+            
+            // Actualizar en el hilo principal
+            runOnUiThread(() -> {
+                if (position < locations.size() && position < markers.size()) {
+                    // Actualizar el nombre solo si se obtuvo uno válido
+                    if (!locationName.equals("Ubicación seleccionada")) {
+                        locations.get(position).name = locationName;
+                        markers.get(position).setTitle(locationName);
+                        adapter.notifyItemChanged(position);
+                    }
+                }
+            });
+        }).start();
 
         // Si es la primera parada, abrir el bottom sheet automáticamente
         if (locations.size() == 1) {
@@ -367,10 +441,11 @@ public class TourLocationsMapActivity extends AppCompatActivity
     private void updateLocationsOrder() {
         for (int i = 0; i < locations.size(); i++) {
             locations.get(i).order = i + 1;
-            locations.get(i).name = "Parada " + (i + 1);
+            // NO resetear el nombre - mantener el nombre original del lugar
 
             if (i < markers.size()) {
-                markers.get(i).setTitle("Parada " + (i + 1));
+                // Actualizar el marcador con el nombre original de la ubicación
+                markers.get(i).setTitle(locations.get(i).name);
                 markers.get(i).setSnippet("Orden: " + (i + 1));
             }
         }
@@ -381,7 +456,7 @@ public class TourLocationsMapActivity extends AppCompatActivity
     }
 
     private void updatePeekInfo() {
-        if (tvPeekSummary == null) return;
+        if (tvPeekSummary == null || singleLocationMode) return;
 
         int count = locations.size();
 
@@ -501,6 +576,129 @@ public class TourLocationsMapActivity extends AppCompatActivity
         if (locations.isEmpty()) {
             closeBottomSheet();
         }
+    }
+
+    private void selectSingleLocation(LatLng latLng) {
+        // Limpiar marcador anterior si existe
+        for (Marker marker : markers) {
+            marker.remove();
+        }
+        markers.clear();
+
+        // Obtener el nombre del lugar usando Geocoder
+        String locationName = getAddressFromLatLng(latLng);
+
+        // Crear la ubicación
+        singleSelectedLocation = new TourLocation(
+                latLng.latitude,
+                latLng.longitude,
+                locationName,
+                1
+        );
+
+        // Agregar nuevo marcador
+        Marker marker = googleMap.addMarker(new MarkerOptions()
+                .position(latLng)
+                .title(locationName));
+
+        if (marker != null) {
+            markers.add(marker);
+        }
+
+        // Mostrar diálogo de confirmación
+        new AlertDialog.Builder(this)
+                .setTitle("Punto de Encuentro Seleccionado")
+                .setMessage("📍 " + locationName + "\n\nLat: " + String.format("%.6f", latLng.latitude) 
+                        + "\nLng: " + String.format("%.6f", latLng.longitude))
+                .setPositiveButton("Confirmar", (dialog, which) -> returnSingleLocationResult())
+                .setNegativeButton("Cambiar", null)
+                .show();
+    }
+
+    private String getAddressFromLatLng(LatLng latLng) {
+        try {
+            Geocoder geocoder = new Geocoder(this);
+            
+            // Verificar si el servicio está disponible
+            if (!Geocoder.isPresent()) {
+                Log.w("TourLocationsMap", "Geocoder no disponible");
+                return "Ubicación seleccionada";
+            }
+            
+            // Agregar timeout implícito usando múltiples intentos
+            List<Address> addresses = null;
+            for (int attempt = 0; attempt < 2; attempt++) {
+                try {
+                    addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        break;
+                    }
+                } catch (Exception e) {
+                    Log.w("TourLocationsMap", "Intento " + (attempt + 1) + " falló", e);
+                    if (attempt == 0) {
+                        // Pequeña pausa antes del segundo intento
+                        try { Thread.sleep(500); } catch (InterruptedException ie) {}
+                    }
+                }
+            }
+            
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                // Construir nombre legible con prioridad
+                StringBuilder sb = new StringBuilder();
+                
+                // Prioridad 1: Nombre de lugar (Feature)
+                if (address.getFeatureName() != null && !address.getFeatureName().matches("\\d+")) {
+                    sb.append(address.getFeatureName());
+                }
+                
+                // Prioridad 2: Calle (Thoroughfare)
+                if (address.getThoroughfare() != null) {
+                    if (sb.length() > 0) sb.append(", ");
+                    sb.append(address.getThoroughfare());
+                }
+                
+                // Prioridad 3: Localidad/Ciudad
+                if (address.getLocality() != null) {
+                    if (sb.length() > 0) sb.append(", ");
+                    sb.append(address.getLocality());
+                }
+                
+                // Si aún está vacío, usar subLocalidad o AdminArea
+                if (sb.length() == 0) {
+                    if (address.getSubLocality() != null) {
+                        sb.append(address.getSubLocality());
+                    } else if (address.getAdminArea() != null) {
+                        sb.append(address.getAdminArea());
+                    }
+                }
+                
+                String result = sb.toString().trim();
+                if (result.endsWith(",")) {
+                    result = result.substring(0, result.length() - 1).trim();
+                }
+                
+                Log.d("TourLocationsMap", "Dirección obtenida: " + result);
+                return result.isEmpty() ? "Ubicación seleccionada" : result;
+            }
+        } catch (Exception e) {
+            Log.e("TourLocationsMap", "Error obteniendo dirección", e);
+        }
+        return "Ubicación seleccionada";
+    }
+
+    private void returnSingleLocationResult() {
+        if (singleSelectedLocation == null) {
+            Toast.makeText(this, "Por favor selecciona un punto de encuentro", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent data = new Intent();
+        data.putExtra("meetingPointName", singleSelectedLocation.name);
+        data.putExtra("meetingPointLat", singleSelectedLocation.lat);
+        data.putExtra("meetingPointLng", singleSelectedLocation.lng);
+        setResult(RESULT_OK, data);
+        finish();
     }
 
     private void returnResult() {

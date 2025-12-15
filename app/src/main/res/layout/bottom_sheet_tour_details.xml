@@ -526,8 +526,8 @@
                         tools:text="Plaza de Armas de Cusco" />
 
                     <include layout="@layout/item_info_row"
-                        android:id="@+id/row_departure_time"
-                        tools:text="06:00 AM" />
+                        android:id="@+id/row_meeting_time"
+                        tools:text="08:30" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

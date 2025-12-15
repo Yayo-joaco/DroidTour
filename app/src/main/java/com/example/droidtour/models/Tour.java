@@ -27,9 +27,17 @@ public class Tour {
     private List<String> includedServices; // ["Transporte", "Guía", "Almuerzo"]
     private List<String> includedServiceIds; // IDs de servicios de la empresa
     private String meetingPoint;
-    private String departureTime;
+    private Double meetingPointLatitude;
+    private Double meetingPointLongitude;
+    private String meetingTime; // Hora de encuentro (puede ser antes del inicio del tour)
     private List<String> imageUrls;
     private String mainImageUrl;
+    
+    // Nuevos campos para la gestión de fechas y horarios
+    private String tourDate;      // Fecha del tour (ej: "15/12/2024")
+    private String startTime;     // Hora de inicio del tour (ej: "09:00")
+    private String endTime;       // Hora de fin del tour (ej: "17:00") - calculada
+    private Integer totalDuration; // Duración total en minutos (suma de todas las paradas)
     
     // Campos para el itinerario
     private List<ItineraryPoint> itinerary;
@@ -103,6 +111,9 @@ public class Tour {
         private double longitude;
         private String name;
         private int order;
+        private String time;        // Hora de llegada (ej: "09:00 AM")
+        private String description; // Descripción de la parada
+        private Integer stopDuration; // Duración en minutos de esta parada
 
         public TourStop() {}
 
@@ -111,6 +122,28 @@ public class Tour {
             this.longitude = longitude;
             this.name = name;
             this.order = order;
+            this.time = "";
+            this.description = "";
+        }
+
+        public TourStop(double latitude, double longitude, String name, int order, String time, String description) {
+            this.latitude = latitude;
+            this.longitude = longitude;
+            this.name = name;
+            this.order = order;
+            this.time = time;
+            this.description = description;
+            this.stopDuration = 0;
+        }
+        
+        public TourStop(double latitude, double longitude, String name, int order, String time, String description, Integer stopDuration) {
+            this.latitude = latitude;
+            this.longitude = longitude;
+            this.name = name;
+            this.order = order;
+            this.time = time;
+            this.description = description;
+            this.stopDuration = stopDuration;
         }
 
         // Getters y Setters
@@ -122,6 +155,12 @@ public class Tour {
         public void setName(String name) { this.name = name; }
         public int getOrder() { return order; }
         public void setOrder(int order) { this.order = order; }
+        public String getTime() { return time; }
+        public void setTime(String time) { this.time = time; }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public Integer getStopDuration() { return stopDuration; }
+        public void setStopDuration(Integer stopDuration) { this.stopDuration = stopDuration; }
     }
 
     // Convertir a Map para guardar en Firestore
@@ -139,10 +178,16 @@ public class Tour {
         map.put("includedServices", includedServices);
         map.put("includedServiceIds", includedServiceIds);
         map.put("meetingPoint", meetingPoint);
+        map.put("meetingPointLatitude", meetingPointLatitude);
+        map.put("meetingPointLongitude", meetingPointLongitude);
+        map.put("meetingTime", meetingTime);
         map.put("stops", stops);
-        map.put("departureTime", departureTime);
         map.put("imageUrls", imageUrls);
         map.put("mainImageUrl", mainImageUrl);
+        map.put("tourDate", tourDate);
+        map.put("startTime", startTime);
+        map.put("endTime", endTime);
+        map.put("totalDuration", totalDuration);
         map.put("itinerary", itinerary);
         map.put("averageRating", averageRating);
         map.put("totalReviews", totalReviews);
@@ -196,8 +241,14 @@ public class Tour {
     public String getMeetingPoint() { return meetingPoint; }
     public void setMeetingPoint(String meetingPoint) { this.meetingPoint = meetingPoint; }
 
-    public String getDepartureTime() { return departureTime; }
-    public void setDepartureTime(String departureTime) { this.departureTime = departureTime; }
+    public Double getMeetingPointLatitude() { return meetingPointLatitude; }
+    public void setMeetingPointLatitude(Double meetingPointLatitude) { this.meetingPointLatitude = meetingPointLatitude; }
+
+    public Double getMeetingPointLongitude() { return meetingPointLongitude; }
+    public void setMeetingPointLongitude(Double meetingPointLongitude) { this.meetingPointLongitude = meetingPointLongitude; }
+
+    public String getMeetingTime() { return meetingTime; }
+    public void setMeetingTime(String meetingTime) { this.meetingTime = meetingTime; }
 
     public List<String> getImageUrls() { return imageUrls; }
     public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
@@ -231,5 +282,17 @@ public class Tour {
 
     public Date getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getTourDate() { return tourDate; }
+    public void setTourDate(String tourDate) { this.tourDate = tourDate; }
+
+    public String getStartTime() { return startTime; }
+    public void setStartTime(String startTime) { this.startTime = startTime; }
+
+    public String getEndTime() { return endTime; }
+    public void setEndTime(String endTime) { this.endTime = endTime; }
+
+    public Integer getTotalDuration() { return totalDuration; }
+    public void setTotalDuration(Integer totalDuration) { this.totalDuration = totalDuration; }
 }
 

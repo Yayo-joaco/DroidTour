@@ -85,6 +85,35 @@
                 app:chipBackgroundColor="#E8F5E9"
                 android:textColor="#4CAF50"
                 app:chipStrokeWidth="0dp"/>
+            
+            <!-- Botones de acción -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginStart="8dp">
+                
+                <ImageButton
+                    android:id="@+id/btn_edit_tour"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_edit"
+                    android:contentDescription="Editar"
+                    app:tint="@color/primary"
+                    android:padding="6dp"/>
+                
+                <ImageButton
+                    android:id="@+id/btn_delete_tour"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_delete"
+                    android:contentDescription="Eliminar"
+                    app:tint="#F44336"
+                    android:padding="6dp"
+                    android:layout_marginStart="4dp"/>
+            </LinearLayout>
         </LinearLayout>
 
         <!-- DIVIDER -->
@@ -102,7 +131,7 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <!-- Guía asignado -->
+            <!-- Categoría/Departamento -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -123,7 +152,7 @@
                         android:layout_width="16dp"
                         android:layout_height="16dp"
                         android:layout_gravity="center"
-                        android:src="@drawable/ic_person"
+                        android:src="@drawable/ic_location"
                         android:tint="#2196F3" />
                 </FrameLayout>
 
@@ -132,7 +161,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="Carlos M."
+                    android:text="Cusco"
                     android:textSize="13sp"
                     android:textColor="#2196F3"
                     android:maxLines="1"

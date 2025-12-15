@@ -384,6 +384,8 @@
                             app:startIconTint="@color/primary"
                             app:boxStrokeColor="@color/primary"
                             app:hintTextColor="@color/primary"
+                            app:helperText="Calculada automáticamente"
+                            app:helperTextTextColor="#757575"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
@@ -393,16 +395,18 @@
                                 android:id="@+id/et_tour_duration"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:inputType="numberDecimal"
+                                android:inputType="none"
+                                android:focusable="false"
+                                android:enabled="false"
                                 android:textSize="16sp"
                                 android:textColor="#000000"
-                                tools:text="8" />
+                                tools:text="2.5" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Sección: Fechas y Disponibilidad -->
+            <!-- Sección: Fecha y Horario del Tour -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -437,7 +441,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Fechas y Disponibilidad"
+                            android:text="Fecha y Horario del Tour"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="#2C2C2C" />
@@ -450,23 +454,52 @@
                         android:layout_marginTop="8dp"
                         android:layout_marginBottom="16dp"/>
 
-                    <!-- Grid de fechas -->
+                    <!-- Fecha del Tour -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_tour_date"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Fecha del Tour"
+                        android:layout_marginBottom="16dp"
+                        app:startIconDrawable="@drawable/ic_calendar_form"
+                        app:startIconTint="@color/primary"
+                        app:boxStrokeColor="@color/primary"
+                        app:hintTextColor="@color/primary"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_tour_date"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none"
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:textSize="16sp"
+                            android:textColor="#000000"
+                            tools:text="15/12/2024" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <!-- Grid de Hora de Inicio y Hora de Fin -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
                         android:layout_marginBottom="16dp">
 
-                        <!-- Fecha inicio -->
+                        <!-- Hora de Inicio -->
                         <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/til_start_date"
+                            android:id="@+id/til_start_time"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Fecha de inicio"
+                            android:hint="Hora de Inicio"
                             android:layout_marginEnd="8dp"
-                            app:startIconDrawable="@drawable/ic_calendar_form"
+                            app:startIconDrawable="@drawable/ic_time"
                             app:startIconTint="@color/primary"
                             app:boxStrokeColor="@color/primary"
                             app:hintTextColor="@color/primary"
@@ -476,7 +509,7 @@
                             app:boxCornerRadiusBottomEnd="8dp">
 
                             <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_start_date"
+                                android:id="@+id/et_start_time"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="none"
@@ -484,37 +517,39 @@
                                 android:clickable="true"
                                 android:textSize="16sp"
                                 android:textColor="#000000"
-                                tools:text="01/12/2024" />
+                                tools:text="09:00" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- Fecha fin -->
+                        <!-- Hora de Fin (calculada) -->
                         <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/til_end_date"
+                            android:id="@+id/til_end_time"
                             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Fecha de fin"
+                            android:hint="Hora de Fin"
                             android:layout_marginStart="8dp"
-                            app:startIconDrawable="@drawable/ic_calendar_form"
+                            app:startIconDrawable="@drawable/ic_time"
                             app:startIconTint="@color/primary"
                             app:boxStrokeColor="@color/primary"
                             app:hintTextColor="@color/primary"
+                            app:helperText="Calculada automáticamente"
+                            app:helperTextTextColor="#757575"
                             app:boxCornerRadiusTopStart="8dp"
                             app:boxCornerRadiusTopEnd="8dp"
                             app:boxCornerRadiusBottomStart="8dp"
                             app:boxCornerRadiusBottomEnd="8dp">
 
                             <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/et_end_date"
+                                android:id="@+id/et_end_time"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="none"
                                 android:focusable="false"
-                                android:clickable="true"
+                                android:enabled="false"
                                 android:textSize="16sp"
                                 android:textColor="#000000"
-                                tools:text="31/12/2024" />
+                                tools:text="17:00" />
                         </com.google.android.material.textfield.TextInputLayout>
                     </LinearLayout>
 
@@ -763,56 +798,70 @@
                         android:layout_marginBottom="16dp"/>
 
                     <!-- Punto de encuentro -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/til_meeting_point"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Selecciona el punto de encuentro en el mapa"
+                        android:textColor="#757575"
+                        android:textSize="14sp"
+                        android:layout_marginBottom="12dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_select_meeting_point"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Seleccionar Punto de Encuentro"
+                        android:textSize="15sp"
+                        app:icon="@drawable/ic_location"
+                        app:iconTint="@color/primary"
+                        app:iconSize="20dp"
+                        app:iconGravity="textStart"
+                        app:strokeColor="@color/primary"
+                        android:textColor="@color/primary"
+                        app:cornerRadius="8dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/tv_meeting_point_selected"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Punto de Encuentro"
+                        android:text="No seleccionado"
+                        android:textColor="#9E9E9E"
+                        android:textSize="14sp"
                         android:layout_marginBottom="16dp"
-                        app:startIconDrawable="@drawable/ic_location"
-                        app:startIconTint="@color/primary"
-                        app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary"
-                        app:boxCornerRadiusTopStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusBottomEnd="8dp">
+                        android:drawableStart="@drawable/ic_location"
+                        android:drawablePadding="8dp"
+                        android:drawableTint="#9E9E9E"
+                        tools:text="📍 Plaza de Armas, Cusco" />
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_meeting_point"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="text"
-                            android:textSize="16sp"
-                            android:textColor="#000000"
-                            tools:text="Plaza de Armas de Cusco" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Hora de salida -->
+                    <!-- Hora de encuentro (puede ser antes del inicio del tour) -->
                     <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/til_departure_time"
+                        android:id="@+id/til_meeting_time"
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Hora de Salida"
+                        android:hint="Hora de Encuentro"
                         app:startIconDrawable="@drawable/ic_time"
                         app:startIconTint="@color/primary"
                         app:boxStrokeColor="@color/primary"
                         app:hintTextColor="@color/primary"
+                        app:helperText="Hora en que los clientes deben llegar"
+                        app:helperTextTextColor="#757575"
                         app:boxCornerRadiusTopStart="8dp"
                         app:boxCornerRadiusTopEnd="8dp"
                         app:boxCornerRadiusBottomStart="8dp"
                         app:boxCornerRadiusBottomEnd="8dp">
 
                         <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_departure_time"
+                            android:id="@+id/et_meeting_time"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="text"
+                            android:inputType="none"
+                            android:focusable="false"
                             android:textSize="16sp"
                             android:textColor="#000000"
-                            tools:text="06:00 AM" />
+                            tools:text="08:30" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -875,7 +924,7 @@
                             android:id="@+id/cb_spanish"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Español"
+                            android:text="🇪🇸 Español"
                             android:textSize="15sp"
                             android:textColor="#2C2C2C"
                             android:paddingVertical="8dp"
@@ -886,17 +935,7 @@
                             android:id="@+id/cb_english"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Inglés"
-                            android:textSize="15sp"
-                            android:textColor="#2C2C2C"
-                            android:paddingVertical="8dp"
-                            app:buttonTint="@color/primary" />
-
-                        <com.google.android.material.checkbox.MaterialCheckBox
-                            android:id="@+id/cb_french"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Francés"
+                            android:text="🇺🇸 Inglés"
                             android:textSize="15sp"
                             android:textColor="#2C2C2C"
                             android:paddingVertical="8dp"
@@ -906,7 +945,97 @@
                             android:id="@+id/cb_portuguese"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Portugués"
+                            android:text="🇧🇷 Portugués"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_french"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇫🇷 Francés"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_quechua"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇵🇪 Quechua"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_german"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇩🇪 Alemán"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_italian"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇮🇹 Italiano"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_chinese"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇨🇳 Chino"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_japanese"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇯🇵 Japonés"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_korean"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇰🇷 Coreano"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_russian"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇷🇺 Ruso"
+                            android:textSize="15sp"
+                            android:textColor="#2C2C2C"
+                            android:paddingVertical="8dp"
+                            app:buttonTint="@color/primary" />
+
+                        <com.google.android.material.checkbox.MaterialCheckBox
+                            android:id="@+id/cb_arabic"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="🇸🇦 Árabe"
                             android:textSize="15sp"
                             android:textColor="#2C2C2C"
                             android:paddingVertical="8dp"

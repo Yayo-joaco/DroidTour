@@ -966,6 +966,30 @@ public class FirestoreManager {
     }
 
     /**
+     * Obtener un tour por id con callback específico para Tour
+     */
+    public void getTourById(String tourId, TourCallback callback) {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure("tourId is required");
+            return;
+        }
+
+        db.collection(COLLECTION_TOURS)
+                .document(tourId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        callback.onSuccess(null);
+                        return;
+                    }
+                    Tour t = doc.toObject(Tour.class);
+                    if (t != null && t.getTourId() == null) t.setTourId(doc.getId());
+                    callback.onSuccess(t);
+                })
+                .addOnFailureListener(e -> callback.onFailure(e.getMessage()));
+    }
+
+    /**
      * Verificar si un usuario ya tiene una reserva confirmada para un tour
      */
     public void hasConfirmedReservation(String userId, String tourId, FirestoreCallback callback) {
@@ -1629,5 +1653,10 @@ public class FirestoreManager {
     public interface FirestoreCallback {
         void onSuccess(Object result);
         void onFailure(Exception e);
+    }
+
+    public interface TourCallback {
+        void onSuccess(Tour tour);
+        void onFailure(String error);
     }
 }

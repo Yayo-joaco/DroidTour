@@ -142,7 +142,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
 
         // Gestión de Tours
         cardCreateTour.setOnClickListener(v -> {
-            Intent intent = new Intent(TourAdminMainActivity.this, CreateTourActivity.class);
+            Intent intent = new Intent(TourAdminMainActivity.this, TourManagementActivity.class);
             startActivity(intent);
         });
 

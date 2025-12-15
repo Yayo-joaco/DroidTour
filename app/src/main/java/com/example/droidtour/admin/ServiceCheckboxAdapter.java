@@ -18,6 +18,7 @@ public class ServiceCheckboxAdapter extends RecyclerView.Adapter<ServiceCheckbox
 
     private final List<Service> services;
     private final OnServiceCheckedListener listener;
+    private List<String> selectedServiceIds;
 
     public interface OnServiceCheckedListener {
         void onServiceChecked(String serviceId, String serviceName, boolean isChecked);
@@ -26,6 +27,12 @@ public class ServiceCheckboxAdapter extends RecyclerView.Adapter<ServiceCheckbox
     public ServiceCheckboxAdapter(List<Service> services, OnServiceCheckedListener listener) {
         this.services = services;
         this.listener = listener;
+        this.selectedServiceIds = new java.util.ArrayList<>();
+    }
+
+    public void setSelectedServices(List<String> serviceIds) {
+        this.selectedServiceIds = serviceIds != null ? new java.util.ArrayList<>(serviceIds) : new java.util.ArrayList<>();
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -51,9 +58,12 @@ public class ServiceCheckboxAdapter extends RecyclerView.Adapter<ServiceCheckbox
             holder.tvServicePrice.setVisibility(View.GONE);
         }
         
+        // Verificar si este servicio está seleccionado
+        boolean isSelected = selectedServiceIds.contains(service.getServiceId());
+        
         // Listener para el checkbox
         holder.cbService.setOnCheckedChangeListener(null); // Evitar triggers no deseados
-        holder.cbService.setChecked(false);
+        holder.cbService.setChecked(isSelected);
         holder.cbService.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (listener != null) {
                 listener.onServiceChecked(service.getServiceId(), service.getName(), isChecked);

@@ -51,4 +51,8 @@
     
     <!-- Color rojo oscuro para botón eliminar -->
     <color name="red_dark">#C62828</color>
+    
+    <!-- Colores para chips de estado de tours -->
+    <color name="chip_green_bg">#E8F5E9</color>
+    <color name="chip_orange_bg">#FFF3E0</color>
 </resources>

@@ -38,11 +38,21 @@ import java.util.Set;
 public class SearchGuidesFragment extends Fragment {
     
     private static final String TAG = "SearchGuidesFragment";
-    private TextInputEditText etSearchGuide;
     private ChipGroup chipGroupLanguages;
     private RecyclerView rvAvailableGuides;
     private View layoutEmptyGuides;
+    private TextView tvGuidesCount;
+    private TextView tvRatingValue;
+    private com.google.android.material.slider.Slider sliderRating;
+    private MaterialButton btnSort;
+    private MaterialButton btnClearLanguages;
+    private MaterialButton btnToggleFilters;
+    private com.google.android.material.card.MaterialCardView cardFilters;
+    
     private Set<String> selectedLanguages = new HashSet<>();
+    private float minRating = 0.0f;
+    private boolean sortByRatingDesc = true; // true = mayor a menor, false = menor a mayor
+    
     private FirestoreManager firestoreManager;
     private PreferencesManager prefsManager;
     private String currentCompanyId;
@@ -51,6 +61,7 @@ public class SearchGuidesFragment extends Fragment {
     private List<GuideWithUser> filteredGuides = new ArrayList<>();
     private List<Tour> companyTours = new ArrayList<>();
     private List<TourOffer> activeOffers = new ArrayList<>();
+    private Set<String> guidesWithTours = new HashSet<>(); // IDs de guías que ya tienen tours asignados
     private GuidesAdapter adapter;
 
     @Override
@@ -69,26 +80,57 @@ public class SearchGuidesFragment extends Fragment {
     }
     
     private void initializeViews(View view) {
-        etSearchGuide = view.findViewById(R.id.et_search);
         chipGroupLanguages = view.findViewById(R.id.chip_group_languages);
         rvAvailableGuides = view.findViewById(R.id.recycler_guides);
         layoutEmptyGuides = view.findViewById(R.id.layout_empty);
+        tvGuidesCount = view.findViewById(R.id.tv_guides_count);
+        tvRatingValue = view.findViewById(R.id.tv_rating_value);
+        sliderRating = view.findViewById(R.id.slider_rating);
+        btnSort = view.findViewById(R.id.btn_sort);
+        btnClearLanguages = view.findViewById(R.id.btn_clear_languages);
+        btnToggleFilters = view.findViewById(R.id.btn_toggle_filters);
+        cardFilters = view.findViewById(R.id.card_filters);
         
-        // Búsqueda en tiempo real
-        if (etSearchGuide != null) {
-            etSearchGuide.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    filterGuides();
+        // Configurar slider de rating
+        sliderRating.addOnChangeListener((slider, value, fromUser) -> {
+            minRating = value;
+            tvRatingValue.setText(String.format("%.1f ⭐", value));
+            filterGuides();
+        });
+        
+        // Configurar botón de ordenar
+        btnSort.setOnClickListener(v -> {
+            sortByRatingDesc = !sortByRatingDesc;
+            btnSort.setText(sortByRatingDesc ? "Mayor Rating" : "Menor Rating");
+            btnSort.setIconResource(sortByRatingDesc ? R.drawable.ic_arrow_down : R.drawable.ic_arrow_up);
+            filterGuides();
+        });
+        
+        // Configurar botón limpiar idiomas
+        btnClearLanguages.setOnClickListener(v -> {
+            selectedLanguages.clear();
+            // Desmarcar todos los chips
+            for (int i = 0; i < chipGroupLanguages.getChildCount(); i++) {
+                View child = chipGroupLanguages.getChildAt(i);
+                if (child instanceof Chip) {
+                    ((Chip) child).setChecked(false);
                 }
-                
-                @Override
-                public void afterTextChanged(Editable s) {}
-            });
-        }
+            }
+            filterGuides();
+        });
+        
+        // Configurar botón de colapsar/expandir filtros
+        btnToggleFilters.setOnClickListener(v -> {
+            if (cardFilters.getVisibility() == View.VISIBLE) {
+                // Colapsar filtros
+                cardFilters.setVisibility(View.GONE);
+                btnToggleFilters.setIconResource(R.drawable.ic_expand_more);
+            } else {
+                // Expandir filtros
+                cardFilters.setVisibility(View.VISIBLE);
+                btnToggleFilters.setIconResource(R.drawable.ic_expand_less);
+            }
+        });
     }
     
     private void setupLanguageChips() {
@@ -132,9 +174,10 @@ public class SearchGuidesFragment extends Fragment {
                     currentCompanyId = user.getCompanyId();
                     currentCompanyName = user.getPersonalData() != null ? 
                         user.getPersonalData().getFullName() : "Empresa";
+                    // Primero cargar todos los tours para identificar guías ocupados
+                    loadAllToursToCheckGuides();
                     loadCompanyTours();
                     loadActiveOffers();
-                    loadAvailableGuides();
                 }
             }
             
@@ -145,17 +188,83 @@ public class SearchGuidesFragment extends Fragment {
         });
     }
     
+    private void loadAllToursToCheckGuides() {
+        Log.d(TAG, "Cargando todos los tours para identificar guías ocupados...");
+        
+        // Cargar TODOS los tours de Firebase para ver qué guías están asignados
+        firestoreManager.getAllTours(new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Tour> allTours = (List<Tour>) result;
+                guidesWithTours.clear();
+                
+                // Obtener fecha actual para comparar
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+                String todayStr = sdf.format(new java.util.Date());
+                
+                // Extraer IDs de guías que tienen tours ACTIVOS (no completados)
+                for (Tour tour : allTours) {
+                    if (tour.getAssignedGuideId() != null && !tour.getAssignedGuideId().isEmpty()) {
+                        // Verificar si el tour ya fue completado (fecha pasada)
+                        boolean tourCompletado = isTourCompleted(tour.getTourDate(), todayStr);
+                        
+                        if (!tourCompletado) {
+                            // Solo agregar guías con tours ACTIVOS (no completados)
+                            guidesWithTours.add(tour.getAssignedGuideId());
+                            Log.d(TAG, "Guía ocupado: " + tour.getAssignedGuideId() + " en tour: " + tour.getTourName() + " (Fecha: " + tour.getTourDate() + ")");
+                        } else {
+                            Log.d(TAG, "✅ Tour COMPLETADO: " + tour.getTourName() + " (Fecha: " + tour.getTourDate() + ") - Guía " + tour.getAssignedGuideId() + " disponible");
+                        }
+                    }
+                }
+                
+                Log.d(TAG, "Total de guías con tours ACTIVOS: " + guidesWithTours.size());
+                
+                // Ahora que tenemos la lista de guías ocupados, cargar los guías disponibles
+                loadAvailableGuides();
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando todos los tours", e);
+                // Aunque falle, intentar cargar guías
+                loadAvailableGuides();
+            }
+        });
+    }
+    
+    /**
+     * Verifica si un tour ya fue completado comparando su fecha con la fecha actual
+     */
+    private boolean isTourCompleted(String tourDate, String todayStr) {
+        if (tourDate == null || tourDate.isEmpty()) {
+            return false; // Si no tiene fecha, considerarlo como activo por precaución
+        }
+        
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            java.util.Date tourDateParsed = sdf.parse(tourDate);
+            java.util.Date today = sdf.parse(todayStr);
+            
+            // Tour completado si la fecha es anterior a hoy
+            return tourDateParsed.before(today);
+        } catch (Exception e) {
+            Log.e(TAG, "Error parseando fecha del tour: " + tourDate, e);
+            return false; // En caso de error, considerarlo activo por precaución
+        }
+    }
+    
     private void loadCompanyTours() {
         firestoreManager.getAllToursByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 companyTours = (List<Tour>) result;
-                Log.d(TAG, "Tours cargados: " + companyTours.size());
+                Log.d(TAG, "Tours de la compañía cargados: " + companyTours.size());
             }
             
             @Override
             public void onFailure(Exception e) {
-                Log.e(TAG, "Error cargando tours", e);
+                Log.e(TAG, "Error cargando tours de la compañía", e);
             }
         });
     }
@@ -182,27 +291,62 @@ public class SearchGuidesFragment extends Fragment {
     }
     
     private void loadAvailableGuides() {
+        Log.d(TAG, "Iniciando carga de guías disponibles...");
+        
         // Cargar todos los guías aprobados
         firestoreManager.getAllGuides(new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 List<Guide> allGuides = (List<Guide>) result;
+                Log.d(TAG, "Total de guías en Firebase: " + allGuides.size());
+                
                 availableGuides.clear();
+                int approvedCount = 0;
+                int activeUserCount = 0;
+                int availableCount = 0;
+                int busyCount = 0;
                 
                 // Cargar info de usuario para cada guía
                 for (Guide guide : allGuides) {
+                    // Filtro 1: Debe estar aprobado
                     if (guide.getApproved() != null && guide.getApproved()) {
-                        // Verificar si el guía ya tiene un tour activo
-                        if (!hasActiveTour(guide.getGuideId())) {
-                            loadGuideUserInfo(guide);
+                        approvedCount++;
+                        
+                        // Filtro 2: No debe tener tour asignado (verificar en guidesWithTours)
+                        if (guidesWithTours.contains(guide.getGuideId())) {
+                            busyCount++;
+                            Log.d(TAG, "❌ Guía " + guide.getGuideId() + " tiene tour asignado - EXCLUIDO");
+                            continue;
                         }
+                        
+                        // Filtro 3: Verificar que no tenga ofertas aceptadas pendientes
+                        if (hasActiveTour(guide.getGuideId())) {
+                            Log.d(TAG, "❌ Guía " + guide.getGuideId() + " tiene oferta aceptada - EXCLUIDO");
+                            continue;
+                        }
+                        
+                        // Si pasa todos los filtros, cargar info del usuario
+                        availableCount++;
+                        loadGuideUserInfo(guide);
                     }
+                }
+                
+                Log.d(TAG, "📊 Resumen:");
+                Log.d(TAG, "  - Guías aprobados: " + approvedCount);
+                Log.d(TAG, "  - Guías con tours asignados: " + busyCount);
+                Log.d(TAG, "  - Guías disponibles: " + availableCount);
+                
+                // Si no hay guías después de procesar, mostrar empty state
+                if (availableCount == 0) {
+                    showEmptyState(true);
+                    updateGuidesCount();
                 }
             }
             
             @Override
             public void onFailure(Exception e) {
                 Log.e(TAG, "Error cargando guías", e);
+                Toast.makeText(requireContext(), "Error al cargar guías: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 showEmptyState(true);
             }
         });
@@ -223,49 +367,97 @@ public class SearchGuidesFragment extends Fragment {
             public void onSuccess(Object result) {
                 User user = (User) result;
                 if (user != null) {
+                    // Filtro final: Verificar que el usuario esté activo
+                    if (user.getStatus() == null || !"active".equals(user.getStatus())) {
+                        Log.d(TAG, "❌ Usuario " + guide.getGuideId() + " está inactivo (status: " + user.getStatus() + ") - EXCLUIDO");
+                        return;
+                    }
+                    
+                    String userName = user.getPersonalData() != null ? 
+                        user.getPersonalData().getFullName() : "Sin nombre";
+                    Log.d(TAG, "✅ Guía disponible: " + userName + " - Rating: " + guide.getRating());
+                    
                     GuideWithUser guideWithUser = new GuideWithUser(guide, user);
                     availableGuides.add(guideWithUser);
                     filterGuides();
+                } else {
+                    Log.w(TAG, "❌ Usuario null para guía: " + guide.getGuideId());
                 }
             }
             
             @Override
             public void onFailure(Exception e) {
-                Log.e(TAG, "Error cargando info de guía", e);
+                Log.e(TAG, "Error cargando info de guía " + guide.getGuideId(), e);
             }
         });
     }
     
     private void filterGuides() {
-        String searchText = etSearchGuide != null ? etSearchGuide.getText().toString().toLowerCase().trim() : "";
         filteredGuides.clear();
         
         for (GuideWithUser gwu : availableGuides) {
-            boolean matchesSearch = searchText.isEmpty() || 
-                (gwu.user.getPersonalData() != null && 
-                 gwu.user.getPersonalData().getFullName().toLowerCase().contains(searchText));
+            // Filtro por rating
+            float guideRating = gwu.guide.getRating() != null ? gwu.guide.getRating() : 0.0f;
+            boolean matchesRating = guideRating >= minRating;
             
+            // Filtro por idioma
             boolean matchesLanguage = selectedLanguages.isEmpty() || 
                 (gwu.guide.getLanguages() != null && 
                  hasCommonLanguage(gwu.guide.getLanguages(), selectedLanguages));
             
-            if (matchesSearch && matchesLanguage) {
+            if (matchesRating && matchesLanguage) {
                 filteredGuides.add(gwu);
             }
         }
         
+        // Ordenar por rating
+        filteredGuides.sort((g1, g2) -> {
+            float rating1 = g1.guide.getRating() != null ? g1.guide.getRating() : 0.0f;
+            float rating2 = g2.guide.getRating() != null ? g2.guide.getRating() : 0.0f;
+            
+            if (sortByRatingDesc) {
+                return Float.compare(rating2, rating1); // Mayor a menor
+            } else {
+                return Float.compare(rating1, rating2); // Menor a mayor
+            }
+        });
+        
         adapter.updateData(filteredGuides);
+        updateGuidesCount();
         showEmptyState(filteredGuides.isEmpty());
     }
     
+    private void updateGuidesCount() {
+        int count = filteredGuides.size();
+        String text = count + (count == 1 ? " guía encontrado" : " guías encontrados");
+        if (tvGuidesCount != null) {
+            tvGuidesCount.setText(text);
+        }
+    }
+    
     private boolean hasCommonLanguage(List<String> guideLanguages, Set<String> selectedLangs) {
-        for (String lang : selectedLangs) {
-            for (String gLang : guideLanguages) {
-                if (gLang.equalsIgnoreCase(lang) || gLang.contains(lang) || lang.contains(gLang)) {
-                    return true;
+        // Si el guía no tiene idiomas, no cumple el filtro
+        if (guideLanguages == null || guideLanguages.isEmpty()) {
+            return false;
+        }
+        
+        // Verificar si el guía habla AL MENOS UNO de los idiomas seleccionados
+        for (String selectedLang : selectedLangs) {
+            for (String guideLang : guideLanguages) {
+                // Comparación ignorando mayúsculas y espacios
+                String selectedClean = selectedLang.trim().toLowerCase();
+                String guideClean = guideLang.trim().toLowerCase();
+                
+                if (guideClean.equals(selectedClean) || 
+                    guideClean.contains(selectedClean) || 
+                    selectedClean.contains(guideClean)) {
+                    Log.d(TAG, "✅ Idioma coincidente: Guía habla '" + guideLang + "', buscado: '" + selectedLang + "'");
+                    return true; // Encontró al menos un idioma en común
                 }
             }
         }
+        
+        Log.d(TAG, "❌ Sin idiomas coincidentes. Guía: " + guideLanguages + ", Buscados: " + selectedLangs);
         return false;
     }
     
@@ -413,6 +605,10 @@ public class SearchGuidesFragment extends Fragment {
                 gwu.user.getPersonalData().getFullName() : "Guía";
             holder.tvGuideName.setText(name);
             
+            // Rating
+            float rating = gwu.guide.getRating() != null ? gwu.guide.getRating() : 0.0f;
+            holder.tvRating.setText(String.format("%.1f", rating));
+            
             // Idiomas
             if (gwu.guide.getLanguages() != null && !gwu.guide.getLanguages().isEmpty()) {
                 holder.tvLanguages.setText(String.join(", ", gwu.guide.getLanguages()));
@@ -423,11 +619,14 @@ public class SearchGuidesFragment extends Fragment {
             // Foto
             String profileUrl = gwu.user.getPersonalData() != null ? 
                 gwu.user.getPersonalData().getProfileImageUrl() : null;
-            if (profileUrl != null) {
+            if (profileUrl != null && !profileUrl.isEmpty()) {
                 Glide.with(holder.itemView.getContext())
                     .load(profileUrl)
                     .placeholder(R.drawable.ic_person)
+                    .error(R.drawable.ic_person)
                     .into(holder.ivGuidePhoto);
+            } else {
+                holder.ivGuidePhoto.setImageResource(R.drawable.ic_person);
             }
             
             holder.btnSendProposal.setOnClickListener(v -> {
@@ -443,7 +642,7 @@ public class SearchGuidesFragment extends Fragment {
         }
         
         static class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvGuideName, tvLanguages;
+            TextView tvGuideName, tvLanguages, tvRating;
             ImageView ivGuidePhoto;
             MaterialButton btnSendProposal;
             
@@ -451,7 +650,8 @@ public class SearchGuidesFragment extends Fragment {
                 super(view);
                 tvGuideName = view.findViewById(R.id.tv_guide_name);
                 tvLanguages = view.findViewById(R.id.tv_languages);
-                ivGuidePhoto = view.findViewById(R.id.iv_guide_photo);
+                tvRating = view.findViewById(R.id.tv_rating);
+                ivGuidePhoto = view.findViewById(R.id.img_guide);
                 btnSendProposal = view.findViewById(R.id.btn_send_proposal);
             }
         }

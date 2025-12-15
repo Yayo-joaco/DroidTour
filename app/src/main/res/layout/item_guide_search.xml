@@ -4,64 +4,160 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    app:cardElevation="2dp"
-    app:cardCornerRadius="12dp">
+    app:cardElevation="3dp"
+    app:cardCornerRadius="16dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center_vertical">
+        android:orientation="vertical"
+        android:background="@android:color/white">
 
-        <!-- Foto del guía -->
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/img_guide"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_person"
-            app:shapeAppearanceOverlay="@style/CircleImageView" />
-
-        <!-- Información del guía -->
+        <!-- Header con gradiente sutil -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginStart="16dp">
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical"
+            android:background="@color/primary_light">
 
-            <TextView
-                android:id="@+id/tv_guide_name"
+        <!-- Foto del guía con badge de rating -->
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/img_guide"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_person"
+                app:strokeWidth="2dp"
+                app:strokeColor="@color/primary_light"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
+
+            <!-- Badge de rating -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nombre del Guía"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary" />
+                android:layout_gravity="bottom|center_horizontal"
+                app:cardElevation="3dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="-4dp">
 
-            <TextView
-                android:id="@+id/tv_languages"
-                android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp">
+
+                    <ImageView
+                        android:layout_width="12dp"
+                        android:layout_height="12dp"
+                        android:src="@drawable/ic_star"
+                        android:tint="@color/warning" />
+
+                    <TextView
+                        android:id="@+id/tv_rating"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="5.0"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginStart="2dp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </FrameLayout>
+
+            <!-- Información del guía -->
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Español, English"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary"
-                android:layout_marginTop="4dp"
-                android:maxLines="2"
-                android:ellipsize="end" />
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="16dp">
 
-            <!-- Botón hacer propuesta -->
+                <TextView
+                    android:id="@+id/tv_guide_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nombre del Guía"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Idiomas con icono -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
+
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_language"
+                        android:tint="@color/primary" />
+
+                    <TextView
+                        android:id="@+id/tv_languages"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Español, English"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginStart="6dp"
+                        android:maxLines="2"
+                        android:ellipsize="end" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider"
+            android:alpha="0.5" />
+
+        <!-- Botón hacer propuesta en sección separada -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center">
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_send_proposal"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
                 android:text="Hacer Propuesta"
-                android:textSize="12sp"
+                android:textSize="14sp"
+                android:textStyle="bold"
                 app:icon="@drawable/ic_send"
-                app:iconSize="16dp"
-                style="@style/Widget.Material3.Button"
-                android:layout_marginTop="8dp" />
+                app:iconSize="20dp"
+                app:iconGravity="start"
+                style="@style/Widget.Material3.Button.ElevatedButton" />
 
         </LinearLayout>
 

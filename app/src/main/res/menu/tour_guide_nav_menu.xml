@@ -39,13 +39,6 @@
         </menu>
     </item>
 
-    <item android:title="Desarrollo">
-        <menu>
-            <item
-                android:id="@+id/nav_init_test_data"
-                android:icon="@android:drawable/ic_menu_upload"
-                android:title="Inicializar Datos de Prueba" />
-        </menu>
-    </item>
+
 
 </menu>

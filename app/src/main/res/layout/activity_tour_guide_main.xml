@@ -501,6 +501,33 @@
                     android:paddingStart="2dp"
                     android:paddingEnd="2dp" />
 
+                <LinearLayout
+                    android:id="@+id/empty_pending_offers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    android:padding="24dp">
+
+                    <ImageView
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:src="@drawable/ic_empty_box"
+                        android:tint="#B0B0B0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No hay ofertas pendientes"
+                        android:textSize="14sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="12dp" />
+                </LinearLayout>
+
+
+
+
                 <!-- Upcoming Tours Header -->
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -539,6 +566,31 @@
                     android:nestedScrollingEnabled="false"
                     android:paddingBottom="8dp" />
 
+                <LinearLayout
+                    android:id="@+id/empty_upcoming_tours"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    android:padding="24dp">
+
+                    <ImageView
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:src="@drawable/ic_empty_box"
+                        android:tint="#B0B0B0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No hay próximos tours"
+                        android:textSize="14sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="12dp" />
+                </LinearLayout>
+
+
                 <!-- Bottom spacer -->
                 <View
                     android:layout_width="match_parent"
@@ -565,6 +617,10 @@
         app:itemShapeInsetEnd="16dp"
         app:itemVerticalPadding="12dp"
         app:dividerInsetStart="16dp"
-        app:dividerInsetEnd="16dp" />
+        app:dividerInsetEnd="16dp"
+
+        app:itemShapeFillColor="@color/nav_active_indicator"
+
+        />
 
 </androidx.drawerlayout.widget.DrawerLayout>

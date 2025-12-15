@@ -12,20 +12,29 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
         app:title="Registrar Ubicación"
+        app:titleTextAppearance="@style/Toolbar.TitleText2"
+        app:titleCentered="true"
         app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert"
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationIconTint="@color/white"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Tour Info Header -->
+    <!-- Tour Info Card (pro) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_tour_info"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="4dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="12dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="5dp"
         app:cardBackgroundColor="@color/primary"
-        app:layout_constraintTop_toBottomOf="@id/toolbar">
+        app:strokeWidth="1dp"
+        app:strokeColor="#22FFFFFF"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -34,17 +43,24 @@
             android:padding="16dp"
             android:gravity="center_vertical">
 
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@android:drawable/ic_menu_mapmode"
-                android:tint="@color/white" />
+            <!-- Icon bubble -->
+            <FrameLayout
+                android:layout_width="48dp"
+                android:layout_height="48dp">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_map_location"
+                    app:tint="@color/white"
+                    android:contentDescription="Mapa" />
+            </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="16dp"
+                android:layout_marginStart="14dp"
                 android:orientation="vertical">
 
                 <TextView
@@ -52,68 +68,105 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="City Tour Lima Centro"
-                    android:textSize="16sp"
+                    android:textSize="17sp"
                     android:textStyle="bold"
                     android:textColor="@color/white"
                     android:maxLines="1"
-                    android:ellipsize="end"
-                    android:singleLine="true" />
+                    android:ellipsize="end" />
 
                 <TextView
                     android:id="@+id/tv_points_completed"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="0/0 paradas completadas"
-                    android:textSize="14sp"
-                    android:textColor="@color/white"
-                    android:layout_marginTop="4dp"
+                    android:textSize="13sp"
+                    android:textColor="#EFFFFFFF"
+                    android:layout_marginTop="6dp"
                     android:maxLines="1"
-                    android:ellipsize="end"
-                    android:singleLine="true" />
-
+                    android:ellipsize="end" />
             </LinearLayout>
 
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Map Container -->
-    <fragment
-        android:id="@+id/map_fragment"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="match_parent"
+    <!-- Map Card Container (to look like your other screens) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_map_container"
+        android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="6dp"
+        app:cardBackgroundColor="@color/white"
+        app:strokeWidth="1dp"
+        app:strokeColor="#ECECEC"
         app:layout_constraintTop_toBottomOf="@id/card_tour_info"
         app:layout_constraintBottom_toTopOf="@id/btn_show_stops"
-        app:layout_constraintHeight_percent="0.6" />
-
-    <!-- Loading Indicator -->
-    <ProgressBar
-        android:id="@+id/progress_loading"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:indeterminate="true"
-        android:visibility="visible"
-        app:layout_constraintTop_toTopOf="@id/map_fragment"
-        app:layout_constraintBottom_toBottomOf="@id/map_fragment"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <!-- Show Stops Button -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Map -->
+            <fragment
+                android:id="@+id/map_fragment"
+                android:name="com.google.android.gms.maps.SupportMapFragment"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- Loading overlay (nicer) -->
+            <LinearLayout
+                android:id="@+id/progress_loading"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:background="#22000000"
+                android:visibility="visible">
+
+                <ProgressBar
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="true" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cargando mapa..."
+                    android:textSize="13sp"
+                    android:textColor="@color/white"
+                    android:layout_marginTop="10dp" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- CTA Button (bottom centered, pro) -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_show_stops"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Gestionar Paradas"
-        android:drawableStart="@android:drawable/ic_menu_mylocation"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
+        android:text="Gestionar Paradas"
+        android:textAllCaps="false"
+        app:cornerRadius="14dp"
+        app:icon="@drawable/ic_location"
+        app:iconGravity="textStart"
+        app:iconPadding="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-
+        app:layout_constraintEnd_toEndOf="parent"
+        app:backgroundTint="@color/primary"
+        android:textColor="@color/white"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

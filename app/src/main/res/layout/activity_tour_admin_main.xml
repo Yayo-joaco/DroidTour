@@ -616,7 +616,8 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         app:headerLayout="@layout/nav_header_admin"
-        app:menu="@menu/tour_admin_nav_menu" />
+        app:menu="@menu/tour_admin_nav_menu"
+        app:itemShapeFillColor="@color/nav_active_indicator"/>
 
     <!-- FAB para crear tour -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

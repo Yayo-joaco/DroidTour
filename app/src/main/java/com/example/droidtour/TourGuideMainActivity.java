@@ -7,11 +7,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -37,6 +39,9 @@ public class TourGuideMainActivity extends AppCompatActivity {
 
     private DrawerLayout drawerLayout;
     private RecyclerView rvPendingOffers, rvUpcomingTours;
+
+    private LinearLayout emptyPendingOffers;
+    private LinearLayout emptyUpcomingTours;
     private MaterialCardView cardActiveTour, cardQRScanner, cardLocationTracking;
     private TextView tvViewAllOffers, tvViewAllTours;
     
@@ -153,6 +158,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
      */
     private void continueOnCreate() {
         setContentView(R.layout.activity_tour_guide_main);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
         
         initializeViews();
         setupToolbar();
@@ -311,6 +317,10 @@ public class TourGuideMainActivity extends AppCompatActivity {
         cardLocationTracking = findViewById(R.id.card_location_tracking);
         tvViewAllOffers = findViewById(R.id.tv_view_all_offers);
         tvViewAllTours = findViewById(R.id.tv_view_all_tours);
+
+
+        emptyPendingOffers = findViewById(R.id.empty_pending_offers);
+        emptyUpcomingTours = findViewById(R.id.empty_upcoming_tours);
         
         // Dashboard Stats
         tvGuideStatus = findViewById(R.id.tv_guide_status);
@@ -437,16 +447,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
                 openLocationTracking();
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, GuideProfileActivity.class));
-            } else if (id == R.id.nav_init_test_data) {
-                // Intent por nombre de clase para evitar referencia a clase inexistente en tiempo de compilación
-                try {
-                    Intent intent = new Intent();
-                    intent.setClassName(getPackageName(), "com.example.droidtour.firebase.InitializeTestDataActivity");
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Toast.makeText(this, "Inicializador de datos no disponible", Toast.LENGTH_SHORT).show();
-                }
-            } else if (id == R.id.nav_logout) {
+            }  else if (id == R.id.nav_logout) {
                 // Handle logout - limpiar sesión correctamente
                 prefsManager.cerrarSesion();
 
@@ -484,6 +485,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private void loadPendingOffersFromFirebase() {
         if (currentUserId == null || currentUserId.isEmpty()) {
             android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
+            showEmptyPendingOffers(true);
             return;
         }
         
@@ -500,17 +502,29 @@ public class TourGuideMainActivity extends AppCompatActivity {
                         pendingOffers.add(offer);
                     }
                 }
-                
-                // Actualizar adapter
-                rvPendingOffers.setAdapter(new PendingOffersAdapterFirebase(pendingOffers, TourGuideMainActivity.this::onOfferClick));
-                android.util.Log.d("TourGuideMain", "✅ Ofertas pendientes cargadas: " + pendingOffers.size());
+
+                if (pendingOffers.isEmpty()) {
+                    showEmptyPendingOffers(true);
+                    android.util.Log.d("TourGuideMain", "ℹNo hay ofertas pendientes");
+                } else {
+                    showEmptyPendingOffers(false);
+
+                    // Actualizar adapter
+                    rvPendingOffers.setAdapter(new PendingOffersAdapterFirebase(pendingOffers, TourGuideMainActivity.this::onOfferClick));
+                    android.util.Log.d("TourGuideMain", "Ofertas pendientes cargadas: " + pendingOffers.size());
+                }
             }
-            
+
             @Override
             public void onFailure(Exception e) {
                 android.util.Log.e("TourGuideMain", "❌ Error cargando ofertas", e);
-                Toast.makeText(TourGuideMainActivity.this, 
-                    "Error al cargar ofertas", Toast.LENGTH_SHORT).show();
+
+                // ✅ MOSTRAR ESTADO VACÍO EN CASO DE ERROR
+                showEmptyPendingOffers(true);
+
+                // Opcional: mostrar mensaje de error
+                Toast.makeText(TourGuideMainActivity.this,
+                        "Error al cargar ofertas", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -521,6 +535,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
     private void loadUpcomingToursFromFirebase() {
         if (currentUserId == null || currentUserId.isEmpty()) {
             android.util.Log.e("TourGuideMain", "❌ Error: currentUserId es null");
+            showEmptyUpcomingTours(true);
             return;
         }
         
@@ -537,10 +552,19 @@ public class TourGuideMainActivity extends AppCompatActivity {
                         upcomingTours.add(tour);
                     }
                 }
-                
-                // Actualizar adapter
-                rvUpcomingTours.setAdapter(new UpcomingToursAdapterFirebase(upcomingTours, TourGuideMainActivity.this::onTourClick));
-                android.util.Log.d("TourGuideMain", "✅ Tours programados cargados: " + upcomingTours.size());
+
+                if (upcomingTours.isEmpty()) {
+                    // ✅ MOSTRAR ESTADO VACÍO
+                    showEmptyUpcomingTours(true);
+                    android.util.Log.d("TourGuideMain", "ℹ️ No hay próximos tours");
+                } else {
+                    // ✅ OCULTAR ESTADO VACÍO Y MOSTRAR LISTA
+                    showEmptyUpcomingTours(false);
+
+                    // Actualizar adapter
+                    rvUpcomingTours.setAdapter(new UpcomingToursAdapterFirebase(upcomingTours, TourGuideMainActivity.this::onTourClick));
+                    android.util.Log.d("TourGuideMain", "✅ Tours programados cargados: " + upcomingTours.size());
+                }
             }
             
             @Override
@@ -550,6 +574,36 @@ public class TourGuideMainActivity extends AppCompatActivity {
                     "Error al cargar tours programados", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    /**
+     * Muestra u oculta el estado vacío para ofertas pendientes
+     */
+    private void showEmptyPendingOffers(boolean showEmpty) {
+        if (emptyPendingOffers != null && rvPendingOffers != null) {
+            if (showEmpty) {
+                emptyPendingOffers.setVisibility(View.VISIBLE);
+                rvPendingOffers.setVisibility(View.GONE);
+            } else {
+                emptyPendingOffers.setVisibility(View.GONE);
+                rvPendingOffers.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    /**
+     * Muestra u oculta el estado vacío para próximos tours
+     */
+    private void showEmptyUpcomingTours(boolean showEmpty) {
+        if (emptyUpcomingTours != null && rvUpcomingTours != null) {
+            if (showEmpty) {
+                emptyUpcomingTours.setVisibility(View.VISIBLE);
+                rvUpcomingTours.setVisibility(View.GONE);
+            } else {
+                emptyUpcomingTours.setVisibility(View.GONE);
+                rvUpcomingTours.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     private void setupClickListeners() {

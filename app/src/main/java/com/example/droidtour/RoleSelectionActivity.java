@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.example.droidtour.client.ClientRegistrationActivity;
 import com.example.droidtour.client.ClientRegistrationPhotoActivity;
@@ -24,6 +25,7 @@ public class RoleSelectionActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_role_selection);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Obtener datos del usuario de Google si existe
         Bundle extras = getIntent().getExtras();

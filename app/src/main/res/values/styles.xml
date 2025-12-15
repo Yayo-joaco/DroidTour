@@ -66,6 +66,10 @@
     <item name="fontFamily">@font/bricolage_grotesque</item>
     </style>
 
+    <style name="TextAppearance.AppCompat.MediumNeo" parent="TextAppearance.AppCompat.Medium">
+        <item name="fontFamily">@font/bricolage_grotesque_medium</item>
+    </style>
+
 
 
 

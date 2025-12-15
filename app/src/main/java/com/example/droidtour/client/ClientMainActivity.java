@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.LayoutInflater;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -78,6 +79,10 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private ImageView ivProfileHeader;
     private TextView tvUserNameHeader;
 
+
+    private LinearLayout emptyFeaturedTours;
+    private LinearLayout emptyPopularCompanies;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -145,6 +150,10 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         // RecyclerViews
         rvFeaturedTours = findViewById(R.id.rv_featured_tours);
         rvPopularCompanies = findViewById(R.id.rv_popular_companies);
+
+
+        emptyFeaturedTours = findViewById(R.id.empty_featured_tours);
+        emptyPopularCompanies = findViewById(R.id.empty_popular_companies);
     }
 
     private void setupDashboardData() {
@@ -161,6 +170,37 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         }
 
         tvActiveReservations.setText("0 reservas activas");
+    }
+
+
+    /**
+     * Muestra u oculta el estado vacío para tours destacados
+     */
+    private void showEmptyFeaturedTours(boolean showEmpty) {
+        if (emptyFeaturedTours != null && rvFeaturedTours != null) {
+            if (showEmpty) {
+                emptyFeaturedTours.setVisibility(View.VISIBLE);
+                rvFeaturedTours.setVisibility(View.GONE);
+            } else {
+                emptyFeaturedTours.setVisibility(View.GONE);
+                rvFeaturedTours.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    /**
+     * Muestra u oculta el estado vacío para empresas populares
+     */
+    private void showEmptyPopularCompanies(boolean showEmpty) {
+        if (emptyPopularCompanies != null && rvPopularCompanies != null) {
+            if (showEmpty) {
+                emptyPopularCompanies.setVisibility(View.VISIBLE);
+                rvPopularCompanies.setVisibility(View.GONE);
+            } else {
+                emptyPopularCompanies.setVisibility(View.GONE);
+                rvPopularCompanies.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     @Override
@@ -428,13 +468,64 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     }
 
     private void loadFeaturedToursFromFirebase() {
+        showEmptyFeaturedTours(true);
         featuredTours.clear();
         if (rvFeaturedTours.getAdapter() != null) rvFeaturedTours.getAdapter().notifyDataSetChanged();
     }
 
     private void loadPopularCompaniesFromFirebase() {
+        // Mostrar estado vacío inicialmente (opcional)
+        showEmptyPopularCompanies(true);
+
+        // Limpiar lista actual
         popularCompanies.clear();
-        if (rvPopularCompanies.getAdapter() != null) rvPopularCompanies.getAdapter().notifyDataSetChanged();
+
+        // Cargar empresas desde Firebase
+        firestoreManager.getAllCompaniesNoFilter(new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                if (result instanceof List) {
+                    List<Company> allCompanies = (List<Company>) result;
+
+                    // Agregar todas las empresas o filtrar por algún criterio
+                    // Ejemplo: empresas que tienen tours activos
+                    for (Company company : allCompanies) {
+                        // Aquí puedes agregar lógica de filtrado si es necesario
+                        popularCompanies.add(company);
+
+                        // Para mostrar solo las primeras 5 o 10
+                        if (popularCompanies.size() >= 10) {
+                            break;
+                        }
+                    }
+
+                    // Actualizar UI según si hay datos o no
+                    if (popularCompanies.isEmpty()) {
+                        showEmptyPopularCompanies(true);
+                        Log.d(TAG, "No hay empresas populares disponibles");
+                    } else {
+                        showEmptyPopularCompanies(false);
+
+                        // Actualizar adapter
+                        if (rvPopularCompanies.getAdapter() != null) {
+                            rvPopularCompanies.getAdapter().notifyDataSetChanged();
+                        }
+
+                        Log.d(TAG, "Empresas populares cargadas: " + popularCompanies.size());
+                    }
+                } else {
+                    showEmptyPopularCompanies(true);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando empresas populares", e);
+                showEmptyPopularCompanies(true);
+                Toast.makeText(ClientMainActivity.this,
+                        "Error al cargar empresas populares", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void onFeaturedTourClick(Tour tour) {

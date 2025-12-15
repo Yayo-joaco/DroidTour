@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 public class UserDisabledActivity extends AppCompatActivity {
 
@@ -13,6 +14,7 @@ public class UserDisabledActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_disabled);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.light_gray));
 
         TextView tvReason = findViewById(R.id.tv_disabled_reason);
         Button btnContact = findViewById(R.id.btn_contact_support);

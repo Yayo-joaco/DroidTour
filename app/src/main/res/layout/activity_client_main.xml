@@ -278,6 +278,29 @@
                     android:paddingEnd="8dp"
                     android:nestedScrollingEnabled="false"
                     android:orientation="horizontal" />
+                <LinearLayout
+                    android:id="@+id/empty_featured_tours"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    android:padding="24dp">
+
+                    <ImageView
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:src="@drawable/ic_empty_box"
+                        android:tint="#B0B0B0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No hay Tours Destacados para mostrar"
+                        android:textSize="14sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="12dp" />
+                </LinearLayout>
 
                 <!-- Popular Companies Section -->
                 <TextView
@@ -299,6 +322,29 @@
                     android:paddingEnd="8dp"
                     android:paddingBottom="16dp"
                     android:nestedScrollingEnabled="false" />
+                <LinearLayout
+                    android:id="@+id/empty_popular_companies"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    android:padding="24dp">
+
+                    <ImageView
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:src="@drawable/ic_empty_box"
+                        android:tint="#B0B0B0" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No hay Empresas Populares para Mostrar"
+                        android:textSize="14sp"
+                        android:textColor="#9E9E9E"
+                        android:layout_marginTop="12dp" />
+                </LinearLayout>
 
             </LinearLayout>
 
@@ -321,6 +367,7 @@
         app:itemShapeInsetEnd="16dp"
         app:itemVerticalPadding="12dp"
         app:dividerInsetStart="16dp"
-        app:dividerInsetEnd="16dp" />
+        app:dividerInsetEnd="16dp"
+        app:itemShapeFillColor="@color/nav_active_indicator"/>
 
 </androidx.drawerlayout.widget.DrawerLayout>

@@ -77,14 +77,17 @@ public class DashboardExportHelper {
     private void exportWithMediaStore(List<ChartInfo> charts, String[] kpiLabels, String[] kpiValues,
                                      String timestamp, ExportCompleteCallback callback) {
         try {
-            // Exportar PDF
-            String pdfPath = exportPDFWithMediaStore(kpiLabels, kpiValues, timestamp);
+            // Exportar solo PDF con gráficos incluidos
+            String pdfPath = exportPDFWithMediaStore(charts, kpiLabels, kpiValues, timestamp);
             
-            // Exportar imágenes
-            List<String> imagePaths = exportImagesWithMediaStore(charts, timestamp);
+            // Verificar que el PDF se guardó correctamente (debe ser un URI válido)
+            if (pdfPath == null || !pdfPath.startsWith("content://")) {
+                throw new IOException("El PDF no se guardó correctamente. Path recibido: " + pdfPath);
+            }
             
+            // No exportar imágenes, solo PDF
             if (callback != null) {
-                callback.onSuccess(pdfPath, imagePaths);
+                callback.onSuccess(pdfPath, new ArrayList<>());
             }
         } catch (Exception e) {
             Log.e(TAG, "Error exportando con MediaStore", e);
@@ -100,14 +103,17 @@ public class DashboardExportHelper {
     private void exportWithFileSystem(List<ChartInfo> charts, String[] kpiLabels, String[] kpiValues,
                                       String timestamp, File directory, ExportCompleteCallback callback) {
         try {
-            // Exportar PDF
-            String pdfPath = exportPDFWithFileSystem(kpiLabels, kpiValues, timestamp, directory);
+            // Exportar solo PDF con gráficos incluidos
+            String pdfPath = exportPDFWithFileSystem(charts, kpiLabels, kpiValues, timestamp, directory);
             
-            // Exportar imágenes
-            List<String> imagePaths = exportImagesWithFileSystem(charts, timestamp, directory);
+            // Verificar que el PDF se guardó correctamente
+            if (pdfPath == null || !new File(pdfPath).exists()) {
+                throw new IOException("El PDF no se guardó correctamente");
+            }
             
+            // No exportar imágenes, solo PDF
             if (callback != null) {
-                callback.onSuccess(pdfPath, imagePaths);
+                callback.onSuccess(pdfPath, new ArrayList<>());
             }
         } catch (Exception e) {
             Log.e(TAG, "Error exportando con sistema de archivos", e);
@@ -118,9 +124,9 @@ public class DashboardExportHelper {
     }
     
     /**
-     * Exporta PDF con KPIs usando MediaStore
+     * Exporta PDF con KPIs y gráficos usando MediaStore
      */
-    private String exportPDFWithMediaStore(String[] kpiLabels, String[] kpiValues, String timestamp) throws IOException {
+    private String exportPDFWithMediaStore(List<ChartInfo> charts, String[] kpiLabels, String[] kpiValues, String timestamp) throws IOException {
         PdfDocument document = new PdfDocument();
         PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
         PdfDocument.Page page = document.startPage(pageInfo);
@@ -129,38 +135,107 @@ public class DashboardExportHelper {
         Paint paint = new Paint();
         paint.setAntiAlias(true);
         
+        int margin = 50;
+        int yPos = 80;
+        int lineHeight = 20;
+        int bottomMargin = 120;
+        int maxYPos = 842 - bottomMargin;
+        int pageNumber = 1;
+        
         // Título
         paint.setTextSize(24);
         paint.setColor(context.getResources().getColor(R.color.primary));
         paint.setFakeBoldText(true);
-        canvas.drawText("Reporte Analytics - DroidTour", 50, 80, paint);
+        canvas.drawText("Reporte Analytics - DroidTour", margin, yPos, paint);
+        yPos += 30;
         
         // Fecha
         paint.setTextSize(14);
         paint.setColor(Color.BLACK);
         paint.setFakeBoldText(false);
         String currentDate = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date());
-        canvas.drawText("Generado: " + currentDate, 50, 110, paint);
+        canvas.drawText("Generado: " + currentDate, margin, yPos, paint);
+        yPos += 30;
         
         // KPIs
         paint.setTextSize(16);
         paint.setFakeBoldText(true);
-        canvas.drawText("Indicadores Clave de Rendimiento", 50, 160, paint);
+        paint.setColor(Color.BLACK);
+        canvas.drawText("Indicadores Clave de Rendimiento", margin, yPos, paint);
+        yPos += lineHeight + 5;
         
         paint.setTextSize(12);
         paint.setFakeBoldText(false);
-        int yPos = 190;
         if (kpiLabels != null && kpiValues != null) {
             for (int i = 0; i < Math.min(kpiLabels.length, kpiValues.length); i++) {
-                canvas.drawText("• " + kpiLabels[i] + ": " + kpiValues[i], 70, yPos, paint);
-                yPos += 20;
+                canvas.drawText("• " + kpiLabels[i] + ": " + kpiValues[i], margin + 20, yPos, paint);
+                yPos += lineHeight;
             }
         }
         
-        // Pie de página
+        yPos += 20;
+        
+        // Gráficos
+        if (charts != null && !charts.isEmpty()) {
+            paint.setTextSize(16);
+            paint.setFakeBoldText(true);
+            paint.setColor(Color.BLACK);
+            canvas.drawText("Gráficos de Análisis", margin, yPos, paint);
+            yPos += lineHeight + 10;
+            
+            int chartWidth = 495; // Ancho disponible en el PDF
+            int chartHeight = 200; // Altura inicial para cada gráfico
+            
+            for (ChartInfo chartInfo : charts) {
+                if (chartInfo.chart != null && chartInfo.chart instanceof View) {
+                    // Verificar si necesitamos nueva página
+                    if (yPos + chartHeight + 50 > maxYPos) {
+                        // Pie de página antes de finalizar
+                        paint.setTextSize(10);
+                        paint.setColor(Color.GRAY);
+                        canvas.drawText("DroidTour SuperAdmin Dashboard - Confidencial", margin, 820, paint);
+                        document.finishPage(page);
+                        pageNumber++;
+                        pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+                        page = document.startPage(pageInfo);
+                        canvas = page.getCanvas();
+                        yPos = 80;
+                    }
+                    
+                    // Capturar gráfico como bitmap
+                    Bitmap chartBitmap = captureChartAsBitmap((View) chartInfo.chart, chartWidth, chartHeight);
+                    if (chartBitmap != null) {
+                        // Título del gráfico
+                        paint.setTextSize(12);
+                        paint.setFakeBoldText(true);
+                        paint.setColor(Color.BLACK);
+                        canvas.drawText(chartInfo.title, margin, yPos, paint);
+                        yPos += lineHeight + 5;
+                        
+                        // Ajustar tamaño del gráfico para que quepa en el PDF
+                        int scaledHeight = Math.min(chartHeight, maxYPos - yPos - 30);
+                        int scaledWidth = (int) (chartBitmap.getWidth() * (scaledHeight / (float) chartBitmap.getHeight()));
+                        if (scaledWidth > chartWidth) {
+                            scaledWidth = chartWidth;
+                            scaledHeight = (int) (chartBitmap.getHeight() * (chartWidth / (float) chartBitmap.getWidth()));
+                        }
+                        
+                        // Centrar gráfico
+                        int chartX = margin + (chartWidth - scaledWidth) / 2;
+                        canvas.drawBitmap(Bitmap.createScaledBitmap(chartBitmap, scaledWidth, scaledHeight, true),
+                                        chartX, yPos, null);
+                        yPos += scaledHeight + 20;
+                        
+                        chartBitmap.recycle();
+                    }
+                }
+            }
+        }
+        
+        // Pie de página antes de finalizar la última página
         paint.setTextSize(10);
         paint.setColor(Color.GRAY);
-        canvas.drawText("DroidTour SuperAdmin Dashboard - Confidencial", 50, 800, paint);
+        canvas.drawText("DroidTour SuperAdmin Dashboard - Confidencial", margin, 820, paint);
         
         document.finishPage(page);
         
@@ -177,17 +252,19 @@ public class DashboardExportHelper {
             if (fos != null) {
                 document.writeTo(fos);
                 fos.close();
+                document.close();
+                return uri.toString();
             }
         }
-        document.close();
         
-        return uri != null ? uri.toString() : fileName;
+        document.close();
+        throw new IOException("No se pudo guardar el PDF usando MediaStore");
     }
     
     /**
-     * Exporta PDF con KPIs usando sistema de archivos
+     * Exporta PDF con KPIs y gráficos usando sistema de archivos
      */
-    private String exportPDFWithFileSystem(String[] kpiLabels, String[] kpiValues, String timestamp, File directory) throws IOException {
+    private String exportPDFWithFileSystem(List<ChartInfo> charts, String[] kpiLabels, String[] kpiValues, String timestamp, File directory) throws IOException {
         PdfDocument document = new PdfDocument();
         PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
         PdfDocument.Page page = document.startPage(pageInfo);
@@ -196,38 +273,107 @@ public class DashboardExportHelper {
         Paint paint = new Paint();
         paint.setAntiAlias(true);
         
+        int margin = 50;
+        int yPos = 80;
+        int lineHeight = 20;
+        int bottomMargin = 120;
+        int maxYPos = 842 - bottomMargin;
+        int pageNumber = 1;
+        
         // Título
         paint.setTextSize(24);
         paint.setColor(context.getResources().getColor(R.color.primary));
         paint.setFakeBoldText(true);
-        canvas.drawText("Reporte Analytics - DroidTour", 50, 80, paint);
+        canvas.drawText("Reporte Analytics - DroidTour", margin, yPos, paint);
+        yPos += 30;
         
         // Fecha
         paint.setTextSize(14);
         paint.setColor(Color.BLACK);
         paint.setFakeBoldText(false);
         String currentDate = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date());
-        canvas.drawText("Generado: " + currentDate, 50, 110, paint);
+        canvas.drawText("Generado: " + currentDate, margin, yPos, paint);
+        yPos += 30;
         
         // KPIs
         paint.setTextSize(16);
         paint.setFakeBoldText(true);
-        canvas.drawText("Indicadores Clave de Rendimiento", 50, 160, paint);
+        paint.setColor(Color.BLACK);
+        canvas.drawText("Indicadores Clave de Rendimiento", margin, yPos, paint);
+        yPos += lineHeight + 5;
         
         paint.setTextSize(12);
         paint.setFakeBoldText(false);
-        int yPos = 190;
         if (kpiLabels != null && kpiValues != null) {
             for (int i = 0; i < Math.min(kpiLabels.length, kpiValues.length); i++) {
-                canvas.drawText("• " + kpiLabels[i] + ": " + kpiValues[i], 70, yPos, paint);
-                yPos += 20;
+                canvas.drawText("• " + kpiLabels[i] + ": " + kpiValues[i], margin + 20, yPos, paint);
+                yPos += lineHeight;
             }
         }
         
-        // Pie de página
+        yPos += 20;
+        
+        // Gráficos
+        if (charts != null && !charts.isEmpty()) {
+            paint.setTextSize(16);
+            paint.setFakeBoldText(true);
+            paint.setColor(Color.BLACK);
+            canvas.drawText("Gráficos de Análisis", margin, yPos, paint);
+            yPos += lineHeight + 10;
+            
+            int chartWidth = 495; // Ancho disponible en el PDF
+            int chartHeight = 200; // Altura inicial para cada gráfico
+            
+            for (ChartInfo chartInfo : charts) {
+                if (chartInfo.chart != null && chartInfo.chart instanceof View) {
+                    // Verificar si necesitamos nueva página
+                    if (yPos + chartHeight + 50 > maxYPos) {
+                        // Pie de página antes de finalizar
+                        paint.setTextSize(10);
+                        paint.setColor(Color.GRAY);
+                        canvas.drawText("DroidTour SuperAdmin Dashboard - Confidencial", margin, 820, paint);
+                        document.finishPage(page);
+                        pageNumber++;
+                        pageInfo = new PdfDocument.PageInfo.Builder(595, 842, pageNumber).create();
+                        page = document.startPage(pageInfo);
+                        canvas = page.getCanvas();
+                        yPos = 80;
+                    }
+                    
+                    // Capturar gráfico como bitmap
+                    Bitmap chartBitmap = captureChartAsBitmap((View) chartInfo.chart, chartWidth, chartHeight);
+                    if (chartBitmap != null) {
+                        // Título del gráfico
+                        paint.setTextSize(12);
+                        paint.setFakeBoldText(true);
+                        paint.setColor(Color.BLACK);
+                        canvas.drawText(chartInfo.title, margin, yPos, paint);
+                        yPos += lineHeight + 5;
+                        
+                        // Ajustar tamaño del gráfico para que quepa en el PDF
+                        int scaledHeight = Math.min(chartHeight, maxYPos - yPos - 30);
+                        int scaledWidth = (int) (chartBitmap.getWidth() * (scaledHeight / (float) chartBitmap.getHeight()));
+                        if (scaledWidth > chartWidth) {
+                            scaledWidth = chartWidth;
+                            scaledHeight = (int) (chartBitmap.getHeight() * (chartWidth / (float) chartBitmap.getWidth()));
+                        }
+                        
+                        // Centrar gráfico
+                        int chartX = margin + (chartWidth - scaledWidth) / 2;
+                        canvas.drawBitmap(Bitmap.createScaledBitmap(chartBitmap, scaledWidth, scaledHeight, true),
+                                        chartX, yPos, null);
+                        yPos += scaledHeight + 20;
+                        
+                        chartBitmap.recycle();
+                    }
+                }
+            }
+        }
+        
+        // Pie de página antes de finalizar la última página
         paint.setTextSize(10);
         paint.setColor(Color.GRAY);
-        canvas.drawText("DroidTour SuperAdmin Dashboard - Confidencial", 50, 800, paint);
+        canvas.drawText("DroidTour SuperAdmin Dashboard - Confidencial", margin, 820, paint);
         
         document.finishPage(page);
         

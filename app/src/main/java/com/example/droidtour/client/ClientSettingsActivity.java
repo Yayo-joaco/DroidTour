@@ -59,17 +59,19 @@ public class ClientSettingsActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
-        switchPushNotifications = findViewById(R.id.switch_push_notifications);
-        switchEmailNotifications = findViewById(R.id.switch_email_notifications);
-        
+
+        /*
         settingChangePassword = findViewById(R.id.setting_change_password);
         settingDeleteAccount = findViewById(R.id.setting_delete_account);
+
+         */
         settingPrivacyPolicy = findViewById(R.id.setting_privacy_policy);
         settingTermsConditions = findViewById(R.id.setting_terms_conditions);
     }
 
     private void setupClickListeners() {
         // Account settings
+        /*
         settingChangePassword.setOnClickListener(v -> {
             Toast.makeText(this, "Cambio de contraseña próximamente", Toast.LENGTH_SHORT).show();
         });
@@ -77,6 +79,8 @@ public class ClientSettingsActivity extends AppCompatActivity {
         settingDeleteAccount.setOnClickListener(v -> {
             Toast.makeText(this, "Eliminación de cuenta próximamente", Toast.LENGTH_SHORT).show();
         });
+
+         */
 
         // Privacy settings
         settingPrivacyPolicy.setOnClickListener(v -> {
@@ -88,6 +92,7 @@ public class ClientSettingsActivity extends AppCompatActivity {
         });
 
         // Notification switches
+        /*
         switchPushNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
             // TODO: Guardar configuración de notificaciones push
             Toast.makeText(this, "Notificaciones push " + (isChecked ? "activadas" : "desactivadas"), Toast.LENGTH_SHORT).show();
@@ -97,12 +102,17 @@ public class ClientSettingsActivity extends AppCompatActivity {
             // TODO: Guardar configuración de notificaciones por email
             Toast.makeText(this, "Notificaciones por email " + (isChecked ? "activadas" : "desactivadas"), Toast.LENGTH_SHORT).show();
         });
+
+         */
     }
 
     private void loadSettings() {
+        /*
         // TODO: Cargar configuraciones guardadas del usuario
         switchPushNotifications.setChecked(true);
         switchEmailNotifications.setChecked(false);
+
+         */
     }
 
     @Override

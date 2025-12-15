@@ -1832,6 +1832,45 @@ public class FirestoreManager {
                 .addOnFailureListener(callback::onFailure);
     }
 
+
+    public void getAllCompanies(FirestoreCallback callback) {
+        db.collection(COLLECTION_COMPANIES)
+                .whereEqualTo("status", "active") // Solo empresas activas
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Company> companies = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Company company = document.toObject(Company.class);
+                            company.setCompanyId(document.getId());
+                            companies.add(company);
+                        }
+                        callback.onSuccess(companies);
+                    } else {
+                        callback.onFailure(task.getException());
+                    }
+                });
+    }
+
+    // También podrías necesitar una versión sin filtro:
+    public void getAllCompaniesNoFilter(FirestoreCallback callback) {
+        db.collection(COLLECTION_COMPANIES)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Company> companies = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Company company = document.toObject(Company.class);
+                            company.setCompanyId(document.getId());
+                            companies.add(company);
+                        }
+                        callback.onSuccess(companies);
+                    } else {
+                        callback.onFailure(task.getException());
+                    }
+                });
+    }
+
     // ==================== CALLBACK ====================
 
     public interface FirestoreCallback {

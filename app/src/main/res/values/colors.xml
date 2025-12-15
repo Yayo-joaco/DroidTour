@@ -30,6 +30,9 @@
     <color name="notification_read_bg">#FAFAFA</color>
     <color name="primary_light">#E3F2FD</color>
 
+
+    <color name="primary_nav">#C5DBFE</color>
+
     <!-- Colores para chips de rol de usuario -->
     <color name="superadmin_chip_color">#7B1FA2</color>
     <color name="admin_chip_color">#1976D2</color>

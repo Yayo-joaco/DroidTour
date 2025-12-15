@@ -508,5 +508,91 @@ public class FirebaseStorageManager {
         void onSuccess();
         void onFailure(Exception e);
     }
+    
+    // ==================== DESCARGAR ARCHIVOS ADJUNTOS DE CHAT ====================
+    
+    /**
+     * Descarga un archivo adjunto de chat desde Firebase Storage
+     * @param downloadUrl URL de descarga del archivo
+     * @param fileName Nombre del archivo a guardar
+     * @param callback Callback con el URI del archivo descargado
+     */
+    public void downloadChatAttachment(String downloadUrl, String fileName, DownloadCallback callback) {
+        if (downloadUrl == null || downloadUrl.isEmpty()) {
+            callback.onFailure(new Exception("Download URL is required"));
+            return;
+        }
+        
+        try {
+            // Obtener referencia desde la URL
+            StorageReference storageRef = storage.getReferenceFromUrl(downloadUrl);
+            
+            // Determinar directorio según versión de Android
+            java.io.File downloadDir;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                // Android 10+: usar directorio de la app (no requiere permisos)
+                downloadDir = new java.io.File(
+                    android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
+                    "DroidTour"
+                );
+            } else {
+                // Android 9 y anteriores: usar Downloads público
+                downloadDir = android.os.Environment.getExternalStoragePublicDirectory(
+                    android.os.Environment.DIRECTORY_DOWNLOADS);
+            }
+            
+            // Crear directorio si no existe
+            if (!downloadDir.exists()) {
+                downloadDir.mkdirs();
+            }
+            
+            // Crear archivo local
+            String finalFileName = fileName != null ? fileName : "attachment_" + System.currentTimeMillis();
+            java.io.File localFile = new java.io.File(downloadDir, finalFileName);
+            
+            // Si el archivo ya existe, agregar número
+            int counter = 1;
+            String baseName = finalFileName;
+            String extension = "";
+            if (finalFileName.contains(".")) {
+                int lastDot = finalFileName.lastIndexOf(".");
+                baseName = finalFileName.substring(0, lastDot);
+                extension = finalFileName.substring(lastDot);
+            }
+            while (localFile.exists()) {
+                finalFileName = baseName + "_" + counter + extension;
+                localFile = new java.io.File(downloadDir, finalFileName);
+                counter++;
+            }
+            
+            // Crear referencia final para usar en el listener
+            final java.io.File finalLocalFile = localFile;
+            
+            // Descargar archivo
+            storageRef.getFile(finalLocalFile)
+                .addOnSuccessListener(taskSnapshot -> {
+                    Uri fileUri = Uri.fromFile(finalLocalFile);
+                    Log.d(TAG, "File downloaded: " + fileUri.toString());
+                    callback.onSuccess(fileUri);
+                })
+                .addOnProgressListener(taskSnapshot -> {
+                    double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+                    callback.onProgress((int) progress);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error downloading file", e);
+                    callback.onFailure(e);
+                });
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating download", e);
+            callback.onFailure(e);
+        }
+    }
+    
+    public interface DownloadCallback {
+        void onSuccess(Uri fileUri);
+        void onFailure(Exception e);
+        void onProgress(int progress);
+    }
 }
 

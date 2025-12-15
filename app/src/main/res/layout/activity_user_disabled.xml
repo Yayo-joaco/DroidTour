@@ -129,7 +129,9 @@
                 app:cornerRadius="12dp"
                 android:layout_marginBottom="10dp"
                 app:iconGravity="textStart"
-                app:iconPadding="10dp" />
+                app:iconPadding="10dp"
+                app:backgroundTint="@color/primary"
+                android:textColor="@color/white"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_close"
@@ -140,8 +142,12 @@
                 android:textAllCaps="false"
                 app:cornerRadius="12dp"
                 app:icon="@drawable/ic_arrow_back_24"
+                app:iconTint="@color/primary"
                 app:iconGravity="textStart"
-                app:iconPadding="10dp" />
+                app:iconPadding="10dp"
+                app:backgroundTint="@color/white"
+                android:textColor="@color/primary"
+                />
 
         </LinearLayout>
 

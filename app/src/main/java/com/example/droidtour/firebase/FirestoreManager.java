@@ -244,18 +244,14 @@ public class FirestoreManager {
     }
 
     /**
-     * Elimina un usuario de Firestore y TODOS sus datos relacionados
-     * Elimina: 
-     * - Reservaciones (userId, guideId)
-     * - Notificaciones (userId)
-     * - Reseñas (userId, guideId)
-     * - Mensajes (senderId, receiverId)
-     * - Métodos de pago (userId)
-     * - Sesiones de usuario (userId)
-     * - Tour offers (guideId si es GUIDE)
+     * Elimina un usuario de Firestore SOLO (sin eliminar datos relacionados)
+     * Elimina únicamente:
+     * - users/{userId}
      * - guides/{userId} (si es GUIDE)
      * - user_roles/{userId}
-     * - users/{userId}
+     * 
+     * NO elimina:
+     * - Reservaciones, Notificaciones, Reseñas, Mensajes, Métodos de pago, Sesiones, Tour offers
      */
     public void deleteUser(String userId, String userType, FirestoreCallback callback) {
         if (userId == null || userId.trim().isEmpty()) {
@@ -263,23 +259,10 @@ public class FirestoreManager {
             return;
         }
 
-        Log.d(TAG, "Iniciando eliminación completa del usuario: " + userId);
+        Log.d(TAG, "Iniciando eliminación del usuario (sin datos relacionados): " + userId);
 
-        // Eliminar primero todos los datos relacionados, luego el usuario
-        deleteUserRelatedData(userId, userType, new FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                // Después de eliminar datos relacionados, eliminar el usuario principal
-                deleteUserMainData(userId, userType, callback);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error eliminando datos relacionados del usuario, continuando...", e);
-                // Continuar con eliminación del usuario principal aunque haya errores en datos relacionados
-                deleteUserMainData(userId, userType, callback);
-            }
-        });
+        // Eliminar solo los datos principales del usuario
+        deleteUserMainData(userId, userType, callback);
     }
 
     /**

@@ -4,9 +4,11 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.firebase.FirebaseAuthManager;
@@ -30,6 +32,9 @@ public class TourOffersActivity extends AppCompatActivity {
     private String currentUserId;
     private List<TourOffer> allOffers = new ArrayList<>();
     private TourOffersAdapter adapter;
+
+    private LinearLayout emptyTourOffers;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +67,7 @@ public class TourOffersActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_tour_offers);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         initializeViews();
         setupToolbar();
@@ -124,6 +130,32 @@ public class TourOffersActivity extends AppCompatActivity {
 
         adapter.updateData(filteredOffers);
         Log.d(TAG, "📊 Ofertas filtradas (" + currentFilter + "): " + filteredOffers.size());
+
+        // ✅ MOSTRAR ESTADO VACÍO SI NO HAY OFERTAS
+        if (filteredOffers.isEmpty()) {
+            showEmptyState(true);
+
+            // Puedes personalizar el mensaje según el filtro
+            TextView emptyMessage = emptyTourOffers.findViewById(R.id.empty_message);
+            if (emptyMessage != null) {
+                String message;
+                switch (currentFilter) {
+                    case "PENDING":
+                        message = "No hay ofertas pendientes";
+                        break;
+                    case "REJECTED":
+                        message = "No hay ofertas rechazadas";
+                        break;
+                    case "ALL":
+                    default:
+                        message = "No hay ofertas para mostrar";
+                        break;
+                }
+                emptyMessage.setText(message);
+            }
+        } else {
+            showEmptyState(false);
+        }
     }
 
     private void initializeViews() {
@@ -131,12 +163,25 @@ public class TourOffersActivity extends AppCompatActivity {
         chipAll = findViewById(R.id.chip_all);
         chipPending = findViewById(R.id.chip_pending);
         chipRejected = findViewById(R.id.chip_rejected);
+        emptyTourOffers = findViewById(R.id.empty_tour_offers);
     }
 
     private void setupToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
+    }
+
+    private void showEmptyState(boolean showEmpty) {
+        if (emptyTourOffers != null && rvTourOffers != null) {
+            if (showEmpty) {
+                emptyTourOffers.setVisibility(View.VISIBLE);
+                rvTourOffers.setVisibility(View.GONE);
+            } else {
+                emptyTourOffers.setVisibility(View.GONE);
+                rvTourOffers.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     private void setupRecyclerView() {

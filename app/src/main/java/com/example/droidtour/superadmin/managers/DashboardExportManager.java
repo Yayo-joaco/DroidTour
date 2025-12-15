@@ -2,6 +2,8 @@ package com.example.droidtour.superadmin.managers;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -52,6 +54,25 @@ public class DashboardExportManager {
         this.activity = activity;
         this.exportHelper = exportHelper;
         this.permissionRequestCode = permissionRequestCode;
+        createNotificationChannel();
+    }
+    
+    /**
+     * Crea el canal de notificaciones para exportaciones
+     */
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager notificationManager = activity.getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Exportaciones",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                );
+                channel.setDescription("Notificaciones de exportación de reportes e imágenes");
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
     }
     
     /**
@@ -282,4 +303,5 @@ public class DashboardExportManager {
         }
     }
 }
+
 

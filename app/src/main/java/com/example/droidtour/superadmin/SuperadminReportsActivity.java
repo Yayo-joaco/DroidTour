@@ -17,6 +17,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.droidtour.LoginActivity;
 import com.example.droidtour.R;
+import com.example.droidtour.superadmin.helpers.NotificationHelper;
 import com.example.droidtour.superadmin.helpers.ReportsChartHelper;
 import com.example.droidtour.superadmin.helpers.ReportsDataLoader;
 import com.example.droidtour.superadmin.helpers.ReportsDataProcessor;
@@ -55,6 +56,7 @@ public class SuperadminReportsActivity extends AppCompatActivity {
     private ReportsChartHelper chartHelper;
     private ReportsPDFGenerator pdfGenerator;
     private CompanyStatsRepository companyStatsRepository;
+    private NotificationHelper notificationHelper;
     
     private int currentPeriodType = ReportsDataProcessor.PERIOD_MONTHLY; // Por defecto mensual
     private int totalReservationsCount = 0;
@@ -133,6 +135,7 @@ public class SuperadminReportsActivity extends AppCompatActivity {
         chartHelper = new ReportsChartHelper(this);
         pdfGenerator = new ReportsPDFGenerator(this);
         companyStatsRepository = new CompanyStatsRepository(db);
+        notificationHelper = new NotificationHelper(this);
     }
     
     private void setupClickListeners() {
@@ -267,9 +270,13 @@ public class SuperadminReportsActivity extends AppCompatActivity {
                         public void onSuccess(String filePath) {
                             btnGenerateReport.setEnabled(true);
                             btnGenerateReport.setText("Generar Reporte");
+                            // Mostrar notificación
+                            if (notificationHelper != null) {
+                                notificationHelper.showReportPDFSuccessNotification(filePath);
+                            }
                             Toast.makeText(SuperadminReportsActivity.this,
-                                "Reporte generado exitosamente: " + filePath,
-                                Toast.LENGTH_LONG).show();
+                                "Reporte generado exitosamente",
+                                Toast.LENGTH_SHORT).show();
                         }
                         
                         @Override
@@ -277,6 +284,11 @@ public class SuperadminReportsActivity extends AppCompatActivity {
                             btnGenerateReport.setEnabled(true);
                             btnGenerateReport.setText("Generar Reporte");
                             Log.e(TAG, "Error generando PDF", error);
+                            // Mostrar notificación de error
+                            if (notificationHelper != null) {
+                                notificationHelper.showReportPDFErrorNotification(
+                                    error.getMessage() != null ? error.getMessage() : "Error desconocido");
+                            }
                             Toast.makeText(SuperadminReportsActivity.this,
                                 "Error al generar reporte: " + error.getMessage(),
                                 Toast.LENGTH_LONG).show();

@@ -44,6 +44,7 @@ public class FirestoreManager {
     public static final String COLLECTION_RESERVATIONS = "reservations";
     public static final String COLLECTION_NOTIFICATIONS = "notifications";
     public static final String COLLECTION_TOURS = "tours";
+    public static final String COLLECTION_SERVICES = "services";
 
     // Colecciones adicionales necesarias
     public static final String COLLECTION_PAYMENT_METHODS = "payment_methods";
@@ -51,7 +52,6 @@ public class FirestoreManager {
     public static final String COLLECTION_USER_SESSIONS = "user_sessions";
     public static final String COLLECTION_REVIEWS = "reviews";
     public static final String COLLECTION_MESSAGES = "messages";
-    public static final String COLLECTION_SERVICES = "services";
 
     private FirestoreManager() {
         db = FirebaseFirestore.getInstance();
@@ -178,11 +178,17 @@ public class FirestoreManager {
             ImageUploadManager.getDownloadUrl(upload, new ImageUploadManager.ImageUploadCallback() {
                 @Override
                 public void onSuccess(String downloadUrl) {
-                    Map<String, Object> updates = new HashMap<>();
-                    updates.put("profileImageUrl", downloadUrl);
-                    userRef.set(updates, SetOptions.merge())
-                            .addOnSuccessListener(unused -> saveUser.run())
-                            .addOnFailureListener(callback::onFailure);
+                    // Actualizar el objeto User con la URL de la imagen en personalData
+                    if (user.getPersonalData() != null) {
+                        user.getPersonalData().setProfileImageUrl(downloadUrl);
+                    } else {
+                        // Si no existe personalData, crearlo
+                        User.PersonalData pd = new User.PersonalData();
+                        pd.setProfileImageUrl(downloadUrl);
+                        user.setPersonalData(pd);
+                    }
+                    // Guardar el usuario completo con la URL actualizada
+                    saveUser.run();
                 }
 
                 @Override
@@ -204,11 +210,17 @@ public class FirestoreManager {
             ImageUploadManager.getDownloadUrl(upload, new ImageUploadManager.ImageUploadCallback() {
                 @Override
                 public void onSuccess(String downloadUrl) {
-                    Map<String, Object> updates = new HashMap<>();
-                    updates.put("profileImageUrl", downloadUrl);
-                    userRef.set(updates, SetOptions.merge())
-                            .addOnSuccessListener(unused -> saveUser.run())
-                            .addOnFailureListener(callback::onFailure);
+                    // Actualizar el objeto User con la URL de la imagen en personalData
+                    if (user.getPersonalData() != null) {
+                        user.getPersonalData().setProfileImageUrl(downloadUrl);
+                    } else {
+                        // Si no existe personalData, crearlo
+                        User.PersonalData pd = new User.PersonalData();
+                        pd.setProfileImageUrl(downloadUrl);
+                        user.setPersonalData(pd);
+                    }
+                    // Guardar el usuario completo con la URL actualizada
+                    saveUser.run();
                 }
 
                 @Override
@@ -245,14 +257,18 @@ public class FirestoreManager {
     }
 
     /**
-     * Elimina un usuario de Firestore SOLO (sin eliminar datos relacionados)
-     * Elimina únicamente:
-     * - users/{userId}
+     * Elimina un usuario de Firestore y TODOS sus datos relacionados
+     * Elimina: 
+     * - Reservaciones (userId, guideId)
+     * - Notificaciones (userId)
+     * - Reseñas (userId, guideId)
+     * - Mensajes (senderId, receiverId)
+     * - Métodos de pago (userId)
+     * - Sesiones de usuario (userId)
+     * - Tour offers (guideId si es GUIDE)
      * - guides/{userId} (si es GUIDE)
      * - user_roles/{userId}
-     * 
-     * NO elimina:
-     * - Reservaciones, Notificaciones, Reseñas, Mensajes, Métodos de pago, Sesiones, Tour offers
+     * - users/{userId}
      */
     public void deleteUser(String userId, String userType, FirestoreCallback callback) {
         if (userId == null || userId.trim().isEmpty()) {
@@ -260,10 +276,23 @@ public class FirestoreManager {
             return;
         }
 
-        Log.d(TAG, "Iniciando eliminación del usuario (sin datos relacionados): " + userId);
+        Log.d(TAG, "Iniciando eliminación completa del usuario: " + userId);
 
-        // Eliminar solo los datos principales del usuario
-        deleteUserMainData(userId, userType, callback);
+        // Eliminar primero todos los datos relacionados, luego el usuario
+        deleteUserRelatedData(userId, userType, new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                // Después de eliminar datos relacionados, eliminar el usuario principal
+                deleteUserMainData(userId, userType, callback);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error eliminando datos relacionados del usuario, continuando...", e);
+                // Continuar con eliminación del usuario principal aunque haya errores en datos relacionados
+                deleteUserMainData(userId, userType, callback);
+            }
+        });
     }
 
     /**
@@ -816,6 +845,147 @@ public class FirestoreManager {
                 .addOnFailureListener(callback::onFailure);
     }
 
+    // ==================== SERVICES ====================
+
+    /**
+     * Crear un nuevo servicio
+     */
+    public void createService(com.example.droidtour.models.Service service, FirestoreCallback callback) {
+        if (service == null) {
+            callback.onFailure(new Exception("Service is null"));
+            return;
+        }
+        if (service.getCompanyId() == null || service.getCompanyId().trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+        if (service.getName() == null || service.getName().trim().isEmpty()) {
+            callback.onFailure(new Exception("Service name is required"));
+            return;
+        }
+
+        // Crear o asegurar serviceId
+        DocumentReference serviceRef = (service.getServiceId() == null || service.getServiceId().trim().isEmpty())
+                ? db.collection(COLLECTION_SERVICES).document()
+                : db.collection(COLLECTION_SERVICES).document(service.getServiceId());
+        service.setServiceId(serviceRef.getId());
+
+        // Establecer fecha de creación
+        service.setCreatedAt(new java.util.Date());
+        service.setUpdatedAt(new java.util.Date());
+
+        // Establecer status por defecto si no existe
+        if (service.getStatus() == null || service.getStatus().trim().isEmpty()) {
+            service.setStatus("active");
+        }
+
+        serviceRef.set(service)
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Service created: " + service.getServiceId());
+                    callback.onSuccess(service);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Actualizar un servicio existente
+     */
+    public void updateService(com.example.droidtour.models.Service service, FirestoreCallback callback) {
+        if (service == null) {
+            callback.onFailure(new Exception("Service is null"));
+            return;
+        }
+        if (service.getServiceId() == null || service.getServiceId().trim().isEmpty()) {
+            callback.onFailure(new Exception("serviceId is required"));
+            return;
+        }
+
+        // Actualizar fecha de modificación
+        service.setUpdatedAt(new java.util.Date());
+
+        db.collection(COLLECTION_SERVICES)
+                .document(service.getServiceId())
+                .set(service, SetOptions.merge())
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Service updated: " + service.getServiceId());
+                    callback.onSuccess(service);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener un servicio por su ID
+     */
+    public void getServiceById(String serviceId, FirestoreCallback callback) {
+        if (serviceId == null || serviceId.trim().isEmpty()) {
+            callback.onFailure(new Exception("serviceId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_SERVICES)
+                .document(serviceId)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        callback.onFailure(new Exception("Service not found"));
+                        return;
+                    }
+                    com.example.droidtour.models.Service service = doc.toObject(com.example.droidtour.models.Service.class);
+                    if (service != null && service.getServiceId() == null) {
+                        service.setServiceId(doc.getId());
+                    }
+                    callback.onSuccess(service);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener todos los servicios de una empresa
+     */
+    public void getServicesByCompany(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_SERVICES)
+                .whereEqualTo("companyId", companyId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<com.example.droidtour.models.Service> services = new ArrayList<>();
+                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                        com.example.droidtour.models.Service service = doc.toObject(com.example.droidtour.models.Service.class);
+                        if (service != null) {
+                            if (service.getServiceId() == null || service.getServiceId().isEmpty()) {
+                                service.setServiceId(doc.getId());
+                            }
+                            services.add(service);
+                        }
+                    }
+                    callback.onSuccess(services);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Eliminar un servicio
+     */
+    public void deleteService(String serviceId, FirestoreCallback callback) {
+        if (serviceId == null || serviceId.trim().isEmpty()) {
+            callback.onFailure(new Exception("serviceId is required"));
+            return;
+        }
+
+        db.collection(COLLECTION_SERVICES)
+                .document(serviceId)
+                .delete()
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Service deleted: " + serviceId);
+                    callback.onSuccess(true);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
     // ==================== NUEVOS MÉTODOS ====================
 
     /**
@@ -1268,9 +1438,21 @@ public class FirestoreManager {
                 ? db.collection(COLLECTION_USERS).document()
                 : db.collection(COLLECTION_USERS).document(user.getUserId());
         user.setUserId(ref.getId());
+        
+        // Log para debugging
+        if (user.getPersonalData() != null && user.getPersonalData().getProfileImageUrl() != null) {
+            Log.d(TAG, "Guardando usuario con imagen URL: " + user.getPersonalData().getProfileImageUrl());
+        }
+        
         ref.set(user, SetOptions.merge())
-                .addOnSuccessListener(unused -> callback.onSuccess(user))
-                .addOnFailureListener(callback::onFailure);
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Usuario creado exitosamente. userId: " + user.getUserId());
+                    callback.onSuccess(user);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error al crear usuario: " + e.getMessage(), e);
+                    callback.onFailure(e);
+                });
     }
 
     public void createOrUpdateUser(User user, FirestoreCallback callback) {
@@ -1528,123 +1710,6 @@ public class FirestoreManager {
         
         docRef.set(data)
                 .addOnSuccessListener(unused -> callback.onSuccess(message))
-                .addOnFailureListener(callback::onFailure);
-    }
-
-    // ==================== SERVICES ====================
-
-    /**
-     * Crear un nuevo servicio
-     */
-    public void createService(com.example.droidtour.models.Service service, FirestoreCallback callback) {
-        if (service == null) {
-            callback.onFailure(new Exception("Service is null"));
-            return;
-        }
-        if (service.getName() == null || service.getName().trim().isEmpty()) {
-            callback.onFailure(new Exception("Service name is required"));
-            return;
-        }
-
-        DocumentReference docRef = db.collection(COLLECTION_SERVICES).document();
-        service.setServiceId(docRef.getId());
-        service.setStatus("active");
-
-        docRef.set(service)
-                .addOnSuccessListener(unused -> {
-                    Log.d(TAG, "Service created: " + service.getServiceId());
-                    callback.onSuccess(service);
-                })
-                .addOnFailureListener(callback::onFailure);
-    }
-
-    /**
-     * Obtener servicio por ID
-     */
-    public void getServiceById(String serviceId, FirestoreCallback callback) {
-        if (serviceId == null || serviceId.trim().isEmpty()) {
-            callback.onFailure(new Exception("serviceId is required"));
-            return;
-        }
-
-        db.collection(COLLECTION_SERVICES)
-                .document(serviceId)
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (doc.exists()) {
-                        com.example.droidtour.models.Service service = doc.toObject(com.example.droidtour.models.Service.class);
-                        callback.onSuccess(service);
-                    } else {
-                        callback.onFailure(new Exception("Service not found"));
-                    }
-                })
-                .addOnFailureListener(callback::onFailure);
-    }
-
-    /**
-     * Obtener servicios por empresa
-     */
-    public void getServicesByCompany(String companyId, FirestoreCallback callback) {
-        if (companyId == null || companyId.trim().isEmpty()) {
-            callback.onFailure(new Exception("companyId is required"));
-            return;
-        }
-
-        db.collection(COLLECTION_SERVICES)
-                .whereEqualTo("companyId", companyId)
-                .whereEqualTo("status", "active")
-                .get()
-                .addOnSuccessListener(qs -> {
-                    java.util.List<com.example.droidtour.models.Service> services = new java.util.ArrayList<>();
-                    for (QueryDocumentSnapshot doc : qs) {
-                        com.example.droidtour.models.Service service = doc.toObject(com.example.droidtour.models.Service.class);
-                        if (service != null) {
-                            services.add(service);
-                        }
-                    }
-                    callback.onSuccess(services);
-                })
-                .addOnFailureListener(callback::onFailure);
-    }
-
-    /**
-     * Actualizar servicio
-     */
-    public void updateService(com.example.droidtour.models.Service service, FirestoreCallback callback) {
-        if (service == null || service.getServiceId() == null) {
-            callback.onFailure(new Exception("Service or serviceId is null"));
-            return;
-        }
-
-        db.collection(COLLECTION_SERVICES)
-                .document(service.getServiceId())
-                .set(service, SetOptions.merge())
-                .addOnSuccessListener(unused -> {
-                    Log.d(TAG, "Service updated: " + service.getServiceId());
-                    callback.onSuccess(service);
-                })
-                .addOnFailureListener(callback::onFailure);
-    }
-
-    /**
-     * Eliminar servicio (soft delete)
-     */
-    public void deleteService(String serviceId, FirestoreCallback callback) {
-        if (serviceId == null || serviceId.trim().isEmpty()) {
-            callback.onFailure(new Exception("serviceId is required"));
-            return;
-        }
-
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("status", "deleted");
-
-        db.collection(COLLECTION_SERVICES)
-                .document(serviceId)
-                .update(updates)
-                .addOnSuccessListener(unused -> {
-                    Log.d(TAG, "Service deleted: " + serviceId);
-                    callback.onSuccess(true);
-                })
                 .addOnFailureListener(callback::onFailure);
     }
 

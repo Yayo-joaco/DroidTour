@@ -237,19 +237,35 @@ public class ClientProfileActivity extends AppCompatActivity {
         String photoUrl = null;
         if (user.getPersonalData() != null) {
             photoUrl = user.getPersonalData().getProfileImageUrl();
+            Log.d(TAG, "📸 PersonalData encontrado");
+            Log.d(TAG, "📸 profileImageUrl desde PersonalData: " + photoUrl);
+        } else {
+            Log.w(TAG, "⚠️ PersonalData es null");
         }
 
-        Log.d(TAG, "📸 URL de foto de perfil: " + photoUrl);
+        // También intentar obtener desde getPhotoUrl() (método legacy)
+        if (photoUrl == null || photoUrl.isEmpty()) {
+            photoUrl = user.getPhotoUrl();
+            Log.d(TAG, "📸 Intentando obtener desde getPhotoUrl(): " + photoUrl);
+        }
+
+        Log.d(TAG, "📸 URL final de foto de perfil: " + photoUrl);
+        Log.d(TAG, "📸 ¿URL es válida? " + (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")));
 
         if (profileImage != null) {
-            Glide.with(ClientProfileActivity.this)
-                    .load(photoUrl)
-                    .placeholder(R.drawable.ic_avatar_24)
-                    .error(R.drawable.ic_avatar_24)
-                    .circleCrop()
-                    .into(profileImage);
-
-            Log.d(TAG, "✅ Foto de perfil cargada con Glide");
+            if (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")) {
+                Log.d(TAG, "📸 Cargando imagen con Glide desde URL: " + photoUrl);
+                Glide.with(ClientProfileActivity.this)
+                        .load(photoUrl)
+                        .placeholder(R.drawable.ic_avatar_24)
+                        .error(R.drawable.ic_avatar_24)
+                        .circleCrop()
+                        .into(profileImage);
+                Log.d(TAG, "✅ Glide configurado para cargar imagen");
+            } else {
+                Log.w(TAG, "⚠️ URL de imagen no válida o vacía, usando placeholder");
+                profileImage.setImageResource(R.drawable.ic_avatar_24);
+            }
         } else {
             Log.e(TAG, "❌ profileImage es null, no se puede cargar la foto");
         }

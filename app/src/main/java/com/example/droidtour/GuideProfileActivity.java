@@ -6,10 +6,13 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.User;
@@ -28,6 +31,7 @@ import java.util.Map;
 public class GuideProfileActivity extends AppCompatActivity {
 
     private static final String TAG = "GuideProfileActivity";
+    private ImageView profileImage;
     private TextView tvUserName, tvUserEmail, tvUserRole;
     private TextView tvDocumentType, tvDocumentNumber, tvPhone;
     private ChipGroup chipGroupLanguages;
@@ -114,6 +118,7 @@ public class GuideProfileActivity extends AppCompatActivity {
 
     private void initializeViews() {
         // Header
+        profileImage = findViewById(R.id.profile_image);
         tvUserName = findViewById(R.id.tv_user_name);
         tvUserEmail = findViewById(R.id.tv_user_email);
         tvUserRole = findViewById(R.id.tv_user_role);
@@ -137,6 +142,11 @@ public class GuideProfileActivity extends AppCompatActivity {
 
         // FAB
         fabEdit = findViewById(R.id.fab_edit);
+        
+        // Placeholder inicial para la imagen
+        if (profileImage != null) {
+            profileImage.setImageResource(R.drawable.ic_avatar_24);
+        }
     }
 
     private void loadUserData() {
@@ -205,6 +215,43 @@ public class GuideProfileActivity extends AppCompatActivity {
             tvDocumentType.setText("DNI");
             tvDocumentNumber.setText("N/A");
             tvPhone.setText("N/A");
+        }
+        
+        // 📸 CARGAR FOTO DE PERFIL DESDE FIREBASE
+        String photoUrl = null;
+        if (user.getPersonalData() != null) {
+            photoUrl = user.getPersonalData().getProfileImageUrl();
+            Log.d(TAG, "📸 PersonalData encontrado");
+            Log.d(TAG, "📸 profileImageUrl desde PersonalData: " + photoUrl);
+        } else {
+            Log.w(TAG, "⚠️ PersonalData es null");
+        }
+
+        // También intentar obtener desde getPhotoUrl() (método legacy)
+        if (photoUrl == null || photoUrl.isEmpty()) {
+            photoUrl = user.getPhotoUrl();
+            Log.d(TAG, "📸 Intentando obtener desde getPhotoUrl(): " + photoUrl);
+        }
+
+        Log.d(TAG, "📸 URL final de foto de perfil: " + photoUrl);
+        Log.d(TAG, "📸 ¿URL es válida? " + (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")));
+
+        if (profileImage != null) {
+            if (photoUrl != null && !photoUrl.isEmpty() && photoUrl.startsWith("http")) {
+                Log.d(TAG, "📸 Cargando imagen con Glide desde URL: " + photoUrl);
+                Glide.with(GuideProfileActivity.this)
+                        .load(photoUrl)
+                        .placeholder(R.drawable.ic_avatar_24)
+                        .error(R.drawable.ic_avatar_24)
+                        .transform(new CircleCrop())
+                        .into(profileImage);
+                Log.d(TAG, "✅ Glide configurado para cargar imagen");
+            } else {
+                Log.w(TAG, "⚠️ URL de imagen no válida o vacía, usando placeholder");
+                profileImage.setImageResource(R.drawable.ic_avatar_24);
+            }
+        } else {
+            Log.e(TAG, "❌ profileImage es null, no se puede cargar la foto");
         }
     }
 

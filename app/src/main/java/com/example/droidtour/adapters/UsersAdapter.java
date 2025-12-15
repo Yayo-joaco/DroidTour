@@ -22,6 +22,8 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
     private OnUserClickListener listener;
     private String currentFilter = "ALL";
     private String currentSearchText = "";
+    // Map para almacenar si un guía ha sido aprobado alguna vez (userId -> approved)
+    private java.util.Map<String, Boolean> guideApprovalStatus = new java.util.HashMap<>();
 
     public interface OnUserClickListener {
         void onUserClick(User user);
@@ -60,6 +62,28 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
         userListFull = new ArrayList<>(newList);
         applyFilter(currentFilter); // Re-aplicar filtro actual
         notifyDataSetChanged();
+    }
+    
+    /**
+     * Establece el estado de aprobación de un guía
+     * @param userId ID del usuario
+     * @param approved true si ha sido aprobado alguna vez, false si nunca ha sido aprobado
+     */
+    public void setGuideApprovalStatus(String userId, boolean approved) {
+        if (userId != null) {
+            guideApprovalStatus.put(userId, approved);
+        }
+    }
+    
+    /**
+     * Obtiene si un guía ha sido aprobado alguna vez
+     * @param userId ID del usuario
+     * @return true si ha sido aprobado, false si nunca ha sido aprobado o no se conoce
+     */
+    public boolean hasGuideBeenApproved(String userId) {
+        if (userId == null) return false;
+        Boolean approved = guideApprovalStatus.get(userId);
+        return approved != null && approved;
     }
 
     public void setFilter(String filter) {
@@ -227,12 +251,13 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
         }
     };
 
-    static class UserViewHolder extends RecyclerView.ViewHolder {
+    class UserViewHolder extends RecyclerView.ViewHolder {
         private TextView tvUserName, tvUserEmail, tvUserType, tvAvatarInitial;
         private ImageView ivUserAvatar;
         private View viewStatusIndicator;
         private com.google.android.material.switchmaterial.SwitchMaterial switchUserStatus;
-        private com.google.android.material.chip.Chip chipStatus; // <-- nuevo
+        private com.google.android.material.chip.Chip chipStatus;
+        private com.google.android.material.button.MaterialButton btnEditUser;
 
         public UserViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -243,7 +268,8 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
             ivUserAvatar = itemView.findViewById(R.id.iv_user_avatar);
             viewStatusIndicator = itemView.findViewById(R.id.view_status_indicator);
             switchUserStatus = itemView.findViewById(R.id.switch_user_status);
-            chipStatus = itemView.findViewById(R.id.chip_status); // inicializar
+            chipStatus = itemView.findViewById(R.id.chip_status);
+            btnEditUser = itemView.findViewById(R.id.btn_edit_user);
         }
 
         public void bind(User user, OnUserClickListener listener) {
@@ -258,15 +284,8 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
             // Estado en línea (placeholder)
             setupOnlineStatus(user);
 
-            // Mostrar chip de estado solo para GUIDEs con status pending
-            if ("GUIDE".equals(user.getUserType()) && "pending".equalsIgnoreCase(user.getStatus())) {
-                chipStatus.setVisibility(View.VISIBLE);
-                chipStatus.setText("Pendiente");
-                chipStatus.setChipBackgroundColorResource(R.color.notification_orange);
-                chipStatus.setTextColor(itemView.getContext().getResources().getColor(R.color.white));
-            } else {
-                chipStatus.setVisibility(View.GONE);
-            }
+            // Configurar chip "Pendiente" y botón "Editar" para guías
+            setupGuidePendingStatus(user);
 
             // Switch de estado
             setupStatusSwitch(user, listener);
@@ -274,20 +293,57 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
             // Listeners de clic
             setupClickListeners(user, listener);
         }
+        
+        /**
+         * Configura el chip "Pendiente" y el botón "Editar" para guías
+         * El chip "Pendiente" solo aparece si:
+         * - Es GUIDE
+         * - status = "pending"
+         * - Nunca ha sido aprobado (approved = false en user_roles)
+         */
+        private void setupGuidePendingStatus(User user) {
+            if ("GUIDE".equals(user.getUserType()) && 
+                "pending".equalsIgnoreCase(user.getStatus()) &&
+                !UsersAdapter.this.hasGuideBeenApproved(user.getUserId())) {
+                // Mostrar chip "Pendiente" y ocultar botón "Editar"
+                chipStatus.setVisibility(View.VISIBLE);
+                chipStatus.setText("Pendiente");
+                chipStatus.setChipBackgroundColorResource(R.color.notification_orange);
+                chipStatus.setTextColor(itemView.getContext().getResources().getColor(R.color.white));
+                btnEditUser.setVisibility(View.GONE);
+            } else {
+                // Ocultar chip "Pendiente" y mostrar botón "Editar"
+                chipStatus.setVisibility(View.GONE);
+                btnEditUser.setVisibility(View.VISIBLE);
+            }
+        }
 
         private void setupUserAvatar(User user) {
             String name = user.getFullName() != null ? user.getFullName() : "";
             String initial = name.isEmpty() ? "?" : name.substring(0, 1).toUpperCase();
             tvAvatarInitial.setText(initial);
 
-            // Cargar foto si existe
-            String photo = user.getPhotoUrl();
+            // Cargar foto si existe - verificar tanto getPhotoUrl() como directamente personalData
+            String photo = null;
+            if (user.getPersonalData() != null) {
+                photo = user.getPersonalData().getProfileImageUrl();
+            }
+            // Fallback al método legacy si no se encuentra en personalData
+            if ((photo == null || photo.isEmpty()) && user.getPhotoUrl() != null) {
+                photo = user.getPhotoUrl();
+            }
+            
             if (photo != null && !photo.isEmpty()) {
+                android.util.Log.d("UsersAdapter", "Cargando avatar desde URL: " + photo);
                 Glide.with(itemView.getContext())
                         .load(photo)
+                        .placeholder(R.drawable.ic_avatar_24)
+                        .error(R.drawable.ic_avatar_24)
+                        .circleCrop()
                         .into(ivUserAvatar);
                 tvAvatarInitial.setVisibility(View.GONE);
             } else {
+                android.util.Log.d("UsersAdapter", "No hay URL de imagen para usuario: " + user.getEmail());
                 tvAvatarInitial.setVisibility(View.VISIBLE);
                 ivUserAvatar.setImageDrawable(null);
             }

@@ -66,19 +66,7 @@
             app:layout_constraintEnd_toEndOf="@id/card_avatar"
             app:layout_constraintBottom_toBottomOf="@id/card_avatar" />
 
-        <!-- Chip de estado (texto) para Guía de Turismo -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone"
-            android:textSize="10sp"
-            app:chipMinHeight="24dp"
-            app:chipStrokeWidth="0dp"
-            tools:text="Pendiente"
-            app:layout_constraintStart_toStartOf="@id/tv_user_name"
-            app:layout_constraintTop_toBottomOf="@id/tv_user_email"
-            app:layout_constraintEnd_toStartOf="@id/btn_delete_user" />
+        <!-- Chip de estado (texto) para Guía de Turismo - Movido a posición del botón Editar -->
 
         <!-- Nombre del usuario -->
         <TextView
@@ -240,6 +228,23 @@
                 app:cornerRadius="8dp"
                 app:backgroundTint="@color/primary_light" />
 
+            <!-- Chip de estado Pendiente (reemplaza botón Editar cuando está pendiente) -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_status"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:visibility="gone"
+                android:text="Pendiente"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:textAlignment="center"
+                app:chipMinHeight="40dp"
+                app:chipStrokeWidth="0dp"
+                app:chipBackgroundColor="@color/notification_orange"
+                android:textColor="@color/white" />
 
         </LinearLayout>
 

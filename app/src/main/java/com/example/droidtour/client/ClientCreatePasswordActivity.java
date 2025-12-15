@@ -1,6 +1,7 @@
 package com.example.droidtour.client;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -14,10 +15,12 @@ import com.example.droidtour.utils.PreferencesManager;
 import com.example.droidtour.models.User;
 import com.example.droidtour.models.UserSession;
 import com.example.droidtour.firebase.FirestoreManager;
+import com.example.droidtour.utils.ImageUploadManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.storage.UploadTask;
 import android.os.Build;
 import android.provider.Settings;
 
@@ -199,29 +202,47 @@ public class ClientCreatePasswordActivity extends AppCompatActivity {
                 telefono
         );
 
-        // Agregar foto si existe
-        if (photoUri != null && !photoUri.isEmpty()) {
-            personalData.setProfileImageUrl(photoUri);
-        }
-
         newUser.setPersonalData(personalData);
 
-        // 4. GUARDAR EN FIRESTORE usando FirestoreManager (DESCOMENTADO)
+        // 4. SUBIR IMAGEN SI EXISTE Y LUEGO GUARDAR EN FIRESTORE
         FirestoreManager firestoreManager = FirestoreManager.getInstance();
-        firestoreManager.upsertUser(newUser, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                Log.d(TAG, "Usuario guardado exitosamente en Firestore");
-                // 5. GUARDAR EN PREFERENCES
-                saveToPreferencesManager(userId);
-            }
+        
+        if (photoUri != null && !photoUri.isEmpty()) {
+            // Convertir String a Uri
+            Uri imageUri = Uri.parse(photoUri);
+            
+            // Usar registerClient que maneja la subida de imagen correctamente
+            firestoreManager.registerClient(newUser, imageUri, null, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Log.d(TAG, "Usuario con imagen guardado exitosamente en Firestore");
+                    // 5. GUARDAR EN PREFERENCES
+                    saveToPreferencesManager(userId);
+                }
 
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error al guardar usuario en Firestore: " + e.getMessage());
-                handleRegistrationError("Error al guardar datos: " + e.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error al guardar usuario con imagen en Firestore: " + e.getMessage());
+                    handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                }
+            });
+        } else {
+            // No hay imagen, guardar directamente
+            firestoreManager.upsertUser(newUser, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Log.d(TAG, "Usuario guardado exitosamente en Firestore");
+                    // 5. GUARDAR EN PREFERENCES
+                    saveToPreferencesManager(userId);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error al guardar usuario en Firestore: " + e.getMessage());
+                    handleRegistrationError("Error al guardar datos: " + e.getMessage());
+                }
+            });
+        }
     }
 
     private void saveToPreferencesManager(String userId) {

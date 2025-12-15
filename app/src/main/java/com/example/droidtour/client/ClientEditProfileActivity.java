@@ -7,12 +7,15 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide;
 import com.example.droidtour.R;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.User;
@@ -33,11 +36,13 @@ public class ClientEditProfileActivity extends AppCompatActivity {
     private static final String TAG = "EditProfileActivity";
     private static final int PICK_IMAGE_REQUEST = 1;
 
-    private TextInputEditText etPhone, etEmail, etFirstName, etLastName;
+    private TextInputEditText etPhoneNumber; // Este es solo para mostrar el número local
+    private TextInputEditText etEmail, etFirstName, etLastName;
     private TextInputEditText etBirthDate, etDocumentType, etDocumentNumber;
     private CountryCodePicker countryCodePicker;
     private ExtendedFloatingActionButton fabSave;
     private ImageButton btnEditPhoto;
+    private ImageView profileImage;
 
     private PreferencesManager prefsManager;
     private FirestoreManager firestoreManager;
@@ -74,8 +79,12 @@ public class ClientEditProfileActivity extends AppCompatActivity {
 
     private void initializeViews() {
         // Campos editables
-        etPhone = findViewById(R.id.et_phone);
-        countryCodePicker = findViewById(R.id.ccp);
+        etPhoneNumber = findViewById(R.id.et_phone); // Este es el TextInputEditText
+        countryCodePicker = findViewById(R.id.ccp); // Este es el CountryCodePicker separado
+
+        // IMPORTANTE: Asignar el EditText al CountryCodePicker
+        // Esto es lo que falta y causa el NullPointerException
+        countryCodePicker.registerCarrierNumberEditText(etPhoneNumber);
 
         // Campos de solo lectura
         etEmail = findViewById(R.id.et_email);
@@ -88,6 +97,9 @@ public class ClientEditProfileActivity extends AppCompatActivity {
         // Botones
         fabSave = findViewById(R.id.fab_save);
         btnEditPhoto = findViewById(R.id.btn_edit_photo_small);
+
+        // Imagen de perfil
+        profileImage = findViewById(R.id.profile_image);
     }
 
     /**
@@ -131,23 +143,36 @@ public class ClientEditProfileActivity extends AppCompatActivity {
         // Guardar referencia al usuario
         this.currentUser = user;
 
+        // Cargar imagen de perfil si existe
+        String photoUrl = null;
+        if (user.getPersonalData() != null) {
+            photoUrl = user.getPersonalData().getProfileImageUrl();
+        }
+
+        if (profileImage != null) {
+            Glide.with(this)
+                    .load(photoUrl)
+                    .placeholder(R.drawable.ic_avatar_24)
+                    .error(R.drawable.ic_avatar_24)
+                    .circleCrop()
+                    .into(profileImage);
+        }
+
         // Campos editables - Teléfono
         if (user.getPersonalData() != null) {
             String phone = user.getPersonalData().getPhoneNumber();
             if (phone != null && !phone.isEmpty()) {
-                // Separar código de país y número si es necesario
-                if (phone.startsWith("+")) {
-                    try {
-                        // El CountryCodePicker puede manejar el formato internacional
-                        countryCodePicker.setFullNumber(phone);
-                        // Extraer solo el número local para el campo de texto
-                        String localNumber = phone.substring(phone.indexOf(" ") + 1);
-                        etPhone.setText(formatPhoneNumber(localNumber));
-                    } catch (Exception e) {
-                        etPhone.setText(formatPhoneNumber(phone));
-                    }
-                } else {
-                    etPhone.setText(formatPhoneNumber(phone));
+                try {
+                    // Configurar el CountryCodePicker con el número completo
+                    countryCodePicker.setFullNumber(phone);
+
+                    // Extraer solo el número local para el campo de texto
+                    String localNumber = extractLocalNumber(phone);
+                    etPhoneNumber.setText(formatPhoneNumber(localNumber));
+                } catch (Exception e) {
+                    Log.e(TAG, "Error configurando número de teléfono: " + e.getMessage());
+                    // Si falla, mostrar el número tal cual
+                    etPhoneNumber.setText(formatPhoneNumber(phone));
                 }
             }
         }
@@ -180,6 +205,22 @@ public class ClientEditProfileActivity extends AppCompatActivity {
     }
 
     /**
+     * Extrae solo la parte local del número telefónico
+     */
+    private String extractLocalNumber(String fullNumber) {
+        if (fullNumber == null || fullNumber.isEmpty()) {
+            return "";
+        }
+
+        // Remover el código de país si existe
+        if (fullNumber.contains(" ")) {
+            return fullNumber.substring(fullNumber.indexOf(" ") + 1);
+        }
+
+        return fullNumber;
+    }
+
+    /**
      * 🔥 Datos de respaldo desde PreferencesManager
      */
     private void showFallbackData() {
@@ -192,7 +233,17 @@ public class ClientEditProfileActivity extends AppCompatActivity {
 
         String phone = prefsManager.getUserPhone();
         if (phone != null && !phone.isEmpty()) {
-            etPhone.setText(phone);
+            try {
+                countryCodePicker.setFullNumber(phone);
+                String localNumber = extractLocalNumber(phone);
+                etPhoneNumber.setText(formatPhoneNumber(localNumber));
+            } catch (Exception e) {
+                Log.e(TAG, "Error configurando teléfono de respaldo: " + e.getMessage());
+            }
+        }
+
+        if (profileImage != null) {
+            profileImage.setImageResource(R.drawable.ic_avatar_24);
         }
     }
 
@@ -212,7 +263,7 @@ public class ClientEditProfileActivity extends AppCompatActivity {
             Log.d(TAG, "País seleccionado: " + countryCodePicker.getSelectedCountryName() +
                     " Código: " + countryCodePicker.getSelectedCountryCodeWithPlus());
         });
-        
+
         setupPhoneFormatter();
     }
 
@@ -235,7 +286,7 @@ public class ClientEditProfileActivity extends AppCompatActivity {
     }
 
     private void setupPhoneFormatter() {
-        etPhone.addTextChangedListener(new android.text.TextWatcher() {
+        etPhoneNumber.addTextChangedListener(new android.text.TextWatcher() {
             private boolean isFormatting = false;
 
             @Override
@@ -250,10 +301,10 @@ public class ClientEditProfileActivity extends AppCompatActivity {
 
                 isFormatting = true;
                 String text = s.toString().replaceAll("\\s+", ""); // Remover espacios
-                
+
                 // Solo permitir dígitos
                 text = text.replaceAll("[^0-9]", "");
-                
+
                 // Formatear con espacios cada 3 dígitos
                 StringBuilder formatted = new StringBuilder();
                 for (int i = 0; i < text.length(); i++) {
@@ -262,19 +313,19 @@ public class ClientEditProfileActivity extends AppCompatActivity {
                     }
                     formatted.append(text.charAt(i));
                 }
-                
+
                 // Actualizar el texto
-                int cursorPosition = etPhone.getSelectionStart();
+                int cursorPosition = etPhoneNumber.getSelectionStart();
                 int lengthBefore = s.length();
                 s.clear();
                 s.append(formatted.toString());
-                
+
                 // Ajustar la posición del cursor
                 int lengthAfter = formatted.length();
                 int cursorOffset = lengthAfter - lengthBefore;
                 int newCursorPosition = Math.max(0, Math.min(formatted.length(), cursorPosition + cursorOffset));
-                etPhone.setSelection(newCursorPosition);
-                
+                etPhoneNumber.setSelection(newCursorPosition);
+
                 isFormatting = false;
             }
         });
@@ -297,6 +348,16 @@ public class ClientEditProfileActivity extends AppCompatActivity {
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             selectedImageUri = data.getData();
             Toast.makeText(this, "Imagen seleccionada", Toast.LENGTH_SHORT).show();
+
+            // Previsualizar la imagen seleccionada
+            if (profileImage != null && selectedImageUri != null) {
+                Glide.with(this)
+                        .load(selectedImageUri)
+                        .placeholder(R.drawable.ic_avatar_24)
+                        .error(R.drawable.ic_avatar_24)
+                        .circleCrop()
+                        .into(profileImage);
+            }
         }
     }
 
@@ -321,7 +382,12 @@ public class ClientEditProfileActivity extends AppCompatActivity {
         User updatedUser = createUpdatedUser();
 
         if (updatedUser != null) {
-            saveProfileToFirestore(userId, updatedUser);
+            if (selectedImageUri != null) {
+                // Si se seleccionó nueva imagen, subirla y guardar todo junto
+                saveProfileWithImage(userId, updatedUser, selectedImageUri);
+            } else {
+                saveProfileToFirestore(userId, updatedUser);
+            }
         }
     }
 
@@ -381,33 +447,47 @@ public class ClientEditProfileActivity extends AppCompatActivity {
      * 🔥 Obtener número de teléfono completo con código de país
      */
     private String getFullPhoneNumber() {
-        String localNumber = etPhone.getText().toString().trim();
-        if (localNumber.isEmpty()) {
+        if (countryCodePicker == null || etPhoneNumber == null) {
             return null;
         }
 
-        // CountryCodePicker ya incluye el código del país
-        return countryCodePicker.getFullNumberWithPlus();
+        try {
+            String localNumber = etPhoneNumber.getText().toString().trim().replaceAll("\\s+", "");
+
+            if (localNumber.isEmpty()) {
+                return null;
+            }
+
+            // Construir manualmente el número completo
+            String countryCode = countryCodePicker.getSelectedCountryCode();
+            if (countryCode != null && !countryCode.isEmpty()) {
+                return "+" + countryCode + " " + localNumber;
+            }
+
+            return null;
+        } catch (Exception e) {
+            Log.e(TAG, "Error obteniendo número de teléfono: " + e.getMessage());
+            return null;
+        }
     }
 
     /**
      * 🔥 Validar campos del formulario
      */
     private boolean validateFields() {
-        String phone = etPhone.getText().toString().trim();
+        String localNumber = etPhoneNumber.getText().toString().trim().replaceAll("\\s+", "");
 
         // Validar teléfono (opcional)
-        if (!phone.isEmpty()) {
-            // Validar que el número tenga exactamente 9 dígitos (solo el número local, sin código de país)
-            String telefonoSinEspacios = phone.replaceAll("\\s+", "");
-            if (telefonoSinEspacios.length() != 9) {
-                etPhone.setError("El número de teléfono debe tener 9 dígitos");
+        if (!localNumber.isEmpty()) {
+            // Validar que el número tenga exactamente 9 dígitos
+            if (localNumber.length() != 9) {
+                etPhoneNumber.setError("El número de teléfono debe tener 9 dígitos");
                 return false;
             }
 
             // Validar que solo contenga dígitos
-            if (!telefonoSinEspacios.matches("\\d{9}")) {
-                etPhone.setError("El número de teléfono solo debe contener dígitos");
+            if (!localNumber.matches("\\d{9}")) {
+                etPhoneNumber.setError("El número de teléfono solo debe contener dígitos");
                 return false;
             }
         }
@@ -447,6 +527,39 @@ public class ClientEditProfileActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * 🔥 Guardar cambios incluyendo imagen (sube imagen y guarda user)
+     */
+    private void saveProfileWithImage(String userId, User updatedUser, Uri imageUri) {
+        // registerClient maneja la subida de la imagen (desde Uri) y guarda la URL en el documento
+        firestoreManager.registerClient(updatedUser, imageUri, null, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Log.d(TAG, "✅ Perfil con imagen actualizado exitosamente");
+                Toast.makeText(ClientEditProfileActivity.this, "Perfil actualizado", Toast.LENGTH_SHORT).show();
+
+                // Actualizar PreferencesManager si el teléfono cambió
+                String fullPhoneNumber = getFullPhoneNumber();
+                if (fullPhoneNumber != null && !fullPhoneNumber.isEmpty()) {
+                    prefsManager.saveUserPhone(fullPhoneNumber);
+                }
+
+                // Actualizar referencia local
+                currentUser = (User) result;
+
+                // Devolver resultado a ClientProfileActivity
+                setResult(RESULT_OK);
+                finish();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error actualizando perfil con imagen: " + e.getMessage(), e);
+                Toast.makeText(ClientEditProfileActivity.this, "Error guardando cambios: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
@@ -472,23 +585,20 @@ public class ClientEditProfileActivity extends AppCompatActivity {
     private boolean hasUnsavedChanges() {
         // Verificar si el teléfono cambió
         if (currentUser != null && currentUser.getPersonalData() != null) {
-            String currentPhone = etPhone.getText().toString().trim();
+            String currentPhone = getFullPhoneNumber();
             String originalPhone = currentUser.getPersonalData().getPhoneNumber();
 
-            // Normalizar números para comparación
-            if (originalPhone != null && originalPhone.startsWith("+")) {
-                try {
-                    // Extraer solo el número local del original
-                    String originalLocal = originalPhone.substring(originalPhone.indexOf(" ") + 1);
-                    if (!originalLocal.equals(currentPhone)) {
-                        return true;
-                    }
-                } catch (Exception e) {
-                    // Si hay error en el parsing, comparar directamente
-                    if (!originalPhone.equals(getFullPhoneNumber())) {
-                        return true;
-                    }
+            if (currentPhone != null && originalPhone != null) {
+                // Normalizar números para comparación (quitar espacios)
+                String normalizedCurrent = currentPhone.replaceAll("\\s+", "");
+                String normalizedOriginal = originalPhone.replaceAll("\\s+", "");
+
+                if (!normalizedCurrent.equals(normalizedOriginal)) {
+                    return true;
                 }
+            } else if (currentPhone != null || originalPhone != null) {
+                // Uno es null y el otro no
+                return true;
             }
         }
 

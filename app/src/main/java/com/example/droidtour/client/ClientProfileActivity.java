@@ -4,13 +4,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide;
 import com.example.droidtour.LoginActivity;
 import com.example.droidtour.R;
 import com.example.droidtour.firebase.FirestoreManager;
@@ -26,14 +27,16 @@ import java.util.Locale;
 public class ClientProfileActivity extends AppCompatActivity {
 
     private static final String TAG = "ClientProfileActivity";
+    private static final int EDIT_PROFILE_REQUEST = 1;
 
+    private ImageView profileImage;
     private TextView tvUserName, tvUserEmail, tvUserRole;
-    private TextView tvFirstName, tvLastName, tvBirthDate; // NUEVOS CAMPOS
+    private TextView tvFirstName, tvLastName, tvBirthDate;
     private TextView tvDocumentType, tvDocumentNumber, tvPhone;
     private TextView tvToursCount, tvRating, tvMemberSince;
     private CardView cardLanguages;
     private FloatingActionButton fabEdit;
-    private View btnEditPhoto; // usar ImageView existente 'profile_image' como botón editar
+    private View btnEditPhoto;
 
     private PreferencesManager prefsManager;
     private FirestoreManager firestoreManager;
@@ -56,6 +59,22 @@ public class ClientProfileActivity extends AppCompatActivity {
         hideLanguagesSection();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Recargar datos cuando se regresa a esta pantalla (por si editó el perfil)
+        loadUserDataFromFirestore();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == EDIT_PROFILE_REQUEST && resultCode == RESULT_OK) {
+            // Recargar datos después de editar el perfil
+            loadUserDataFromFirestore();
+        }
+    }
+
     private void setupToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -67,10 +86,10 @@ public class ClientProfileActivity extends AppCompatActivity {
 
     private void initializeViews() {
         // Header
+        profileImage = findViewById(R.id.profile_image);
         tvUserName = findViewById(R.id.tv_user_name);
         tvUserEmail = findViewById(R.id.tv_user_email);
         tvUserRole = findViewById(R.id.tv_user_role);
-
 
         // Información personal - NUEVOS CAMPOS
         tvFirstName = findViewById(R.id.tv_first_name);
@@ -91,9 +110,13 @@ public class ClientProfileActivity extends AppCompatActivity {
         // FAB
         fabEdit = findViewById(R.id.fab_edit);
 
-        // Botón editar foto (asegurar inicialización)
-        // En el layout no existe btn_edit_photo; usamos el ImageView 'profile_image' como activador
+        // Botón editar foto
         btnEditPhoto = findViewById(R.id.profile_image);
+
+        // Placeholder inicial para la imagen
+        if (profileImage != null) {
+            profileImage.setImageResource(R.drawable.ic_avatar_24);
+        }
     }
 
     /**
@@ -122,7 +145,6 @@ public class ClientProfileActivity extends AppCompatActivity {
         if (userId == null || userId.isEmpty()) {
             Log.e(TAG, "❌ userId es NULL o vacío!");
             Toast.makeText(this, "Error: No se encontró el ID del usuario", Toast.LENGTH_SHORT).show();
-            // Mostrar datos de PreferencesManager como fallback
             showFallbackData();
             return;
         }
@@ -210,6 +232,27 @@ public class ClientProfileActivity extends AppCompatActivity {
             phone = prefsManager.getUserPhone();
         }
         tvPhone.setText(phone != null && !phone.isEmpty() ? phone : "N/A");
+
+        // 📸 CARGAR FOTO DE PERFIL DESDE FIREBASE
+        String photoUrl = null;
+        if (user.getPersonalData() != null) {
+            photoUrl = user.getPersonalData().getProfileImageUrl();
+        }
+
+        Log.d(TAG, "📸 URL de foto de perfil: " + photoUrl);
+
+        if (profileImage != null) {
+            Glide.with(ClientProfileActivity.this)
+                    .load(photoUrl)
+                    .placeholder(R.drawable.ic_avatar_24)
+                    .error(R.drawable.ic_avatar_24)
+                    .circleCrop()
+                    .into(profileImage);
+
+            Log.d(TAG, "✅ Foto de perfil cargada con Glide");
+        } else {
+            Log.e(TAG, "❌ profileImage es null, no se puede cargar la foto");
+        }
     }
 
     /**
@@ -245,6 +288,11 @@ public class ClientProfileActivity extends AppCompatActivity {
         tvPhone.setText(prefsManager.getUserPhone() != null ? prefsManager.getUserPhone() : "N/A");
         tvDocumentType.setText("DNI");
         tvDocumentNumber.setText("N/A");
+
+        // Foto por defecto
+        if (profileImage != null) {
+            profileImage.setImageResource(R.drawable.ic_avatar_24);
+        }
 
         setupClickListeners();
     }
@@ -288,7 +336,7 @@ public class ClientProfileActivity extends AppCompatActivity {
         if (fabEdit != null) {
             fabEdit.setOnClickListener(v -> {
                 Intent editIntent = new Intent(ClientProfileActivity.this, ClientEditProfileActivity.class);
-                startActivityForResult(editIntent, 1); // Usar startActivityForResult para recibir actualizaciones
+                startActivityForResult(editIntent, EDIT_PROFILE_REQUEST);
             });
         }
     }

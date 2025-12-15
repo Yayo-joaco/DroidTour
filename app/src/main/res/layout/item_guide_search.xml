@@ -32,12 +32,13 @@
 
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/img_guide"
-                android:layout_width="72dp"
-                android:layout_height="72dp"
+                android:layout_width="71dp"
+                android:layout_height="71dp"
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_person"
                 app:strokeWidth="2dp"
                 app:strokeColor="@color/primary_light"
+                android:layout_margin="2dp"
                 app:shapeAppearanceOverlay="@style/CircleImageView" />
 
             <!-- Badge de rating -->
@@ -47,8 +48,7 @@
                 android:layout_gravity="bottom|center_horizontal"
                 app:cardElevation="3dp"
                 app:cardCornerRadius="12dp"
-                app:cardBackgroundColor="@color/white"
-                android:layout_marginBottom="-4dp">
+                app:cardBackgroundColor="@color/white">
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -150,11 +150,14 @@
                 android:id="@+id/btn_send_proposal"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
+                app:backgroundTint="@color/primary"
                 android:layout_weight="1"
                 android:text="Hacer Propuesta"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 app:icon="@drawable/ic_send"
+                android:textColor="@color/white"
+                app:iconTint="@color/white"
                 app:iconSize="20dp"
                 app:iconGravity="start"
                 style="@style/Widget.Material3.Button.ElevatedButton" />

@@ -16,7 +16,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.utils.ConversationHelper;
 import com.example.droidtour.utils.PresenceManager;
+import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.MaterialToolbar;
+import android.widget.ImageView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -300,7 +302,59 @@ class AdminClientChatsAdapter extends RecyclerView.Adapter<AdminClientChatsAdapt
             holder.tvUnreadCount.setVisibility(View.GONE);
         }
         
+        // Cargar avatar del cliente desde Firestore
+        loadClientAvatar(holder, client.clientId);
+        
         holder.itemView.setOnClickListener(v -> onClientChatClick.onClick(client));
+    }
+    
+    private void loadClientAvatar(ViewHolder holder, String clientId) {
+        if (clientId == null || clientId.isEmpty() || holder.ivClientAvatar == null) {
+            // Usar placeholder por defecto
+            if (holder.ivClientAvatar != null) {
+                holder.ivClientAvatar.setImageResource(R.drawable.ic_avatar_24);
+            }
+            return;
+        }
+        
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        firestoreManager.getUserById(clientId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                if (result instanceof com.example.droidtour.models.User && holder.ivClientAvatar != null) {
+                    com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                    String photoUrl = null;
+                    
+                    // Intentar obtener desde personalData primero
+                    if (user.getPersonalData() != null) {
+                        photoUrl = user.getPersonalData().getProfileImageUrl();
+                    }
+                    // Fallback al método legacy
+                    if ((photoUrl == null || photoUrl.isEmpty()) && user.getPhotoUrl() != null) {
+                        photoUrl = user.getPhotoUrl();
+                    }
+                    
+                    if (photoUrl != null && !photoUrl.isEmpty()) {
+                        Glide.with(holder.ivClientAvatar.getContext())
+                                .load(photoUrl)
+                                .placeholder(R.drawable.ic_avatar_24)
+                                .error(R.drawable.ic_avatar_24)
+                                .circleCrop()
+                                .into(holder.ivClientAvatar);
+                    } else {
+                        holder.ivClientAvatar.setImageResource(R.drawable.ic_avatar_24);
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // Usar placeholder por defecto si falla
+                if (holder.ivClientAvatar != null) {
+                    holder.ivClientAvatar.setImageResource(R.drawable.ic_avatar_24);
+                }
+            }
+        });
     }
 
     @Override
@@ -310,6 +364,7 @@ class AdminClientChatsAdapter extends RecyclerView.Adapter<AdminClientChatsAdapt
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvClientName, tvLastMessage, tvTimestamp, tvUnreadCount;
+        ImageView ivClientAvatar;
 
         ViewHolder(View view) {
             super(view);
@@ -317,6 +372,7 @@ class AdminClientChatsAdapter extends RecyclerView.Adapter<AdminClientChatsAdapt
             tvLastMessage = view.findViewById(R.id.tv_last_message);
             tvTimestamp = view.findViewById(R.id.tv_timestamp);
             tvUnreadCount = view.findViewById(R.id.tv_unread_count);
+            ivClientAvatar = view.findViewById(R.id.img_client_avatar);
         }
     }
 }

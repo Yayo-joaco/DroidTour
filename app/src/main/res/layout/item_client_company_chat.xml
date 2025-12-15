@@ -30,11 +30,12 @@
             app:cardBackgroundColor="#F0F4F8">
 
             <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
+                android:id="@+id/iv_company_avatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:src="@drawable/ic_mountain"
-                android:layout_gravity="center"
-                app:tint="#4A90E2" />
+                android:scaleType="centerCrop"
+                android:layout_gravity="center" />
 
         </androidx.cardview.widget.CardView>
 

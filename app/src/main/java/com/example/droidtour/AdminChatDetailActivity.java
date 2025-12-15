@@ -17,6 +17,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.utils.ChatManagerRealtime;
 import com.example.droidtour.utils.PresenceManager;
 import com.example.droidtour.models.Message;
+import com.example.droidtour.firebase.FirestoreManager;
+import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
 import android.view.inputmethod.InputMethodManager;
@@ -37,6 +39,7 @@ public class AdminChatDetailActivity extends AppCompatActivity {
     private com.example.droidtour.utils.PreferencesManager prefsManager;
     private ChatManagerRealtime chatManager;
     private PresenceManager presenceManager;
+    private FirestoreManager firestoreManager;
     
     private String clientId;
     private String clientName;
@@ -82,10 +85,12 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         // Inicializar managers
         chatManager = new ChatManagerRealtime();
         presenceManager = new PresenceManager();
+        firestoreManager = FirestoreManager.getInstance();
         currentUserId = prefsManager.getUserId();
         currentUserName = prefsManager.getUserName();
         
         loadChatData();
+        loadClientAvatar();
         initializeConversation();
     }
     
@@ -169,12 +174,57 @@ public class AdminChatDetailActivity extends AppCompatActivity {
         
         messagesList = new ArrayList<>();
         messagesAdapter = new AdminChatMessagesAdapter(messagesList);
+        messagesAdapter.setClientId(clientId);
         rvMessages.setAdapter(messagesAdapter);
     }
     
     private void loadChatData() {
         tvClientName.setText(clientName);
         tvClientStatus.setText("En línea");
+    }
+    
+    private void loadClientAvatar() {
+        if (clientId == null || clientId.isEmpty()) {
+            return;
+        }
+        
+        firestoreManager.getUserById(clientId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                if (result instanceof com.example.droidtour.models.User && ivClientAvatar != null) {
+                    com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                    String photoUrl = null;
+                    
+                    // Intentar obtener desde personalData primero
+                    if (user.getPersonalData() != null) {
+                        photoUrl = user.getPersonalData().getProfileImageUrl();
+                    }
+                    // Fallback al método legacy
+                    if ((photoUrl == null || photoUrl.isEmpty()) && user.getPhotoUrl() != null) {
+                        photoUrl = user.getPhotoUrl();
+                    }
+                    
+                    if (photoUrl != null && !photoUrl.isEmpty()) {
+                        Glide.with(AdminChatDetailActivity.this)
+                                .load(photoUrl)
+                                .placeholder(R.drawable.ic_avatar_24)
+                                .error(R.drawable.ic_avatar_24)
+                                .circleCrop()
+                                .into(ivClientAvatar);
+                    } else {
+                        ivClientAvatar.setImageResource(R.drawable.ic_avatar_24);
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // Usar placeholder por defecto si falla
+                if (ivClientAvatar != null) {
+                    ivClientAvatar.setImageResource(R.drawable.ic_avatar_24);
+                }
+            }
+        });
     }
     
     private void initializeConversation() {
@@ -291,7 +341,7 @@ public class AdminChatDetailActivity extends AppCompatActivity {
     
     private AdminChatMessage convertToAdminChatMessage(Message message) {
         boolean isFromClient = message.getSenderId().equals(clientId);
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        SimpleDateFormat sdf = new SimpleDateFormat("hh:mm a", Locale.getDefault());
         String timeStr = "";
         if (message.getTimestamp() != null) {
             timeStr = sdf.format(message.getTimestamp().toDate());
@@ -395,9 +445,16 @@ class AdminChatMessage {
 // Adaptador para los mensajes del chat del administrador
 class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAdapter.MessageViewHolder> {
     private List<AdminChatMessage> messages;
+    private String clientId;
+    private FirestoreManager firestoreManager;
 
     public AdminChatMessagesAdapter(List<AdminChatMessage> messages) {
         this.messages = messages;
+        this.firestoreManager = FirestoreManager.getInstance();
+    }
+    
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
     }
 
     @NonNull
@@ -421,13 +478,21 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
             if (holder.tvIncomingTime != null) {
                 holder.tvIncomingTime.setText(message.timestamp);
             }
+            
+            // Cargar avatar del cliente en el mensaje
+            if (holder.ivCompanyAvatar != null && clientId != null && !clientId.isEmpty()) {
+                loadClientAvatarInMessage(holder, clientId);
+            }
         } else {
             // Mensaje del administrador (mostrar como mensaje de usuario en el layout)
             holder.layoutIncoming.setVisibility(View.GONE);
             holder.layoutOutgoing.setVisibility(View.VISIBLE);
 
             holder.tvOutgoingMessage.setText(message.message);
-            // No hay campo de tiempo para mensajes salientes en este layout
+            // Establecer el tiempo del mensaje
+            if (holder.tvOutgoingTime != null) {
+                holder.tvOutgoingTime.setText(message.timestamp);
+            }
         }
     }
 
@@ -441,6 +506,7 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
         TextView tvIncomingMessage, tvIncomingTime;
         TextView tvOutgoingMessage, tvOutgoingTime;
         TextView tvSystemMessage;
+        ImageView ivCompanyAvatar;
 
         public MessageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -453,6 +519,7 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
             tvIncomingMessage = itemView.findViewById(R.id.tv_company_message);
             // ID correcto para el tiempo de mensaje de la empresa
             tvIncomingTime = itemView.findViewById(R.id.tv_company_message_time);
+            ivCompanyAvatar = itemView.findViewById(R.id.iv_company_avatar);
 
             tvOutgoingMessage = itemView.findViewById(R.id.tv_user_message);
             // Campo de tiempo para mensaje de usuario (saliente)
@@ -461,5 +528,49 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
             // No hay tv_system_message en el layout actual
             tvSystemMessage = null;
         }
+    }
+    
+    private void loadClientAvatarInMessage(MessageViewHolder holder, String clientId) {
+        if (firestoreManager == null || holder.ivCompanyAvatar == null) {
+            return;
+        }
+        
+        firestoreManager.getUserById(clientId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                if (result instanceof com.example.droidtour.models.User && holder.ivCompanyAvatar != null) {
+                    com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                    String photoUrl = null;
+                    
+                    // Intentar obtener desde personalData primero
+                    if (user.getPersonalData() != null) {
+                        photoUrl = user.getPersonalData().getProfileImageUrl();
+                    }
+                    // Fallback al método legacy
+                    if ((photoUrl == null || photoUrl.isEmpty()) && user.getPhotoUrl() != null) {
+                        photoUrl = user.getPhotoUrl();
+                    }
+                    
+                    if (photoUrl != null && !photoUrl.isEmpty()) {
+                        Glide.with(holder.ivCompanyAvatar.getContext())
+                                .load(photoUrl)
+                                .placeholder(R.drawable.ic_avatar_24)
+                                .error(R.drawable.ic_avatar_24)
+                                .circleCrop()
+                                .into(holder.ivCompanyAvatar);
+                    } else {
+                        holder.ivCompanyAvatar.setImageResource(R.drawable.ic_avatar_24);
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // Usar placeholder por defecto si falla
+                if (holder.ivCompanyAvatar != null) {
+                    holder.ivCompanyAvatar.setImageResource(R.drawable.ic_avatar_24);
+                }
+            }
+        });
     }
 }

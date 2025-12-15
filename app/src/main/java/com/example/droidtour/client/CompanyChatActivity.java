@@ -17,9 +17,11 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
 import android.widget.ImageView;
 
+import com.bumptech.glide.Glide;
 import com.example.droidtour.utils.ChatManagerRealtime;
 import com.example.droidtour.utils.PresenceManager;
 import com.example.droidtour.models.Message;
+import com.example.droidtour.models.Company;
 import com.example.droidtour.utils.PreferencesManager;
 import com.example.droidtour.firebase.FirestoreManager;
 
@@ -34,6 +36,7 @@ public class CompanyChatActivity extends AppCompatActivity {
     private ImageView ivSendMessage;
     private TextView tvClientName;
     private TextView tvClientStatus;
+    private ImageView ivClientAvatar;
     private CompanyChatAdapter chatAdapter;
     private PreferencesManager prefsManager;
     private ChatManagerRealtime chatManager;
@@ -42,6 +45,7 @@ public class CompanyChatActivity extends AppCompatActivity {
     private String conversationId;
     private String companyId;
     private String companyName;
+    private String companyLogoUrl;
     private String currentUserId;
     private String currentUserName;
 
@@ -72,16 +76,18 @@ public class CompanyChatActivity extends AppCompatActivity {
 
         setupToolbar();
         initializeViews();
-        setupRecyclerView();
         setupClickListeners();
         loadCompanyInfo();
 
-        // Inicializar managers
+        // Inicializar managers y obtener userId PRIMERO
         chatManager = new ChatManagerRealtime();
         presenceManager = new PresenceManager();
         firestoreManager = FirestoreManager.getInstance();
         currentUserId = prefsManager.getUserId();
         currentUserName = prefsManager.getUserName();
+        
+        // Configurar RecyclerView DESPUÉS de tener currentUserId
+        setupRecyclerView();
 
         // Obtener companyId del intent
         companyId = getIntent().getStringExtra("company_id");
@@ -110,6 +116,7 @@ public class CompanyChatActivity extends AppCompatActivity {
         ivSendMessage = findViewById(R.id.iv_send_message);
         tvClientName = findViewById(R.id.tv_client_name);
         tvClientStatus = findViewById(R.id.tv_client_status);
+        ivClientAvatar = findViewById(R.id.iv_client_avatar);
         // Mostrar estado por defecto
         if (tvClientStatus != null) tvClientStatus.setText("En línea");
     }
@@ -131,12 +138,59 @@ public class CompanyChatActivity extends AppCompatActivity {
             tvClientName.setText(companyName);
             if (getSupportActionBar() != null) getSupportActionBar().setTitle("Chat - " + companyName);
         }
+        
+        // El logo se cargará en initializeConversation() cuando tengamos el companyId
+    }
+    
+    private void loadCompanyLogo() {
+        firestoreManager.getCompanyById(companyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                if (result instanceof Company) {
+                    Company company = (Company) result;
+                    companyLogoUrl = company.getLogoUrl();
+                    
+                    // Actualizar el logo en el header
+                    if (ivClientAvatar != null) {
+                        if (companyLogoUrl != null && !companyLogoUrl.isEmpty()) {
+                            Glide.with(CompanyChatActivity.this)
+                                    .load(companyLogoUrl)
+                                    .placeholder(R.drawable.ic_avatar_24)
+                                    .error(R.drawable.ic_avatar_24)
+                                    .circleCrop()
+                                    .into(ivClientAvatar);
+                        } else {
+                            ivClientAvatar.setImageResource(R.drawable.ic_avatar_24);
+                        }
+                    }
+                    
+                    // Actualizar el adaptador con el nuevo logoUrl
+                    if (chatAdapter != null) {
+                        chatAdapter.setCompanyLogoUrl(companyLogoUrl);
+                    }
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                // Si falla, usar logo por defecto (ya está en el layout)
+                companyLogoUrl = null;
+                if (ivClientAvatar != null) {
+                    ivClientAvatar.setImageResource(R.drawable.ic_avatar_24);
+                }
+            }
+        });
     }
     
     private void initializeConversation() {
         // Si no tenemos companyId, usar un valor por defecto (esto debería mejorarse)
         if (companyId == null || companyId.isEmpty()) {
             companyId = "unknown_company";
+        }
+        
+        // Cargar logo de la empresa si tenemos companyId válido
+        if (companyId != null && !companyId.isEmpty() && !companyId.equals("unknown_company")) {
+            loadCompanyLogo();
         }
         
         // Crear o obtener conversación
@@ -319,9 +373,16 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
 
     private final List<Message> messages = new ArrayList<>();
     private final String currentUserId;
+    private String companyLogoUrl;
 
     CompanyChatAdapter(String currentUserId) {
         this.currentUserId = currentUserId;
+    }
+    
+    public void setCompanyLogoUrl(String logoUrl) {
+        this.companyLogoUrl = logoUrl;
+        // Notificar cambios para actualizar avatares
+        notifyDataSetChanged();
     }
 
     @Override
@@ -342,18 +403,45 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
         TextView tvCompanyTime = holder.itemView.findViewById(R.id.tv_company_message_time);
         TextView tvUserTime = holder.itemView.findViewById(R.id.tv_user_message_time);
 
-        boolean isCurrentUser = currentUserId != null && currentUserId.equals(message.getSenderId());
+        // Verificar si el mensaje es del usuario actual
+        // Comparar tanto por senderId como por senderType para mayor seguridad
+        String senderId = message.getSenderId();
+        String senderType = message.getSenderType();
+        boolean isCurrentUser = (currentUserId != null && senderId != null && currentUserId.equals(senderId)) ||
+                                (senderType != null && senderType.equals("CLIENT"));
 
         if (isCurrentUser) {
+            // Mensaje del cliente (usuario actual) - mostrar a la DERECHA en azul
             if (layoutUserMessage != null) layoutUserMessage.setVisibility(View.VISIBLE);
             if (layoutCompanyMessage != null) layoutCompanyMessage.setVisibility(View.GONE);
             if (tvUserMessage != null) tvUserMessage.setText(message.getMessageText());
-            if (tvUserTime != null && message.getTimestamp() != null) tvUserTime.setText(android.text.format.DateFormat.format("hh:mm a", message.getTimestamp().toDate()));
+            if (tvUserTime != null && message.getTimestamp() != null) {
+                tvUserTime.setText(android.text.format.DateFormat.format("hh:mm a", message.getTimestamp().toDate()));
+            }
         } else {
+            // Mensaje de la empresa - mostrar a la IZQUIERDA en blanco/gris
             if (layoutUserMessage != null) layoutUserMessage.setVisibility(View.GONE);
             if (layoutCompanyMessage != null) layoutCompanyMessage.setVisibility(View.VISIBLE);
             if (tvCompanyMessage != null) tvCompanyMessage.setText(message.getMessageText());
-            if (tvCompanyTime != null && message.getTimestamp() != null) tvCompanyTime.setText(android.text.format.DateFormat.format("hh:mm a", message.getTimestamp().toDate()));
+            if (tvCompanyTime != null && message.getTimestamp() != null) {
+                tvCompanyTime.setText(android.text.format.DateFormat.format("hh:mm a", message.getTimestamp().toDate()));
+            }
+            
+            // Cargar avatar de la empresa (logoUrl)
+            ImageView ivCompanyAvatar = holder.itemView.findViewById(R.id.iv_company_avatar);
+            if (ivCompanyAvatar != null) {
+                if (companyLogoUrl != null && !companyLogoUrl.isEmpty()) {
+                    Glide.with(ivCompanyAvatar.getContext())
+                            .load(companyLogoUrl)
+                            .placeholder(R.drawable.ic_avatar_24)
+                            .error(R.drawable.ic_avatar_24)
+                            .circleCrop()
+                            .into(ivCompanyAvatar);
+                } else {
+                    // Usar placeholder por defecto si no hay logoUrl
+                    ivCompanyAvatar.setImageResource(R.drawable.ic_avatar_24);
+                }
+            }
         }
     }
 

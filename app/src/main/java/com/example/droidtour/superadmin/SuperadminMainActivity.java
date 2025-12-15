@@ -1700,8 +1700,10 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
         
         android.util.Log.d("SuperadminMain", "Iniciando consulta a colección 'users'");
 
-        // Consultar todos los usuarios en la colección
+        // Consultar todos los usuarios EXCEPTO SUPERADMIN
+        // Usar whereNotEqualTo para excluir usuarios SUPERADMIN
         db.collection(FirestoreManager.COLLECTION_USERS)
+                .whereNotEqualTo("userType", "SUPERADMIN")
                 .get()
                 .addOnCompleteListener(task -> {
                     android.util.Log.d("SuperadminMain", "Consulta completada. Éxito: " + task.isSuccessful());
@@ -1711,14 +1713,25 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
                         android.util.Log.d("SuperadminMain", "QuerySnapshot: " + (querySnapshot != null ? "no null" : "null"));
                         
                         if (querySnapshot != null) {
-                            int totalUsers = querySnapshot.size();
-                            android.util.Log.d("SuperadminMain", "Total de documentos obtenidos: " + totalUsers);
+                            // Filtrar también en memoria para asegurar que no haya SUPERADMIN
+                            int totalUsers = 0;
+                            for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                                String userType = doc.getString("userType");
+                                if (userType == null || !userType.equals("SUPERADMIN")) {
+                                    totalUsers++;
+                                }
+                            }
+                            
+                            android.util.Log.d("SuperadminMain", "Total de documentos obtenidos (sin SUPERADMIN): " + totalUsers);
                             
                             // Log adicional: listar IDs de documentos obtenidos
                             if (!querySnapshot.isEmpty()) {
-                                android.util.Log.d("SuperadminMain", "Documentos encontrados:");
+                                android.util.Log.d("SuperadminMain", "Documentos encontrados (sin SUPERADMIN):");
                                 for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
-                                    android.util.Log.d("SuperadminMain", "  - ID: " + doc.getId() + ", Email: " + doc.getString("email"));
+                                    String userType = doc.getString("userType");
+                                    if (userType == null || !userType.equals("SUPERADMIN")) {
+                                        android.util.Log.d("SuperadminMain", "  - ID: " + doc.getId() + ", Email: " + doc.getString("email") + ", Tipo: " + userType);
+                                    }
                                 }
                             } else {
                                 android.util.Log.w("SuperadminMain", "QuerySnapshot está vacío");
@@ -1732,7 +1745,7 @@ public class SuperadminMainActivity extends AppCompatActivity implements Navigat
                             // Formatear número con separador de miles
                             String formattedCount = formatNumber(totalUsers);
                             tvTotalUsers.setText(formattedCount);
-                            android.util.Log.d("SuperadminMain", "Total de usuarios mostrado: " + formattedCount);
+                            android.util.Log.d("SuperadminMain", "Total de usuarios mostrado (sin SUPERADMIN): " + formattedCount);
                         } else {
                             android.util.Log.w("SuperadminMain", "QuerySnapshot es null");
                             tvTotalUsers.setText("0");

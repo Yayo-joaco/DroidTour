@@ -44,4 +44,11 @@
 
     <color name="selected_item_bg">#E3F2FD</color>
     <color name="text_primary">#2C2C2C</color>
+    
+    <!-- Colores para botón FAB Guardar Cambios -->
+    <color name="fab_disabled_background">#E0E0E0</color>
+    <color name="fab_disabled_text">#9E9E9E</color>
+    
+    <!-- Color rojo oscuro para botón eliminar -->
+    <color name="red_dark">#C62828</color>
 </resources>

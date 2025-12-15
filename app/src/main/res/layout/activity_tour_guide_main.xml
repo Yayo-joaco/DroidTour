@@ -27,99 +27,258 @@
             app:navigationIconTint="@color/white" />
 
         <!-- Scrollable Content -->
-        <androidx.core.widget.NestedScrollView
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipe_refresh"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:fillViewport="true"
-            android:clipToPadding="false"
-            android:paddingBottom="20dp">
+            android:layout_height="match_parent">
 
-            <LinearLayout
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/nsv_content"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="14dp">
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:clipToPadding="false"
+                android:paddingBottom="20dp">
 
-                <!-- Status Card -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_guide_status"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="14dp"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="4dp"
-                    app:cardBackgroundColor="@color/green"
-                    app:strokeWidth="1dp"
-                    app:strokeColor="#33FFFFFF">
+                    android:orientation="vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="14dp">
 
+                    <!-- Status Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_guide_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="14dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="4dp"
+                        app:cardBackgroundColor="@color/green"
+                        app:strokeWidth="1dp"
+                        app:strokeColor="#33FFFFFF">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:padding="16dp"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_greeting"
+                                android:tint="@color/white" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="14dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tv_guide_status"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Estado: APROBADO"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/white" />
+
+                                <TextView
+                                    android:id="@+id/tv_guide_rating"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Calificación: ⭐ 4.8 (8 tours)"
+                                    android:textSize="13sp"
+                                    android:textColor="#EFFFFFFF"
+                                    android:layout_marginTop="6dp" />
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Statistics Row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:padding="16dp"
-                        android:gravity="center_vertical">
+                        android:layout_marginBottom="14dp"
+                        android:baselineAligned="false">
 
-                        <ImageView
-                            android:layout_width="50dp"
-                            android:layout_height="50dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_greeting"
-                            android:tint="@color/white" />
-
-                        <LinearLayout
+                        <!-- Earnings Card -->
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:layout_marginStart="14dp"
-                            android:orientation="vertical">
+                            android:layout_marginEnd="8dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="3dp"
+                            app:cardBackgroundColor="@color/white"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#ECECEC"
+                            android:layout_marginStart="3dp"
+                            android:layout_marginHorizontal="3dp"
+                            android:layout_marginVertical="3dp">
 
-                            <TextView
-                                android:id="@+id/tv_guide_status"
-                                android:layout_width="wrap_content"
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Estado: APROBADO"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/white" />
+                                android:orientation="vertical"
+                                android:padding="16dp">
 
-                            <TextView
-                                android:id="@+id/tv_guide_rating"
-                                android:layout_width="wrap_content"
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
+
+                                    <FrameLayout
+                                        android:layout_width="40dp"
+                                        android:layout_height="40dp">
+
+                                        <com.google.android.material.card.MaterialCardView
+                                            android:layout_width="40dp"
+                                            android:layout_height="40dp"
+                                            app:cardCornerRadius="20dp"
+                                            app:cardElevation="0dp"
+                                            app:cardBackgroundColor="#1A4CAF50" />
+
+                                        <ImageView
+                                            android:layout_width="24dp"
+                                            android:layout_height="24dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_peruvian_sol"
+                                            android:tint="@color/green" />
+                                    </FrameLayout>
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Ingresos"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold"
+                                        android:textColor="#2C2C2C"
+                                        android:layout_marginStart="10dp" />
+                                </LinearLayout>
+
+                                <TextView
+                                    android:id="@+id/tv_monthly_earnings"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="S/. 1,450"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/green"
+                                    android:layout_marginTop="12dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Este mes"
+                                    android:textSize="12sp"
+                                    android:textColor="#757575"
+                                    android:layout_marginTop="6dp" />
+
+                            </LinearLayout>
+
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- Completed Tours Card -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="3dp"
+                            app:cardBackgroundColor="@color/white"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#ECECEC"
+                            android:layout_marginEnd="3dp"
+                            android:layout_marginHorizontal="3dp"
+                            android:layout_marginVertical="3dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:text="Calificación: ⭐ 4.8 (8 tours)"
-                                android:textSize="13sp"
-                                android:textColor="#EFFFFFFF"
-                                android:layout_marginTop="6dp" />
-                        </LinearLayout>
+                                android:orientation="vertical"
+                                android:padding="16dp">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
+
+                                    <FrameLayout
+                                        android:layout_width="40dp"
+                                        android:layout_height="40dp">
+
+                                        <com.google.android.material.card.MaterialCardView
+                                            android:layout_width="40dp"
+                                            android:layout_height="40dp"
+                                            app:cardCornerRadius="20dp"
+                                            app:cardElevation="0dp"
+                                            app:cardBackgroundColor="#1A2196F3" />
+
+                                        <ImageView
+                                            android:layout_width="24dp"
+                                            android:layout_height="24dp"
+                                            android:layout_gravity="center"
+                                            android:src="@drawable/ic_map_location"
+                                            android:tint="@color/primary" />
+                                    </FrameLayout>
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Tours"
+                                        android:textSize="14sp"
+                                        android:textStyle="bold"
+                                        android:textColor="#2C2C2C"
+                                        android:layout_marginStart="10dp" />
+                                </LinearLayout>
+
+                                <TextView
+                                    android:id="@+id/tv_completed_tours"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="8 Tours"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold"
+                                    android:textColor="@color/primary"
+                                    android:layout_marginTop="12dp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Completados"
+                                    android:textSize="12sp"
+                                    android:textColor="#757575"
+                                    android:layout_marginTop="6dp" />
+
+                            </LinearLayout>
+
+                        </com.google.android.material.card.MaterialCardView>
 
                     </LinearLayout>
 
-                </com.google.android.material.card.MaterialCardView>
-
-                <!-- Statistics Row -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="14dp"
-                    android:baselineAligned="false">
-
-                    <!-- Earnings Card -->
+                    <!-- Active Tour -->
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="0dp"
+                        android:id="@+id/card_active_tour"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
+                        android:layout_marginBottom="18dp"
                         app:cardCornerRadius="16dp"
-                        app:cardElevation="3dp"
-                        app:cardBackgroundColor="@color/white"
-                        app:strokeWidth="1dp"
-                        app:strokeColor="#ECECEC"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginHorizontal="3dp"
-                        android:layout_marginVertical="3dp">
+                        app:cardElevation="4dp"
+                        app:cardBackgroundColor="@color/primary">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -127,478 +286,327 @@
                             android:orientation="vertical"
                             android:padding="16dp">
 
-                            <LinearLayout
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🚌 Tour activo"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:textColor="#EFFFFFFF"
+                                android:layout_marginBottom="10dp" />
+
+                            <TextView
+                                android:id="@+id/tv_active_tour_name"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:gravity="center_vertical">
+                                android:text="City Tour Lima - Centro Histórico"
+                                android:textSize="18sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/white"
+                                android:maxLines="2"
+                                android:ellipsize="end"
+                                android:layout_marginBottom="6dp" />
+
+                            <TextView
+                                android:id="@+id/tv_active_tour_progress"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="📍 Punto 2 de 4 • Plaza de Armas"
+                                android:textSize="13sp"
+                                android:textColor="#EFFFFFFF"
+                                android:maxLines="2"
+                                android:ellipsize="end"
+                                android:layout_marginBottom="14dp" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btn_continue_tour"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Continuar tour"
+                                android:textAllCaps="false"
+                                android:textColor="@color/primary"
+                                app:cornerRadius="12dp"
+                                app:backgroundTint="@color/white" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Quick Actions Section -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚡ Acciones rápidas"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#2C2C2C"
+                        android:layout_marginBottom="12dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="22dp"
+                        android:baselineAligned="false">
+
+                        <!-- QR Scanner Card -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_qr_scanner"
+                            android:layout_width="0dp"
+                            android:layout_height="110dp"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="8dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="3dp"
+                            app:cardBackgroundColor="@color/white"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#ECECEC"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginStart="3dp"
+                            android:layout_marginHorizontal="3dp"
+                            android:layout_marginVertical="4dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:padding="14dp"
+                                android:gravity="center">
 
                                 <FrameLayout
-                                    android:layout_width="40dp"
-                                    android:layout_height="40dp">
+                                    android:layout_width="46dp"
+                                    android:layout_height="46dp">
 
                                     <com.google.android.material.card.MaterialCardView
-                                        android:layout_width="40dp"
-                                        android:layout_height="40dp"
-                                        app:cardCornerRadius="20dp"
+                                        android:layout_width="46dp"
+                                        android:layout_height="46dp"
+                                        app:cardCornerRadius="23dp"
+                                        app:cardElevation="0dp"
+                                        app:cardBackgroundColor="#1AFF9800" />
+
+                                    <ImageView
+                                        android:layout_width="26dp"
+                                        android:layout_height="26dp"
+                                        android:layout_gravity="center"
+                                        android:src="@drawable/ic_qr_code"
+                                        android:tint="@color/accent" />
+                                </FrameLayout>
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Escanear QR"
+                                    android:textSize="14sp"
+                                    android:textStyle="bold"
+                                    android:textColor="#2C2C2C"
+                                    android:textAlignment="center"
+                                    android:layout_marginTop="10dp" />
+
+                            </LinearLayout>
+
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <!-- Location Tracking Card -->
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/card_location_tracking"
+                            android:layout_width="0dp"
+                            android:layout_height="110dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            app:cardCornerRadius="16dp"
+                            app:cardElevation="3dp"
+                            app:cardBackgroundColor="@color/white"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#ECECEC"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="3dp"
+                            android:layout_marginHorizontal="4dp"
+                            android:layout_marginVertical="3dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical"
+                                android:padding="14dp"
+                                android:gravity="center">
+
+                                <FrameLayout
+                                    android:layout_width="46dp"
+                                    android:layout_height="46dp">
+
+                                    <com.google.android.material.card.MaterialCardView
+                                        android:layout_width="46dp"
+                                        android:layout_height="46dp"
+                                        app:cardCornerRadius="23dp"
                                         app:cardElevation="0dp"
                                         app:cardBackgroundColor="#1A4CAF50" />
 
                                     <ImageView
-                                        android:layout_width="24dp"
-                                        android:layout_height="24dp"
+                                        android:layout_width="26dp"
+                                        android:layout_height="26dp"
                                         android:layout_gravity="center"
-                                        android:src="@drawable/ic_peruvian_sol"
+                                        android:src="@drawable/ic_location"
                                         android:tint="@color/green" />
                                 </FrameLayout>
 
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Ingresos"
+                                    android:text="Ubicación"
                                     android:textSize="14sp"
                                     android:textStyle="bold"
                                     android:textColor="#2C2C2C"
-                                    android:layout_marginStart="10dp" />
+                                    android:textAlignment="center"
+                                    android:layout_marginTop="10dp" />
+
                             </LinearLayout>
 
-                            <TextView
-                                android:id="@+id/tv_monthly_earnings"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="S/. 1,450"
-                                android:textSize="20sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/green"
-                                android:layout_marginTop="12dp" />
+                        </com.google.android.material.card.MaterialCardView>
 
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Este mes"
-                                android:textSize="12sp"
-                                android:textColor="#757575"
-                                android:layout_marginTop="6dp" />
+                    </LinearLayout>
 
-                        </LinearLayout>
-
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- Completed Tours Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="3dp"
-                        app:cardBackgroundColor="@color/white"
-                        app:strokeWidth="1dp"
-                        app:strokeColor="#ECECEC"
-                        android:layout_marginEnd="3dp"
-                        android:layout_marginHorizontal="3dp"
-                        android:layout_marginVertical="3dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:padding="16dp">
-
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:gravity="center_vertical">
-
-                                <FrameLayout
-                                    android:layout_width="40dp"
-                                    android:layout_height="40dp">
-
-                                    <com.google.android.material.card.MaterialCardView
-                                        android:layout_width="40dp"
-                                        android:layout_height="40dp"
-                                        app:cardCornerRadius="20dp"
-                                        app:cardElevation="0dp"
-                                        app:cardBackgroundColor="#1A2196F3" />
-
-                                    <ImageView
-                                        android:layout_width="24dp"
-                                        android:layout_height="24dp"
-                                        android:layout_gravity="center"
-                                        android:src="@drawable/ic_map_location"
-                                        android:tint="@color/primary" />
-                                </FrameLayout>
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Tours"
-                                    android:textSize="14sp"
-                                    android:textStyle="bold"
-                                    android:textColor="#2C2C2C"
-                                    android:layout_marginStart="10dp" />
-                            </LinearLayout>
-
-                            <TextView
-                                android:id="@+id/tv_completed_tours"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="8 Tours"
-                                android:textSize="20sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/primary"
-                                android:layout_marginTop="12dp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Completados"
-                                android:textSize="12sp"
-                                android:textColor="#757575"
-                                android:layout_marginTop="6dp" />
-
-                        </LinearLayout>
-
-                    </com.google.android.material.card.MaterialCardView>
-
-                </LinearLayout>
-
-                <!-- Active Tour -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_active_tour"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="18dp"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="4dp"
-                    app:cardBackgroundColor="@color/primary">
-
+                    <!-- Pending Offers Header -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="🎯 Ofertas pendientes"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#2C2C2C" />
+
+                        <TextView
+                            android:id="@+id/tv_view_all_offers"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Ver todas"
+                            android:textSize="14sp"
+                            android:textColor="@color/primary"
+                            android:textStyle="bold"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:padding="8dp" />
+
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_pending_offers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="22dp"
+                        android:clipToPadding="false"
+                        android:paddingStart="2dp"
+                        android:paddingEnd="2dp" />
+
+                    <LinearLayout
+                        android:id="@+id/empty_pending_offers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:gravity="center"
+                        android:visibility="gone"
+                        android:padding="24dp">
+
+                        <ImageView
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:src="@drawable/ic_empty_box"
+                            android:tint="#B0B0B0" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="🚌 Tour activo"
+                            android:text="No hay ofertas pendientes"
                             android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:textColor="#EFFFFFFF"
-                            android:layout_marginBottom="10dp" />
+                            android:textColor="#9E9E9E"
+                            android:layout_marginTop="12dp" />
+                    </LinearLayout>
+
+
+
+
+                    <!-- Upcoming Tours Header -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="10dp">
 
                         <TextView
-                            android:id="@+id/tv_active_tour_name"
-                            android:layout_width="match_parent"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="City Tour Lima - Centro Histórico"
+                            android:layout_weight="1"
+                            android:text="📅 Próximos tours"
                             android:textSize="18sp"
                             android:textStyle="bold"
-                            android:textColor="@color/white"
-                            android:maxLines="2"
-                            android:ellipsize="end"
-                            android:layout_marginBottom="6dp" />
+                            android:textColor="#2C2C2C" />
 
                         <TextView
-                            android:id="@+id/tv_active_tour_progress"
-                            android:layout_width="match_parent"
+                            android:id="@+id/tv_view_all_tours"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="📍 Punto 2 de 4 • Plaza de Armas"
-                            android:textSize="13sp"
-                            android:textColor="#EFFFFFFF"
-                            android:maxLines="2"
-                            android:ellipsize="end"
-                            android:layout_marginBottom="14dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_continue_tour"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Continuar tour"
-                            android:textAllCaps="false"
+                            android:text="Ver todos"
+                            android:textSize="14sp"
                             android:textColor="@color/primary"
-                            app:cornerRadius="12dp"
-                            app:backgroundTint="@color/white" />
+                            android:textStyle="bold"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:padding="8dp" />
 
                     </LinearLayout>
 
-                </com.google.android.material.card.MaterialCardView>
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_upcoming_tours"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:paddingBottom="8dp" />
 
-                <!-- Quick Actions Section -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="⚡ Acciones rápidas"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="#2C2C2C"
-                    android:layout_marginBottom="12dp" />
+                    <LinearLayout
+                        android:id="@+id/empty_upcoming_tours"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:visibility="gone"
+                        android:padding="24dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="22dp"
-                    android:baselineAligned="false">
+                        <ImageView
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:src="@drawable/ic_empty_box"
+                            android:tint="#B0B0B0" />
 
-                    <!-- QR Scanner Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_qr_scanner"
-                        android:layout_width="0dp"
-                        android:layout_height="110dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="3dp"
-                        app:cardBackgroundColor="@color/white"
-                        app:strokeWidth="1dp"
-                        app:strokeColor="#ECECEC"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginStart="3dp"
-                        android:layout_marginHorizontal="3dp"
-                        android:layout_marginVertical="4dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No hay próximos tours"
+                            android:textSize="14sp"
+                            android:textColor="#9E9E9E"
+                            android:layout_marginTop="12dp" />
+                    </LinearLayout>
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical"
-                            android:padding="14dp"
-                            android:gravity="center">
 
-                            <FrameLayout
-                                android:layout_width="46dp"
-                                android:layout_height="46dp">
-
-                                <com.google.android.material.card.MaterialCardView
-                                    android:layout_width="46dp"
-                                    android:layout_height="46dp"
-                                    app:cardCornerRadius="23dp"
-                                    app:cardElevation="0dp"
-                                    app:cardBackgroundColor="#1AFF9800" />
-
-                                <ImageView
-                                    android:layout_width="26dp"
-                                    android:layout_height="26dp"
-                                    android:layout_gravity="center"
-                                    android:src="@drawable/ic_qr_code"
-                                    android:tint="@color/accent" />
-                            </FrameLayout>
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Escanear QR"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                android:textColor="#2C2C2C"
-                                android:textAlignment="center"
-                                android:layout_marginTop="10dp" />
-
-                        </LinearLayout>
-
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <!-- Location Tracking Card -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/card_location_tracking"
-                        android:layout_width="0dp"
-                        android:layout_height="110dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        app:cardCornerRadius="16dp"
-                        app:cardElevation="3dp"
-                        app:cardBackgroundColor="@color/white"
-                        app:strokeWidth="1dp"
-                        app:strokeColor="#ECECEC"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:layout_marginEnd="3dp"
-                        android:layout_marginHorizontal="4dp"
-                        android:layout_marginVertical="3dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical"
-                            android:padding="14dp"
-                            android:gravity="center">
-
-                            <FrameLayout
-                                android:layout_width="46dp"
-                                android:layout_height="46dp">
-
-                                <com.google.android.material.card.MaterialCardView
-                                    android:layout_width="46dp"
-                                    android:layout_height="46dp"
-                                    app:cardCornerRadius="23dp"
-                                    app:cardElevation="0dp"
-                                    app:cardBackgroundColor="#1A4CAF50" />
-
-                                <ImageView
-                                    android:layout_width="26dp"
-                                    android:layout_height="26dp"
-                                    android:layout_gravity="center"
-                                    android:src="@drawable/ic_location"
-                                    android:tint="@color/green" />
-                            </FrameLayout>
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Ubicación"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                android:textColor="#2C2C2C"
-                                android:textAlignment="center"
-                                android:layout_marginTop="10dp" />
-
-                        </LinearLayout>
-
-                    </com.google.android.material.card.MaterialCardView>
+                    <!-- Bottom spacer -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp" />
 
                 </LinearLayout>
 
-                <!-- Pending Offers Header -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="10dp">
+            </androidx.core.widget.NestedScrollView>
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="🎯 Ofertas pendientes"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="#2C2C2C" />
-
-                    <TextView
-                        android:id="@+id/tv_view_all_offers"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Ver todas"
-                        android:textSize="14sp"
-                        android:textColor="@color/primary"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:padding="8dp" />
-
-                </LinearLayout>
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_pending_offers"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="22dp"
-                    android:clipToPadding="false"
-                    android:paddingStart="2dp"
-                    android:paddingEnd="2dp" />
-
-                <LinearLayout
-                    android:id="@+id/empty_pending_offers"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:visibility="gone"
-                    android:padding="24dp">
-
-                    <ImageView
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:src="@drawable/ic_empty_box"
-                        android:tint="#B0B0B0" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="No hay ofertas pendientes"
-                        android:textSize="14sp"
-                        android:textColor="#9E9E9E"
-                        android:layout_marginTop="12dp" />
-                </LinearLayout>
-
-
-
-
-                <!-- Upcoming Tours Header -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="10dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="📅 Próximos tours"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="#2C2C2C" />
-
-                    <TextView
-                        android:id="@+id/tv_view_all_tours"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Ver todos"
-                        android:textSize="14sp"
-                        android:textColor="@color/primary"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:padding="8dp" />
-
-                </LinearLayout>
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_upcoming_tours"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false"
-                    android:paddingBottom="8dp" />
-
-                <LinearLayout
-                    android:id="@+id/empty_upcoming_tours"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:visibility="gone"
-                    android:padding="24dp">
-
-                    <ImageView
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:src="@drawable/ic_empty_box"
-                        android:tint="#B0B0B0" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="No hay próximos tours"
-                        android:textSize="14sp"
-                        android:textColor="#9E9E9E"
-                        android:layout_marginTop="12dp" />
-                </LinearLayout>
-
-
-                <!-- Bottom spacer -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="14dp" />
-
-            </LinearLayout>
-
-        </androidx.core.widget.NestedScrollView>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     </LinearLayout>
 

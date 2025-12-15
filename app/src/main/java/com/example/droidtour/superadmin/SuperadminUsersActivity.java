@@ -146,7 +146,11 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+                // Verificar estado vacío después de que el filtro se complete
+                // Usar postDelayed para asegurar que el filtro asíncrono haya terminado
+                etSearch.postDelayed(() -> checkEmptyState(), 150);
+            }
         });
 
         // Listener para tabs de filtro

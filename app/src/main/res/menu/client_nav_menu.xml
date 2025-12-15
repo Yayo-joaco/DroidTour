@@ -50,20 +50,11 @@
 
             <item
                 android:id="@+id/nav_logout"
-                android:icon="@android:drawable/ic_lock_power_off"
+                android:icon="@drawable/ic_logout"
                 android:title="Cerrar Sesión" />
 
         </menu>
     </item>
 
-    <!-- 🔥 Opciones de Desarrollo -->
-    <item android:title="Desarrollo">
-        <menu>
-            <item
-                android:id="@+id/nav_init_test_data"
-                android:icon="@drawable/ic_firebase"
-                android:title="Inicializar Datos de Prueba" />
-        </menu>
-    </item>
 
 </menu>

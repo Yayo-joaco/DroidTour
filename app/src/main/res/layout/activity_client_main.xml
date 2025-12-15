@@ -321,6 +321,7 @@
         app:itemShapeInsetEnd="16dp"
         app:itemVerticalPadding="12dp"
         app:dividerInsetStart="16dp"
-        app:dividerInsetEnd="16dp" />
+        app:dividerInsetEnd="16dp"
+        app:itemShapeFillColor="@color/nav_active_indicator"/>
 
 </androidx.drawerlayout.widget.DrawerLayout>

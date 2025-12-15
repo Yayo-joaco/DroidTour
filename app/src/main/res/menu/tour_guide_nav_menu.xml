@@ -10,17 +10,17 @@
 
         <item
             android:id="@+id/nav_available_tours"
-            android:icon="@drawable/ic_tour_24"
+            android:icon="@drawable/ic_map_location"
             android:title="@string/available_tours" />
 
         <item
             android:id="@+id/nav_my_tours"
-            android:icon="@drawable/ic_book_24"
+            android:icon="@drawable/ic_mountain"
             android:title="@string/my_tours" />
 
         <item
             android:id="@+id/nav_tour_location"
-            android:icon="@android:drawable/ic_menu_mylocation"
+            android:icon="@drawable/ic_location_focus"
             android:title="@string/tour_location" />
 
     </group>
@@ -34,7 +34,7 @@
             
             <item
                 android:id="@+id/nav_logout"
-                android:icon="@android:drawable/ic_lock_power_off"
+                android:icon="@drawable/ic_logout"
                 android:title="@string/logout" />
         </menu>
     </item>

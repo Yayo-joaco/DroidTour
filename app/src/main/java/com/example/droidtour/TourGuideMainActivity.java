@@ -394,16 +394,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, LocationTrackingActivity.class));
             } else if (id == R.id.nav_profile) {
                 startActivity(new Intent(this, GuideProfileActivity.class));
-            } else if (id == R.id.nav_init_test_data) {
-                // Intent por nombre de clase para evitar referencia a clase inexistente en tiempo de compilación
-                try {
-                    Intent intent = new Intent();
-                    intent.setClassName(getPackageName(), "com.example.droidtour.firebase.InitializeTestDataActivity");
-                    startActivity(intent);
-                } catch (Exception e) {
-                    Toast.makeText(this, "Inicializador de datos no disponible", Toast.LENGTH_SHORT).show();
-                }
-            } else if (id == R.id.nav_logout) {
+            }  else if (id == R.id.nav_logout) {
                 // Handle logout - limpiar sesión correctamente
                 prefsManager.cerrarSesion();
 

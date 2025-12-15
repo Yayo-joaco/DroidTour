@@ -48,7 +48,7 @@
                 app:tabIndicatorHeight="3dp"
                 app:tabMode="fixed"
                 app:tabGravity="fill"
-                app:tabTextAppearance="@style/TextAppearance.AppCompat.Medium">
+                app:tabTextAppearance="@style/TextAppearance.AppCompat.MediumNeo">
 
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="wrap_content"
@@ -95,7 +95,7 @@
                     android:textSize="15sp"
                     android:textStyle="bold"
                     android:minHeight="56dp"
-                    app:icon="@android:drawable/ic_menu_my_calendar"
+                    app:icon="@drawable/ic_calendar_form"
                     app:iconTint="@android:color/white"
                     app:iconGravity="textStart"
                     app:iconPadding="12dp"
@@ -345,7 +345,7 @@
                             <ImageView
                                 android:layout_width="32dp"
                                 android:layout_height="32dp"
-                                android:src="@drawable/ic_tour_24"
+                                android:src="@drawable/ic_map_location"
                                 android:tint="@color/white"
                                 android:layout_marginBottom="8dp" />
 
@@ -750,7 +750,8 @@
         app:itemShapeInsetEnd="16dp"
         app:itemVerticalPadding="12dp"
         app:dividerInsetStart="16dp"
-        app:dividerInsetEnd="16dp" />
+        app:dividerInsetEnd="16dp"
+        app:itemShapeFillColor="@color/nav_active_indicator"/>
 
 
 

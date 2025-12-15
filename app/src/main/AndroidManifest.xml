@@ -94,6 +94,11 @@
             android:parentActivityName=".superadmin.SuperadminMainActivity" />
 
         <activity
+            android:name=".superadmin.CompaniesReportsActivity"
+            android:exported="false"
+            android:parentActivityName=".superadmin.SuperadminReportsActivity" />
+
+        <activity
             android:name=".superadmin.SuperadminLogsActivity"
             android:exported="false"
             android:parentActivityName=".superadmin.SuperadminMainActivity" />

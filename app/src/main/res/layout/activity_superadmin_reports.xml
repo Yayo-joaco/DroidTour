@@ -13,7 +13,7 @@
         android:background="@color/primary"
         app:title="@string/tour_reports"
         app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert"
+        app:navigationIcon="@drawable/ic_arrow_back_24"
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Content -->
@@ -31,11 +31,15 @@
 
             <!-- Reports Summary Cards -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_reservations_reports"
                 android:layout_width="match_parent"
                 android:layout_height="120dp"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="4dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -76,9 +80,10 @@
                     </LinearLayout>
 
                     <TextView
+                        android:id="@+id/tv_total_reservations"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1,234"
+                        android:text="0"
                         android:textSize="24sp"
                         android:textStyle="bold"
                         android:textColor="@color/green" />
@@ -87,51 +92,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Charts Placeholder -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="300dp"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="24dp">
-
-                    <ImageView
-                        android:layout_width="80dp"
-                        android:layout_height="80dp"
-                        android:src="@android:drawable/ic_menu_report_image"
-                        android:tint="@color/primary"
-                        android:alpha="0.7" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Gráficos de Reportes"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/black"
-                        android:layout_marginTop="16dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Estadísticas de reservas por empresa de turismo"
-                        android:textSize="14sp"
-                        android:textColor="@color/gray"
-                        android:gravity="center"
-                        android:layout_marginTop="8dp" />
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Filter Options -->
+            <!-- Charts -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -146,6 +107,74 @@
                     android:padding="16dp">
 
                     <TextView
+                        android:id="@+id/tv_charts_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Gráficos de Reportes"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Chart Container -->
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="300dp"
+                        android:layout_marginBottom="16dp">
+
+                        <com.github.mikephil.charting.charts.BarChart
+                            android:id="@+id/bar_chart_reservations"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent" />
+
+                        <!-- Empty State -->
+                        <LinearLayout
+                            android:id="@+id/layout_chart_empty"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center"
+                            android:visibility="gone"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent">
+
+                            <ImageView
+                                android:layout_width="80dp"
+                                android:layout_height="80dp"
+                                android:src="@drawable/ic_empty_box"
+                                app:tint="@color/gray"
+                                android:alpha="0.6"
+                                android:contentDescription="Sin datos" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="No hay reservas"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/gray"
+                                android:layout_marginTop="16dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="No hay datos para mostrar en el gráfico"
+                                android:textSize="14sp"
+                                android:textColor="@color/gray"
+                                android:layout_marginTop="8dp" />
+
+                        </LinearLayout>
+
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+
+                    <!-- Filter Options -->
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Filtros de Reporte"
@@ -155,17 +184,22 @@
                         android:layout_marginBottom="12dp" />
 
                     <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_period"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp">
+                        android:layout_marginBottom="16dp"
+                        app:singleSelection="true"
+                        app:selectionRequired="true">
 
                         <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_daily"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Diario"
                             android:checkable="true" />
 
                         <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_monthly"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Mensual"
@@ -173,6 +207,7 @@
                             android:checked="true" />
 
                         <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_yearly"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Anual"
@@ -181,6 +216,7 @@
                     </com.google.android.material.chip.ChipGroup>
 
                     <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_generate_report"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Generar Reporte"

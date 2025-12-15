@@ -43,7 +43,6 @@ public class GuideTrackingActivity extends AppCompatActivity implements OnMapRea
     private SupportMapFragment mapFragment;
     private RecyclerView rvActiveGuides;
     private TextView tvActiveCount;
-    private FloatingActionButton fabFilter;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
     private FirestoreManager firestoreManager;
     private String currentCompanyId;
@@ -133,14 +132,10 @@ public class GuideTrackingActivity extends AppCompatActivity implements OnMapRea
     private void initializeViews() {
         rvActiveGuides = findViewById(R.id.rv_active_guides);
         tvActiveCount = findViewById(R.id.tv_active_count);
-        fabFilter = findViewById(R.id.fab_filter);
     }
     
     private void setupClickListeners() {
-        fabFilter.setOnClickListener(v -> {
-            Toast.makeText(this, "Filtros de seguimiento", Toast.LENGTH_SHORT).show();
-            // TODO: Mostrar dialog de filtros
-        });
+        // Listeners para RecyclerView items
     }
     
     private void setupRecyclerView() {
@@ -276,11 +271,10 @@ public class GuideTrackingActivity extends AppCompatActivity implements OnMapRea
             // Botón de detalles para abrir bottom sheet
             holder.btnShowDetails.setVisibility(View.VISIBLE);
             holder.btnShowDetails.setOnClickListener(v -> {
-                String tourId = offer.getTourId();
-                if (tourId != null) {
-                    showTourStopsBottomSheet(tourId, offer.getTourName());
+                if (guideId != null) {
+                    showTourStopsBottomSheet(guideId, offer.getTourName());
                 } else {
-                    Toast.makeText(v.getContext(), "Tour sin ID", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(v.getContext(), "Guía sin ID", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -334,35 +328,12 @@ public class GuideTrackingActivity extends AppCompatActivity implements OnMapRea
         });
     }
     
-    private void showTourStopsBottomSheet(String tourId, String tourName) {
-        // Cargar el tour y mostrar bottom sheet con actualización en tiempo real
-        firestoreManager.getTour(tourId, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                currentSelectedTour = (Tour) result;
-                if (currentSelectedTour != null) {
-                    // Mostrar bottom sheet
-                    bottomSheet = TourStopsBottomSheet.newInstance(tourId, tourName);
-                    bottomSheet.setOnStopUpdatedListener((stops, meetingPoint) -> {
-                        // Actualizar mapa en tiempo real cuando cambien las paradas
-                        updateMapWithStops(currentSelectedTour, stops, meetingPoint);
-                    });
-                    bottomSheet.show(getSupportFragmentManager(), "tour_stops");
-                } else {
-                    Toast.makeText(GuideTrackingActivity.this, 
-                        "Este tour no tiene paradas definidas", 
-                        Toast.LENGTH_SHORT).show();
-                }
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error cargando tour para mapa", e);
-                Toast.makeText(GuideTrackingActivity.this, 
-                    "Error al cargar datos del tour", 
-                    Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void showTourStopsBottomSheet(String guideId, String tourName) {
+        Log.d(TAG, "🔍 Mostrando bottom sheet para guideId: " + guideId);
+        
+        // Mostrar bottom sheet directamente con el guideId
+        bottomSheet = TourStopsBottomSheet.newInstance(guideId, tourName);
+        bottomSheet.show(getSupportFragmentManager(), "tour_stops");
     }
     
     private void updateMapWithStops(Tour tour, List<Tour.TourStop> stops, String meetingPoint) {

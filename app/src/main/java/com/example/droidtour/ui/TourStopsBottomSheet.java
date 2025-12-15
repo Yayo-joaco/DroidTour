@@ -11,59 +11,49 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.droidtour.R;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.Tour;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Bottom Sheet para mostrar las paradas del tour con actualización en tiempo real
+ * Bottom Sheet para Admin - Muestra paradas del tour (solo lectura)
+ * NUEVO: Basado en GuideStopsManagementActivity - carga una sola vez sin listener
  */
 public class TourStopsBottomSheet extends BottomSheetDialogFragment {
     
-    private static final String ARG_TOUR_ID = "tour_id";
+    private static final String ARG_GUIDE_ID = "guide_id";
     private static final String ARG_TOUR_NAME = "tour_name";
     private static final String TAG = "TourStopsBottomSheet";
     
-    private String tourId;
+    private String guideId;
     private String tourName;
     private RecyclerView rvStops;
     private TextView tvTourName, tvMeetingPoint, tvTotalStops, tvCompletedStops;
     private StopsAdapter adapter;
     private List<Tour.TourStop> stops = new ArrayList<>();
-    private FirebaseFirestore db;
-    private ListenerRegistration tourListener;
-    private OnStopUpdatedListener listener;
+    private FirestoreManager firestoreManager;
+    private Tour currentTour;
     
-    public interface OnStopUpdatedListener {
-        void onStopsUpdated(List<Tour.TourStop> stops, String meetingPoint);
-    }
-    
-    public static TourStopsBottomSheet newInstance(String tourId, String tourName) {
+    public static TourStopsBottomSheet newInstance(String guideId, String tourName) {
         TourStopsBottomSheet fragment = new TourStopsBottomSheet();
         Bundle args = new Bundle();
-        args.putString(ARG_TOUR_ID, tourId);
+        args.putString(ARG_GUIDE_ID, guideId);
         args.putString(ARG_TOUR_NAME, tourName);
         fragment.setArguments(args);
         return fragment;
-    }
-    
-    public void setOnStopUpdatedListener(OnStopUpdatedListener listener) {
-        this.listener = listener;
     }
     
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            tourId = getArguments().getString(ARG_TOUR_ID);
+            guideId = getArguments().getString(ARG_GUIDE_ID);
             tourName = getArguments().getString(ARG_TOUR_NAME);
         }
-        db = FirebaseFirestore.getInstance();
+        firestoreManager = FirestoreManager.getInstance();
     }
     
     @Nullable
@@ -85,7 +75,7 @@ public class TourStopsBottomSheet extends BottomSheetDialogFragment {
         tvTourName.setText(tourName);
         
         setupRecyclerView();
-        setupRealtimeListener();
+        loadTourData();
     }
     
     private void setupRecyclerView() {
@@ -94,48 +84,61 @@ public class TourStopsBottomSheet extends BottomSheetDialogFragment {
         rvStops.setAdapter(adapter);
     }
     
-    private void setupRealtimeListener() {
-        // Listener en tiempo real para actualizar cuando el guía complete paradas
-        tourListener = db.collection("Tours").document(tourId)
-            .addSnapshotListener((snapshot, error) -> {
-                if (error != null) {
-                    Log.e(TAG, "Error listening to tour updates", error);
-                    return;
-                }
+    private void loadTourData() {
+        Log.d(TAG, "🔍 Buscando tour para guideId: " + guideId);
+        
+        // Buscar tour por guideId (como en GuideStopsManagementActivity)
+        firestoreManager.getToursByGuide(guideId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<Tour> tours = (List<Tour>) result;
+                Log.d(TAG, "📄 Tours encontrados: " + (tours != null ? tours.size() : 0));
                 
-                if (snapshot != null && snapshot.exists()) {
-                    Tour tour = snapshot.toObject(Tour.class);
-                    if (tour != null) {
-                        updateStopsData(tour);
-                    }
+                if (tours != null && !tours.isEmpty()) {
+                    currentTour = tours.get(0);
+                    Log.d(TAG, "✅ Tour cargado: " + currentTour.getTourName());
+                    displayTourData();
+                } else {
+                    Log.e(TAG, "❌ No se encontró tour para este guía");
                 }
-            });
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error cargando tour", e);
+            }
+        });
     }
     
-    private void updateStopsData(Tour tour) {
-        Log.d(TAG, "🔄 Actualizando datos del tour: " + tour.getTourName());
+    private void displayTourData() {
+        if (currentTour == null) return;
         
-        // Actualizar punto de encuentro
-        if (tour.getMeetingPoint() != null) {
-            tvMeetingPoint.setText(tour.getMeetingPoint());
-            Log.d(TAG, "📍 Punto de encuentro: " + tour.getMeetingPoint());
+        // Nombre del tour
+        tvTourName.setText(currentTour.getTourName());
+        
+        // Punto de encuentro
+        if (currentTour.getMeetingPoint() != null) {
+            tvMeetingPoint.setText(currentTour.getMeetingPoint());
         }
         
-        // Actualizar paradas
+        // Paradas
         stops.clear();
-        if (tour.getStops() != null) {
-            stops.addAll(tour.getStops());
-            Log.d(TAG, "📍 Total paradas recibidas: " + tour.getStops().size());
+        if (currentTour.getStops() != null && !currentTour.getStops().isEmpty()) {
+            stops.addAll(currentTour.getStops());
+            Log.d(TAG, "📍 Total paradas: " + stops.size());
         }
         adapter.notifyDataSetChanged();
         
-        // Calcular contadores con log detallado
+        // Contadores
+        updateStopCounters();
+    }
+    
+    private void updateStopCounters() {
         int total = stops.size();
         int completed = 0;
+        
         for (Tour.TourStop stop : stops) {
-            boolean isCompleted = stop.getCompleted() != null && stop.getCompleted();
-            Log.d(TAG, "  - " + stop.getName() + ": completed=" + stop.getCompleted() + " -> " + (isCompleted ? "✅" : "❌"));
-            if (isCompleted) {
+            if (stop.getCompleted() != null && stop.getCompleted()) {
                 completed++;
             }
         }
@@ -143,19 +146,6 @@ public class TourStopsBottomSheet extends BottomSheetDialogFragment {
         Log.d(TAG, "📊 Contadores: Total=" + total + ", Completadas=" + completed);
         tvTotalStops.setText(String.valueOf(total));
         tvCompletedStops.setText(String.valueOf(completed));
-        
-        // Notificar al listener para actualizar el mapa
-        if (listener != null) {
-            listener.onStopsUpdated(stops, tour.getMeetingPoint());
-        }
-    }
-    
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        if (tourListener != null) {
-            tourListener.remove();
-        }
     }
     
     // Adapter para las paradas

@@ -92,15 +92,4 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Filter FAB -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_filter"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:src="@android:drawable/ic_menu_search"
-        android:contentDescription="Filtrar Guías"
-        app:layout_constraintBottom_toTopOf="@id/card_active_guides"
-        app:layout_constraintEnd_toEndOf="parent" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>

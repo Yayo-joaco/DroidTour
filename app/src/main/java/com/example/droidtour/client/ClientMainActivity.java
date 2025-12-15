@@ -2,6 +2,7 @@ package com.example.droidtour.client;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -10,17 +11,19 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.bumptech.glide.Glide;
 import com.example.droidtour.CompaniesListActivity;
 import com.example.droidtour.LoginActivity;
@@ -28,14 +31,18 @@ import com.example.droidtour.MyReservationsActivity;
 import com.example.droidtour.R;
 import com.example.droidtour.TourDetailActivity;
 import com.example.droidtour.ToursCatalogActivity;
-import com.example.droidtour.models.Tour;
+import com.example.droidtour.firebase.FirebaseAuthManager;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.Company;
 import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.Tour;
+import com.example.droidtour.models.User;
 import com.example.droidtour.utils.NotificationHelper;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.navigation.NavigationView;
+
 import java.util.List;
 import java.util.ArrayList;
 
@@ -45,13 +52,14 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
     private ActionBarDrawerToggle drawerToggle;
+
     private RecyclerView rvFeaturedTours, rvPopularCompanies;
     private MaterialCardView cardExploreTours, cardMyReservations, cardChats;
     private TextView tvWelcomeMessage, tvActiveReservations;
 
     // Firebase
-    private com.example.droidtour.firebase.FirebaseAuthManager authManager;
-    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
+    private FirebaseAuthManager authManager;
+    private FirestoreManager firestoreManager;
     private String currentUserId;
 
     // Helpers
@@ -65,6 +73,10 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     // Toolbar menu elements
     private TextView tvNotificationBadge;
     private ImageView ivAvatarAction;
+
+    // Header (navigation) elements
+    private ImageView ivProfileHeader;
+    private TextView tvUserNameHeader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,9 +104,9 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Inicializar Firebase
-        authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
-        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
-        currentUserId = prefsManager.getUserId(); // Usar el ID de PreferencesManager
+        authManager = FirebaseAuthManager.getInstance(this);
+        firestoreManager = FirestoreManager.getInstance();
+        currentUserId = prefsManager.getUserId();
 
         // Inicializar helpers
         notificationHelper = new NotificationHelper(this);
@@ -111,6 +123,9 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
         // Cargar reservas activas desde Firestore
         updateActiveReservationsCount();
+
+        // Cargar imagen de perfil (toolbar + header)
+        refreshUserImagesFromFirestore();
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.drawer_layout), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -133,11 +148,9 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     }
 
     private void setupDashboardData() {
-        // Set welcome message (dynamic based on user)
         if (prefsManager.isLoggedIn()) {
             String userName = prefsManager.getUserName();
             if (userName != null && !userName.isEmpty()) {
-                // Extraer solo el primer nombre para el saludo
                 String firstName = userName.split(" ")[0];
                 tvWelcomeMessage.setText("¡Hola, " + firstName + "!");
             } else {
@@ -147,7 +160,6 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             tvWelcomeMessage.setText("¡Hola!");
         }
 
-        // Set active reservations count (temporal)
         tvActiveReservations.setText("0 reservas activas");
     }
 
@@ -162,17 +174,15 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_notifications) {
-            // Abrir la pantalla de notificaciones desde el toolbar
             Intent intent = new Intent(this, ClientNotificationsActivity.class);
             startActivity(intent);
             return true;
         } else if (id == R.id.action_profile) {
-            // Abrir pantalla de "Mi cuenta" al seleccionar la opción de perfil
             Intent intentProfileMenu = new Intent(this, ClientMyAccount.class);
             startActivity(intentProfileMenu);
             return true;
         }
-        // Handle drawer toggle
+
         if (drawerToggle != null && drawerToggle.onOptionsItemSelected(item)) return true;
         return super.onOptionsItemSelected(item);
     }
@@ -193,9 +203,15 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         if (avatarItem != null && avatarItem.getActionView() != null) {
             FrameLayout avatarActionLayout = (FrameLayout) avatarItem.getActionView();
             ivAvatarAction = avatarActionLayout.findViewById(R.id.iv_avatar_action);
-            // Cargar imagen de perfil si existe
-            loadUserProfileImage();
-            // Al hacer click en el avatar del toolbar, abrir ClientMyAccount
+
+            // Placeholder inicial
+            if (ivAvatarAction != null) {
+                ivAvatarAction.setImageResource(R.drawable.ic_avatar_24);
+            }
+
+            // Cargar imagen real (Firestore)
+            refreshUserImagesFromFirestore();
+
             avatarActionLayout.setOnClickListener(v -> {
                 Intent intent = new Intent(ClientMainActivity.this, ClientMyAccount.class);
                 startActivity(intent);
@@ -203,39 +219,9 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         }
     }
 
-    private void loadUserProfileImage() {
-        if (ivAvatarAction != null && currentUserId != null) {
-            // Cargar datos del usuario para obtener la foto
-            firestoreManager.getUserById(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
-                @Override
-                public void onSuccess(Object result) {
-                    if (result instanceof com.example.droidtour.models.User) {
-                        com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
-                        String photoUrl = user.getPhotoUrl();
-                        if (photoUrl != null && !photoUrl.isEmpty()) {
-                            Glide.with(ClientMainActivity.this)
-                                    .load(photoUrl)
-                                    .placeholder(android.R.drawable.sym_def_app_icon)
-                                    .circleCrop()
-                                    .into(ivAvatarAction);
-                        } else {
-                            // Mostrar icono por defecto si no hay foto
-                            ivAvatarAction.setImageResource(android.R.drawable.sym_def_app_icon);
-                        }
-                    }
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    android.util.Log.e(TAG, "Error cargando foto de perfil", e);
-                }
-            });
-        }
-    }
-
     private void updateNotificationBadge() {
         if (tvNotificationBadge != null && currentUserId != null) {
-            firestoreManager.getUnreadNotifications(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            firestoreManager.getUnreadNotifications(currentUserId, new FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
                     if (result instanceof List) {
@@ -252,30 +238,22 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
                 @Override
                 public void onFailure(Exception e) {
-                    android.util.Log.e(TAG, "Error cargando contador de notificaciones", e);
-                    tvNotificationBadge.setVisibility(View.GONE);
+                    Log.e(TAG, "Error cargando contador de notificaciones", e);
+                    if (tvNotificationBadge != null) tvNotificationBadge.setVisibility(View.GONE);
                 }
             });
         }
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 100) {
-            // Actualizar badge cuando se regresa de notificaciones
-            updateNotificationBadge();
-        }
-    }
-
-    @Override
     protected void onResume() {
         super.onResume();
-        // Actualizar datos al regresar a la actividad
         updateNotificationBadge();
         updateActiveReservationsCount();
 
-        // Asegurar que "Inicio" esté seleccionado cuando la activity sea visible
+        // refrescar foto por si la cambiaron en otra pantalla
+        refreshUserImagesFromFirestore();
+
         try {
             if (navigationView != null) {
                 navigationView.setCheckedItem(R.id.nav_dashboard);
@@ -301,45 +279,38 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         drawerToggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
 
-        // Marcar "Inicio" (dashboard) como seleccionado para esta activity
+        // Marcar "Inicio"
         try {
             if (navigationView != null) {
                 navigationView.setCheckedItem(R.id.nav_dashboard);
                 MenuItem dashboardItem = navigationView.getMenu().findItem(R.id.nav_dashboard);
                 if (dashboardItem != null) dashboardItem.setChecked(true);
             }
-        } catch (Exception ignored) {
-            // Si por alguna razón el menú aún no está inflado o el id no existe, ignorar sin romper la app
-        }
+        } catch (Exception ignored) {}
 
-        // Actualizar nombre de usuario en el header del drawer
+        // Header refs (nombre + foto)
         if (navigationView != null) {
             View headerView = navigationView.getHeaderView(0);
             if (headerView != null) {
-                TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+                ivProfileHeader = headerView.findViewById(R.id.iv_profile_picture_header);
+                tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
+
+                // placeholder inicial para la foto del header
+                if (ivProfileHeader != null) {
+                    ivProfileHeader.setImageResource(R.drawable.ic_avatar_24);
+                }
+
+                // nombre desde prefs (rápido)
                 if (tvUserNameHeader != null) {
                     String userName = prefsManager.getUserName();
-                    if (userName != null && !userName.isEmpty()) {
-                        // Mostrar nombre + apellido (dos primeros tokens) si están disponibles
-                        String displayName = userName.trim();
-                        String[] parts = displayName.split("\\s+");
-                        if (parts.length >= 2) {
-                            displayName = parts[0] + " " + parts[1];
-                        } else if (parts.length == 1) {
-                            displayName = parts[0];
-                        }
-                        tvUserNameHeader.setText(displayName);
-                    } else {
-                        tvUserNameHeader.setText("Usuario");
-                    }
+                    tvUserNameHeader.setText(buildShortDisplayName(userName));
                 }
             }
         }
 
-        // Asegurar que el icono de hamburguesa sea blanco (tint)
+        // Tint hamburguesa
         int whiteColor = ContextCompat.getColor(this, R.color.white);
         try {
-            // Tint al navigation icon del toolbar si existe
             if (toolbar.getNavigationIcon() != null) {
                 android.graphics.drawable.Drawable nav = toolbar.getNavigationIcon();
                 nav = DrawableCompat.wrap(nav);
@@ -349,17 +320,86 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         } catch (Exception ignored) { }
 
         try {
-            // Si el ActionBarDrawerToggle creó un DrawerArrowDrawable, forzar su color
             if (drawerToggle != null) {
                 drawerToggle.getDrawerArrowDrawable().setColor(whiteColor);
-                // sincronizar estado por si acaso
                 drawerToggle.syncState();
             }
         } catch (Exception ignored) { }
+
+        // Finalmente: cargar foto real desde Firestore
+        refreshUserImagesFromFirestore();
+    }
+
+    private String buildShortDisplayName(String userName) {
+        if (userName == null) return "Usuario";
+        String displayName = userName.trim();
+        if (displayName.isEmpty()) return "Usuario";
+
+        String[] parts = displayName.split("\\s+");
+        if (parts.length >= 2) return parts[0] + " " + parts[1];
+        return parts[0];
+    }
+
+    /**
+     * Carga URL de foto desde Firestore y actualiza:
+     * - ivAvatarAction (toolbar)
+     * - ivProfileHeader (navigation header)
+     */
+    private void refreshUserImagesFromFirestore() {
+        if (currentUserId == null || currentUserId.trim().isEmpty()) return;
+
+        firestoreManager.getUserById(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                if (!(result instanceof User)) return;
+
+                User user = (User) result;
+
+                // Nombre (si quieres que también se refresque desde Firestore)
+                if (tvUserNameHeader != null) {
+                    String fullName = (user.getFullName() != null && !user.getFullName().trim().isEmpty())
+                            ? user.getFullName()
+                            : prefsManager.getUserName();
+                    tvUserNameHeader.setText(buildShortDisplayName(fullName));
+                }
+
+                String photoUrl = null;
+                if (user.getPersonalData() != null) {
+                    photoUrl = user.getPersonalData().getProfileImageUrl();
+                }
+
+                // Toolbar avatar
+                if (ivAvatarAction != null) {
+                    Glide.with(ClientMainActivity.this)
+                            .load(photoUrl)
+                            .placeholder(R.drawable.ic_avatar_24)
+                            .error(R.drawable.ic_avatar_24)
+                            .circleCrop()
+                            .into(ivAvatarAction);
+                }
+
+                // Navigation header avatar
+                if (ivProfileHeader != null) {
+                    Glide.with(ClientMainActivity.this)
+                            .load(photoUrl)
+                            .placeholder(R.drawable.ic_avatar_24)
+                            .error(R.drawable.ic_avatar_24)
+                            .circleCrop()
+                            .into(ivProfileHeader);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando foto de perfil (Firestore)", e);
+
+                if (ivAvatarAction != null) ivAvatarAction.setImageResource(R.drawable.ic_avatar_24);
+                if (ivProfileHeader != null) ivProfileHeader.setImageResource(R.drawable.ic_avatar_24);
+            }
+        });
     }
 
     private void setupClickListeners() {
-        // Quick action cards
         cardExploreTours.setOnClickListener(v -> {
             Intent intent = new Intent(ClientMainActivity.this, CompaniesListActivity.class);
             startActivity(intent);
@@ -377,30 +417,23 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     }
 
     private void setupRecyclerViews() {
-        // Featured Tours (horizontal)
         rvFeaturedTours.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         rvFeaturedTours.setAdapter(new FeaturedToursAdapter(featuredTours, this::onFeaturedTourClick));
 
-        // Popular Companies (vertical)
         rvPopularCompanies.setLayoutManager(new LinearLayoutManager(this));
         rvPopularCompanies.setAdapter(new PopularCompaniesAdapter(popularCompanies, this::onCompanyClick));
 
-        // Cargar datos desde Firebase
         loadFeaturedToursFromFirebase();
         loadPopularCompaniesFromFirebase();
     }
 
     private void loadFeaturedToursFromFirebase() {
-        // TODO: Implementar la carga real desde FirestoreManager
         featuredTours.clear();
-        // Dejar vacío para evitar datos de testing hardcodeados
         if (rvFeaturedTours.getAdapter() != null) rvFeaturedTours.getAdapter().notifyDataSetChanged();
     }
 
     private void loadPopularCompaniesFromFirebase() {
-        // TODO: Implementar la carga real desde FirestoreManager
         popularCompanies.clear();
-        // Dejar vacío para evitar datos de testing hardcodeados
         if (rvPopularCompanies.getAdapter() != null) rvPopularCompanies.getAdapter().notifyDataSetChanged();
     }
 
@@ -427,7 +460,6 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         int id = item.getItemId();
 
         if (id == R.id.nav_dashboard) {
-            // Already on dashboard
             if (drawerLayout != null) drawerLayout.closeDrawers();
         } else if (id == R.id.nav_explore_tours) {
             startActivity(new Intent(this, CompaniesListActivity.class));
@@ -444,10 +476,8 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         } else if (id == R.id.nav_settings) {
             startActivity(new Intent(this, ClientSettingsActivity.class));
         } else if (id == R.id.nav_logout) {
-            // Se limpian los datos de sesión
             prefsManager.logout();
 
-            // Limpiar el stack de activities de Login
             Intent intent = new Intent(this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
@@ -462,44 +492,27 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         return true;
     }
 
-    // ==================== STORAGE LOCAL ====================
-
     private void correctUserData() {
-        // Si no hay sesión activa, no corregir nada
         if (!prefsManager.isLoggedIn()) return;
-
-        // Verificar y corregir datos del cliente (sin actualizar vistas)
         // No-op por ahora
     }
 
     private void loadUserData() {
-        // Cargar datos del usuario y actualizar vistas
         String userName = prefsManager.getUserName();
 
-        // Actualizar mensaje de bienvenida
         if (userName != null && !userName.isEmpty()) {
-            // Extraer solo el primer nombre para el saludo
             String firstName = userName.split(" ")[0];
             tvWelcomeMessage.setText("¡Hola, " + firstName + "!");
         } else {
             tvWelcomeMessage.setText("¡Hola!");
         }
 
-        // Actualizar nombre en el header del drawer
         if (navigationView != null) {
             View headerView = navigationView.getHeaderView(0);
             if (headerView != null) {
-                TextView tvUserNameHeader = headerView.findViewById(R.id.tv_user_name_header);
-                if (tvUserNameHeader != null && userName != null && !userName.isEmpty()) {
-                    // Mostrar nombre + apellido (dos primeros tokens) en el header
-                    String displayName = userName.trim();
-                    String[] parts = displayName.split("\\s+");
-                    if (parts.length >= 2) {
-                        displayName = parts[0] + " " + parts[1];
-                    } else if (parts.length == 1) {
-                        displayName = parts[0];
-                    }
-                    tvUserNameHeader.setText(displayName);
+                TextView tvName = headerView.findViewById(R.id.tv_user_name_header);
+                if (tvName != null) {
+                    tvName.setText(buildShortDisplayName(userName));
                 }
             }
         }
@@ -511,7 +524,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             return;
         }
 
-        firestoreManager.getReservationsByUser(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+        firestoreManager.getReservationsByUser(currentUserId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 if (result instanceof List) {
@@ -530,27 +543,11 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
 
             @Override
             public void onFailure(Exception e) {
-                android.util.Log.e(TAG, "Error cargando contador de reservas activas", e);
+                Log.e(TAG, "Error cargando contador de reservas activas", e);
                 tvActiveReservations.setText("0 reservas activas");
             }
         });
     }
-
-    // ==================== NOTIFICACIONES ====================
-
-    private void testClientNotifications() {
-        // Método de prueba para enviar notificaciones de ejemplo
-        if (currentUserId != null) {
-            notificationHelper.sendTourReminderForClient(
-                    currentUserId,
-                    "City Tour Lima Centro",
-                    "28 Oct",
-                    "09:00 AM"
-            );
-        }
-    }
-
-    // ==================== VALIDACIÓN DE SESIÓN ====================
 
     private void redirectToLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
@@ -558,6 +555,7 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         startActivity(intent);
     }
 }
+
 
 // Adaptador para tours destacados (horizontal)
 class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.ViewHolder> {
@@ -589,7 +587,6 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
 
         tourName.setText(tour.getTourName() != null ? tour.getTourName() : "Tour sin nombre");
         companyName.setText(tour.getCompanyName() != null ? tour.getCompanyName() : "Compañía");
-        // Mostrar rating si existe
         Double avg = tour.getAverageRating();
         rating.setText(avg != null ? String.format("%.1f", avg) : "4.5");
         Double priceVal = tour.getPricePerPerson();
@@ -622,6 +619,7 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
     }
 }
 
+
 // Adaptador para empresas populares (vertical)
 class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapter.ViewHolder> {
     interface OnCompanyClick { void onClick(Company company); }
@@ -651,14 +649,12 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
         TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
         android.view.View btnViewTours = holder.itemView.findViewById(R.id.btn_view_tours);
 
-        // Usar nombre comercial o razón social
         String displayName = company.getCommercialName() != null ?
                 company.getCommercialName() : company.getBusinessName();
         companyName.setText(displayName != null ? displayName : "Empresa");
 
         location.setText("📍 " + (company.getAddress() != null ? company.getAddress() : "Ubicación no disponible"));
 
-        // Datos temporales - mostrar campos si existen
         rating.setText("⭐ " + (company.getStatus() != null ? company.getStatus() : "4.5"));
         toursCount.setText("• -- tours");
         reviewsCount.setText("• -- reseñas");

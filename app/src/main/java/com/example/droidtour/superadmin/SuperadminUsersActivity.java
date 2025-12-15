@@ -586,15 +586,27 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
             return;
         }
 
-        db.collection(FirestoreManager.COLLECTION_USERS).document(user.getUserId())
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Usuario eliminado", Toast.LENGTH_SHORT).show();
-                    loadUsersFromFirestore();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error eliminando usuario: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+        // Mostrar indicador de carga
+        showLoading();
+
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+        String userType = user.getUserType() != null ? user.getUserType() : "";
+        
+        firestoreManager.deleteUser(user.getUserId(), userType, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                hideLoading();
+                Toast.makeText(SuperadminUsersActivity.this, "Usuario eliminado correctamente", Toast.LENGTH_SHORT).show();
+                loadUsersFromFirestore();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                hideLoading();
+                Toast.makeText(SuperadminUsersActivity.this, "Error eliminando usuario: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Error eliminando usuario", e);
+            }
+        });
     }
 
     @Override
@@ -604,6 +616,11 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
         MenuItem profileItem = menu.findItem(R.id.action_profile);
         if (profileItem != null) {
             profileItem.setVisible(false);
+        }
+        // Ocultar el icono de notificaciones (campana) en el toolbar
+        MenuItem notificationItem = menu.findItem(R.id.action_notifications);
+        if (notificationItem != null) {
+            notificationItem.setVisible(false);
         }
         return true;
     }

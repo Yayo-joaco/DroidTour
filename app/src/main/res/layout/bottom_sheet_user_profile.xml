@@ -573,6 +573,7 @@
                     android:layout_weight="1"
                     android:text="Mensaje"
                     android:textSize="14sp"
+                    android:visibility="gone"
                     app:icon="@drawable/ic_message"
                     app:iconSize="18dp"
                     app:iconGravity="textStart"

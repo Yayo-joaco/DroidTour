@@ -21,6 +21,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
     private List<User> userListFull;
     private OnUserClickListener listener;
     private String currentFilter = "ALL";
+    private String currentSearchText = "";
 
     public interface OnUserClickListener {
         void onUserClick(User user);
@@ -69,14 +70,43 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
     private void applyFilter(String filterType) {
         if (userListFull == null) return;
 
+        // Primero aplicar filtro de texto si hay búsqueda activa
+        List<User> textFilteredList;
+        if (currentSearchText != null && !currentSearchText.isEmpty()) {
+            // Aplicar filtro de texto primero
+            textFilteredList = new ArrayList<>();
+            String filterPattern = currentSearchText.toLowerCase().trim();
+            
+            for (User user : userListFull) {
+                String fullName = user.getFullName() != null ? user.getFullName() : "";
+                String firstName = user.getFirstName() != null ? user.getFirstName() : "";
+                String lastName = user.getLastName() != null ? user.getLastName() : "";
+                String combinedName = (firstName + " " + lastName).trim().toLowerCase();
+                String email = user.getEmail() != null ? user.getEmail() : "";
+                String type = user.getUserType() != null ? user.getUserType() : "";
+                
+                if (fullName.toLowerCase().contains(filterPattern) ||
+                        combinedName.contains(filterPattern) ||
+                        firstName.toLowerCase().contains(filterPattern) ||
+                        lastName.toLowerCase().contains(filterPattern) ||
+                        email.toLowerCase().contains(filterPattern) ||
+                        type.toLowerCase().contains(filterPattern)) {
+                    textFilteredList.add(user);
+                }
+            }
+        } else {
+            textFilteredList = new ArrayList<>(userListFull);
+        }
+
+        // Luego aplicar filtro de tipo sobre los resultados de búsqueda de texto
         List<User> filteredList = new ArrayList<>();
 
         switch (filterType) {
             case "ALL":
-                filteredList.addAll(userListFull);
+                filteredList.addAll(textFilteredList);
                 break;
             case "ADMIN":
-                for (User user : userListFull) {
+                for (User user : textFilteredList) {
                     String userType = user.getUserType();
                     if ("ADMIN".equals(userType) || "SUPERADMIN".equals(userType) || "COMPANY_ADMIN".equals(userType)) {
                         filteredList.add(user);
@@ -84,14 +114,14 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
                 }
                 break;
             case "GUIDE":
-                for (User user : userListFull) {
+                for (User user : textFilteredList) {
                     if ("GUIDE".equals(user.getUserType())) {
                         filteredList.add(user);
                     }
                 }
                 break;
             case "CLIENT":
-                for (User user : userListFull) {
+                for (User user : textFilteredList) {
                     if ("CLIENT".equals(user.getUserType())) {
                         filteredList.add(user);
                     }
@@ -119,10 +149,25 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
                 String filterPattern = constraint.toString().toLowerCase().trim();
 
                 for (User user : userListFull) {
+                    // Buscar en nombre completo
                     String fullName = user.getFullName() != null ? user.getFullName() : "";
+                    
+                    // Buscar en nombre y apellido por separado (por si fullName está vacío)
+                    String firstName = user.getFirstName() != null ? user.getFirstName() : "";
+                    String lastName = user.getLastName() != null ? user.getLastName() : "";
+                    String combinedName = (firstName + " " + lastName).trim().toLowerCase();
+                    
+                    // Buscar en email
                     String email = user.getEmail() != null ? user.getEmail() : "";
+                    
+                    // Buscar en tipo de usuario
                     String type = user.getUserType() != null ? user.getUserType() : "";
+                    
+                    // Verificar si coincide con algún campo
                     if (fullName.toLowerCase().contains(filterPattern) ||
+                            combinedName.contains(filterPattern) ||
+                            firstName.toLowerCase().contains(filterPattern) ||
+                            lastName.toLowerCase().contains(filterPattern) ||
                             email.toLowerCase().contains(filterPattern) ||
                             type.toLowerCase().contains(filterPattern)) {
                         filteredList.add(user);
@@ -137,9 +182,48 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
 
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
-            userList.clear();
-            userList.addAll((List) results.values);
-            applyFilter(currentFilter); // Aplicar filtro de tipo después de la búsqueda
+            // Guardar el texto de búsqueda actual
+            currentSearchText = constraint != null ? constraint.toString() : "";
+            
+            @SuppressWarnings("unchecked")
+            List<User> filteredByText = (List<User>) results.values;
+            
+            // Aplicar filtro de tipo sobre los resultados de búsqueda de texto
+            if (filteredByText != null) {
+                List<User> finalFilteredList = new ArrayList<>();
+                
+                switch (currentFilter) {
+                    case "ALL":
+                        finalFilteredList.addAll(filteredByText);
+                        break;
+                    case "ADMIN":
+                        for (User user : filteredByText) {
+                            String userType = user.getUserType();
+                            if ("ADMIN".equals(userType) || "SUPERADMIN".equals(userType) || "COMPANY_ADMIN".equals(userType)) {
+                                finalFilteredList.add(user);
+                            }
+                        }
+                        break;
+                    case "GUIDE":
+                        for (User user : filteredByText) {
+                            if ("GUIDE".equals(user.getUserType())) {
+                                finalFilteredList.add(user);
+                            }
+                        }
+                        break;
+                    case "CLIENT":
+                        for (User user : filteredByText) {
+                            if ("CLIENT".equals(user.getUserType())) {
+                                finalFilteredList.add(user);
+                            }
+                        }
+                        break;
+                }
+                
+                userList.clear();
+                userList.addAll(finalFilteredList);
+                notifyDataSetChanged();
+            }
         }
     };
 
@@ -218,7 +302,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
         private void setupStatusSwitch(User user, OnUserClickListener listener) {
             // Determinar si está activo basándose en el status // nuevo actualizado
             boolean isActive = "active".equalsIgnoreCase(user.getStatus());
-            
+
             // Primero remover el listener para evitar que se dispare durante el setChecked
             switchUserStatus.setOnCheckedChangeListener(null);
             // Luego establecer el estado del switch

@@ -16,7 +16,8 @@
         app:titleCentered="true"
         app:titleTextColor="@color/white"
         app:menu="@menu/top_app_bar_general"
-        app:navigationIcon="@android:drawable/ic_menu_sort_alphabetically"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/white"
         app:layout_constraintTop_toTopOf="parent" />
 
 

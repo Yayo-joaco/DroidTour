@@ -62,6 +62,12 @@ public class UserEditActivity extends AppCompatActivity {
     private List<String> availableLanguageCodes = new ArrayList<>();
     private List<String> selectedLanguageCodes = new ArrayList<>();
     private LanguageAdapter languageAdapter;
+    
+    // Valores originales para detectar cambios
+    private String originalFirstName;
+    private String originalLastName;
+    private String originalPhone;
+    private List<String> originalSelectedLanguages = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,15 +131,122 @@ public class UserEditActivity extends AppCompatActivity {
         tvCommercialName = findViewById(R.id.tv_commercial_name);
         tvBusinessType = findViewById(R.id.tv_business_type);
 
-        // Botón guardar
+        // Botón guardar (inicialmente deshabilitado)
         fabSave = findViewById(R.id.fab_save);
+        fabSave.setEnabled(false);
+        updateFabAppearance(false); // Establecer apariencia inicial deshabilitada
         fabSave.setOnClickListener(v -> saveChanges());
+        
+        // Agregar listeners para detectar cambios
+        setupChangeListeners();
 
         // Configurar RecyclerView de idiomas
         rvAvailableLanguages.setLayoutManager(new LinearLayoutManager(this));
         rvAvailableLanguages.setNestedScrollingEnabled(false); // Deshabilitar scroll anidado para que el NestedScrollView padre maneje todo
         rvAvailableLanguages.setHasFixedSize(false); // Permitir que el RecyclerView ajuste su tamaño según el contenido
         setupLanguages();
+    }
+
+    private void setupChangeListeners() {
+        // Listener para nombre
+        etFirstName.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                checkForChanges();
+            }
+        });
+
+        // Listener para apellido
+        etLastName.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                checkForChanges();
+            }
+        });
+
+        // Para teléfono, el formateador ya tiene un TextWatcher
+        // Agregamos otro listener que se ejecute después del formateador
+        // Usamos un pequeño delay para asegurar que el formateador termine primero
+        etPhone.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                // Esperar un poco para que el formateador termine
+                etPhone.postDelayed(() -> checkForChanges(), 150);
+            }
+        });
+        
+        // Listener para cambio de país en CountryCodePicker
+        ccpPhone.setOnCountryChangeListener(() -> {
+            checkForChanges();
+        });
+    }
+
+    private void checkForChanges() {
+        boolean hasChanges = false;
+
+        // Comparar nombre
+        String currentFirstName = etFirstName.getText() != null ? etFirstName.getText().toString().trim() : "";
+        if (!currentFirstName.equals(originalFirstName != null ? originalFirstName : "")) {
+            hasChanges = true;
+        }
+
+        // Comparar apellido
+        String currentLastName = etLastName.getText() != null ? etLastName.getText().toString().trim() : "";
+        if (!currentLastName.equals(originalLastName != null ? originalLastName : "")) {
+            hasChanges = true;
+        }
+
+        // Comparar teléfono (sin espacios para comparación)
+        String currentPhone = etPhone.getText() != null ? etPhone.getText().toString().trim().replaceAll("\\s+", "") : "";
+        String originalPhoneClean = originalPhone != null ? originalPhone.replaceAll("\\s+", "") : "";
+        if (!currentPhone.equals(originalPhoneClean)) {
+            hasChanges = true;
+        }
+
+        // Comparar idiomas (solo si es GUIDE)
+        if ("GUIDE".equals(currentUser != null ? currentUser.getUserType() : null)) {
+            // Comparar listas de idiomas
+            if (selectedLanguageCodes.size() != originalSelectedLanguages.size()) {
+                hasChanges = true;
+            } else {
+                // Comparar contenido de las listas
+                List<String> currentSorted = new ArrayList<>(selectedLanguageCodes);
+                List<String> originalSorted = new ArrayList<>(originalSelectedLanguages);
+                java.util.Collections.sort(currentSorted);
+                java.util.Collections.sort(originalSorted);
+                if (!currentSorted.equals(originalSorted)) {
+                    hasChanges = true;
+                }
+            }
+        }
+
+        // Habilitar o deshabilitar botón según haya cambios
+        fabSave.setEnabled(hasChanges);
+        updateFabAppearance(hasChanges);
+    }
+    
+    private void updateFabAppearance(boolean enabled) {
+        if (enabled) {
+            // Botón habilitado: color primario normal
+            fabSave.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.primary));
+            fabSave.setTextColor(ContextCompat.getColor(this, R.color.white));
+        } else {
+            // Botón deshabilitado: color más claro/blanco
+            fabSave.setBackgroundTintList(ContextCompat.getColorStateList(this, R.color.fab_disabled_background));
+            fabSave.setTextColor(ContextCompat.getColor(this, R.color.fab_disabled_text));
+        }
     }
 
     private void setupPhoneFormatter() {
@@ -275,6 +388,8 @@ public class UserEditActivity extends AppCompatActivity {
             selectedLanguageCodes.remove(languageCode);
             removeLanguageChip(languageCode);
         }
+        // Verificar cambios después de modificar idiomas
+        checkForChanges();
     }
 
     private void addLanguageChip(String languageCode) {
@@ -287,6 +402,7 @@ public class UserEditActivity extends AppCompatActivity {
             selectedLanguageCodes.remove(languageCode);
             chipGroupLanguages.removeView(chip);
             languageAdapter.notifyItemChanged(availableLanguageCodes.indexOf(languageCode));
+            checkForChanges();
         });
         chipGroupLanguages.addView(chip);
     }
@@ -361,8 +477,15 @@ public class UserEditActivity extends AppCompatActivity {
         if (currentUser.getPersonalData() != null) {
             User.PersonalData pd = currentUser.getPersonalData();
             
-            etFirstName.setText(pd.getFirstName() != null ? pd.getFirstName() : "");
-            etLastName.setText(pd.getLastName() != null ? pd.getLastName() : "");
+            String firstName = pd.getFirstName() != null ? pd.getFirstName() : "";
+            String lastName = pd.getLastName() != null ? pd.getLastName() : "";
+            
+            // Guardar valores originales
+            originalFirstName = firstName;
+            originalLastName = lastName;
+            
+            etFirstName.setText(firstName);
+            etLastName.setText(lastName);
             
             // Teléfono
             String phone = pd.getPhoneNumber();
@@ -393,18 +516,54 @@ public class UserEditActivity extends AppCompatActivity {
                                 }
                             }
                         }
-                        etPhone.setText(formatPhoneNumber(localNumber));
+                        String formattedPhone = formatPhoneNumber(localNumber);
+                        etPhone.setText(formattedPhone);
+                        // Guardar número original (sin formatear para comparación)
+                        originalPhone = localNumber.replaceAll("\\s+", "");
                         Log.d(TAG, "Número cargado - Original: " + phone + ", Local: " + localNumber);
                     } catch (Exception e) {
                         Log.w(TAG, "Error procesando número de teléfono: " + e.getMessage());
                         // Si falla, mostrar el número completo y dejar que el usuario lo edite
                         etPhone.setText(formatPhoneNumber(phone));
+                        originalPhone = phone.replaceAll("\\s+", "");
                     }
                 } else {
                     // Si no empieza con +, es probablemente solo el número local
                     etPhone.setText(formatPhoneNumber(phone));
+                    originalPhone = phone.replaceAll("\\s+", "");
                 }
+            } else {
+                originalPhone = "";
             }
+        }
+        
+        // Después de cargar todos los datos, el botón debe estar deshabilitado
+        // (no hay cambios al inicio porque acabamos de cargar los datos originales)
+        fabSave.setEnabled(false);
+        updateFabAppearance(false);
+    }
+    
+    private void initializeOriginalPhone(String phoneNumber) {
+        if (phoneNumber != null && !phoneNumber.isEmpty()) {
+            // Guardar el número local sin formatear para comparación
+            if (phoneNumber.startsWith("+")) {
+                if (phoneNumber.contains(" ")) {
+                    originalPhone = phoneNumber.substring(phoneNumber.indexOf(" ") + 1).replaceAll("\\s+", "");
+                } else {
+                    String countryCode = ccpPhone.getSelectedCountryCodeWithPlus();
+                    if (phoneNumber.startsWith(countryCode)) {
+                        originalPhone = phoneNumber.substring(countryCode.length()).replaceAll("\\s+", "");
+                    } else if (phoneNumber.startsWith("+51") && phoneNumber.length() > 3) {
+                        originalPhone = phoneNumber.substring(3).replaceAll("\\s+", "");
+                    } else {
+                        originalPhone = phoneNumber.replaceAll("\\s+", "");
+                    }
+                }
+            } else {
+                originalPhone = phoneNumber.replaceAll("\\s+", "");
+            }
+        } else {
+            originalPhone = "";
         }
     }
 
@@ -437,6 +596,10 @@ public class UserEditActivity extends AppCompatActivity {
                         if (languages != null && !languages.isEmpty()) {
                             selectedLanguageCodes.clear();
                             selectedLanguageCodes.addAll(languages);
+                            
+                            // Guardar idiomas originales
+                            originalSelectedLanguages.clear();
+                            originalSelectedLanguages.addAll(languages);
                             
                             // Actualizar chips y adapter
                             updateLanguageUI();
@@ -529,6 +692,11 @@ public class UserEditActivity extends AppCompatActivity {
                             if (languages != null && !languages.isEmpty()) {
                                 selectedLanguageCodes.clear();
                                 selectedLanguageCodes.addAll(languages);
+                                
+                                // Guardar idiomas originales
+                                originalSelectedLanguages.clear();
+                                originalSelectedLanguages.addAll(languages);
+                                
                                 updateLanguageUI();
                             }
                         }
@@ -555,6 +723,9 @@ public class UserEditActivity extends AppCompatActivity {
         if (languageAdapter != null) {
             languageAdapter.notifyDataSetChanged();
         }
+        
+        // Verificar cambios después de actualizar UI
+        checkForChanges();
     }
 
     private void loadCompanyInfo() {
@@ -588,6 +759,7 @@ public class UserEditActivity extends AppCompatActivity {
 
         fabSave.setEnabled(false);
         fabSave.setText("Guardando...");
+        updateFabAppearance(false);
 
         // Crear usuario actualizado
         User updatedUser = createUpdatedUser();
@@ -615,6 +787,7 @@ public class UserEditActivity extends AppCompatActivity {
                 Toast.makeText(UserEditActivity.this, "Error guardando cambios: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 fabSave.setEnabled(true);
                 fabSave.setText("Guardar Cambios");
+                updateFabAppearance(true);
             }
         });
     }

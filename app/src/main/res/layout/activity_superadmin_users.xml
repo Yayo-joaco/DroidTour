@@ -125,7 +125,7 @@
         <ImageView
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:src="@android:drawable/ic_menu_search"
+            android:src="@drawable/ic_empty_box"
             app:tint="@color/gray"
             android:contentDescription="@string/no_users_image"
             android:alpha="0.5" />

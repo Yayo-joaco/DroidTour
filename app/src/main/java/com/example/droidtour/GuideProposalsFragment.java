@@ -54,14 +54,28 @@ public class GuideProposalsFragment extends Fragment {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private String currentUserId;
+    private String currentCompanyId;
     private String currentFilter = "ALL";
+
+    private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
-        currentUserId = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
+        prefsManager = new com.example.droidtour.utils.PreferencesManager(requireContext());
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        
+        // Obtener ID desde FirebaseAuth o PreferencesManager
+        if (auth.getCurrentUser() != null) {
+            currentUserId = auth.getCurrentUser().getUid();
+        } else {
+            currentUserId = prefsManager.getUserId();
+        }
+        
+        Log.d(TAG, "📱 CurrentUserId obtenido: " + currentUserId);
     }
 
     @Nullable
@@ -120,31 +134,60 @@ public class GuideProposalsFragment extends Fragment {
             return;
         }
 
-        // Eliminar orderBy para evitar requerir índice compuesto - ordenaremos en memoria
-        db.collection("TourOffers")
-                .whereEqualTo("agencyId", currentUserId)
-                .addSnapshotListener((value, error) -> {
-                    if (error != null) {
-                        Log.e(TAG, "Error al cargar propuestas", error);
-                        Toast.makeText(requireContext(), "Error al cargar propuestas", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+        // Primero obtener el companyId del usuario actual
+        firestoreManager.getUserById(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                if (user != null && user.getCompanyId() != null) {
+                    currentCompanyId = user.getCompanyId();
+                    Log.d(TAG, "✅ CompanyId obtenido: " + currentCompanyId);
+                    loadProposalsFromFirestore();
+                } else {
+                    Log.e(TAG, "❌ Usuario sin companyId");
+                    Toast.makeText(requireContext(), "Error: Usuario sin empresa asignada", Toast.LENGTH_SHORT).show();
+                }
+            }
 
-                    if (value != null) {
-                        proposals.clear();
-                        
-                        for (DocumentSnapshot doc : value.getDocuments()) {
-                            TourOffer offer = doc.toObject(TourOffer.class);
-                            if (offer != null) {
-                                offer.setId(doc.getId());
-                                loadProposalDetails(offer);
-                            }
-                        }
-                        
-                        // Ordenar por fecha después de cargar todos los datos
-                        sortProposalsByDate();
-                    }
-                });
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando usuario", e);
+                Toast.makeText(requireContext(), "Error al cargar datos del usuario", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadProposalsFromFirestore() {
+        if (currentCompanyId == null) {
+            return;
+        }
+
+        // Usar el MISMO método que SearchGuidesFragment
+        Log.d(TAG, "🔍 Usando getOffersByCompany con companyId: " + currentCompanyId);
+        
+        firestoreManager.getOffersByCompany(currentCompanyId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                List<TourOffer> allOffers = (List<TourOffer>) result;
+                Log.d(TAG, "✅ Ofertas encontradas: " + allOffers.size());
+                
+                proposals.clear();
+                
+                for (TourOffer offer : allOffers) {
+                    Log.d(TAG, "  📋 Oferta ID: " + offer.getOfferId() + " | Status: " + offer.getStatus() + " | Guía: " + offer.getGuideName() + " | Tour: " + offer.getTourName());
+                    loadProposalDetails(offer);
+                }
+                
+                // Ordenar por fecha después de cargar todos los datos
+                sortProposalsByDate();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "❌ Error al cargar propuestas", e);
+                Toast.makeText(requireContext(), "Error al cargar propuestas: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void loadProposalDetails(TourOffer offer) {

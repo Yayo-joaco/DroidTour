@@ -21,10 +21,11 @@ public class TourOfferDetailsActivity extends AppCompatActivity {
 
     private static final String TAG = "TourOfferDetails";
     private TextView tvOfferStatus, tvOfferTime, tvTourName, tvCompanyName, tvTourDate, 
-                     tvTourTime, tvTourDuration, tvParticipants, tvPaymentAmount;
+                     tvTourTime, tvTourDuration, tvParticipants, tvPaymentAmount, tvAdditionalNotes;
     private ChipGroup chipGroupLanguages;
     private MaterialButton btnAccept, btnReject, btnViewFullMap;
     private LinearLayout layoutActionButtons;
+    private com.google.android.material.card.MaterialCardView cardNotes;
     private FirestoreManager firestoreManager;
     private TourOffer currentOffer;
     
@@ -74,7 +75,9 @@ public class TourOfferDetailsActivity extends AppCompatActivity {
         tvTourDuration = findViewById(R.id.tv_tour_duration);
         tvParticipants = findViewById(R.id.tv_participants);
         tvPaymentAmount = findViewById(R.id.tv_payment_amount);
+        tvAdditionalNotes = findViewById(R.id.tv_additional_notes);
         chipGroupLanguages = findViewById(R.id.chip_group_languages);
+        cardNotes = findViewById(R.id.card_notes);
         btnAccept = findViewById(R.id.btn_accept);
         btnReject = findViewById(R.id.btn_reject);
         btnViewFullMap = findViewById(R.id.btn_view_full_map);
@@ -94,6 +97,7 @@ public class TourOfferDetailsActivity extends AppCompatActivity {
         String offerId = getIntent().getStringExtra("offerId");
         String createdTime = getIntent().getStringExtra("createdTime");
         String languagesString = getIntent().getStringExtra("languages");
+        String additionalNotes = getIntent().getStringExtra("additionalNotes");
 
         // Crear objeto TourOffer para uso interno
         currentOffer = new TourOffer();
@@ -136,6 +140,14 @@ public class TourOfferDetailsActivity extends AppCompatActivity {
             displayLanguageChips(languageCodes);
         } else {
             findViewById(R.id.card_languages).setVisibility(View.GONE);
+        }
+        
+        // Mostrar notas adicionales si existen
+        if (additionalNotes != null && !additionalNotes.trim().isEmpty()) {
+            tvAdditionalNotes.setText(additionalNotes);
+            cardNotes.setVisibility(View.VISIBLE);
+        } else {
+            cardNotes.setVisibility(View.GONE);
         }
     }
 

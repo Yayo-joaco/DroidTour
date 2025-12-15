@@ -86,16 +86,22 @@ public class ActiveGuidesFragment extends Fragment {
         }
         
         // Cargar ofertas aceptadas de la empresa
+        Log.d(TAG, "🔍 Cargando guías activos para companyId: " + currentCompanyId);
+        
         firestoreManager.getOffersByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 List<TourOffer> allOffers = (List<TourOffer>) result;
+                Log.d(TAG, "📄 Total ofertas encontradas: " + allOffers.size());
+                
                 activeOffers.clear();
                 
                 // Filtrar solo las ofertas aceptadas
                 for (TourOffer offer : allOffers) {
+                    Log.d(TAG, "  - Oferta: " + offer.getOfferId() + " Status: " + offer.getStatus());
                     if ("ACEPTADA".equals(offer.getStatus())) {
                         activeOffers.add(offer);
+                        Log.d(TAG, "    ✅ Agregada a activos");
                     }
                 }
                 
@@ -164,22 +170,38 @@ public class ActiveGuidesFragment extends Fragment {
             }
             holder.tvTourName.setText(tourInfo);
             
-            // Ubicación actual (TODO: integrar con ubicación en tiempo real)
-            holder.tvCurrentLocation.setText("Ubicación no disponible");
+            // Cargar foto del guía
+            String guideId = offer.getGuideId();
+            if (guideId != null && !guideId.isEmpty()) {
+                FirestoreManager.getInstance().getUserById(guideId, new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        User user = (User) result;
+                        if (user != null && user.getPersonalData() != null && 
+                            user.getPersonalData().getProfileImageUrl() != null) {
+                            Glide.with(holder.itemView.getContext())
+                                .load(user.getPersonalData().getProfileImageUrl())
+                                .placeholder(R.drawable.ic_person)
+                                .circleCrop()
+                                .into(holder.ivGuidePhoto);
+                        }
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        // Dejar imagen por defecto
+                    }
+                });
+            }
             
-            // Última actualización
-            holder.tvLastUpdate.setText("En línea");
-            
-            // Foto del guía (TODO: cargar desde perfil)
-            // holder.ivGuidePhoto - usar Glide cuando tengamos la URL
-            
-            // Listeners
-            holder.ivLocateGuide.setOnClickListener(v -> {
-                // TODO: Abrir mapa con ubicación del guía
-            });
-            
-            holder.ivContactGuide.setOnClickListener(v -> {
-                // TODO: Abrir chat o llamada con el guía
+            // Click listener for info button
+            holder.btnShowDetails.setOnClickListener(v -> {
+                if (guideId != null && !guideId.isEmpty() && holder.itemView.getContext() instanceof androidx.fragment.app.FragmentActivity) {
+                    com.example.droidtour.ui.GuideDetailsBottomSheet sheet = 
+                        com.example.droidtour.ui.GuideDetailsBottomSheet.newInstance(guideId);
+                    sheet.show(((androidx.fragment.app.FragmentActivity) holder.itemView.getContext())
+                        .getSupportFragmentManager(), "guide_details");
+                }
             });
         }
         
@@ -189,20 +211,16 @@ public class ActiveGuidesFragment extends Fragment {
         }
         
         static class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvGuideName, tvTourName, tvCurrentLocation, tvLastUpdate;
-            ImageView ivGuidePhoto, ivLocateGuide, ivContactGuide;
-            View viewStatusIndicator;
+            TextView tvGuideName, tvTourName;
+            ImageView ivGuidePhoto;
+            View btnShowDetails;
             
             ViewHolder(View view) {
                 super(view);
                 tvGuideName = view.findViewById(R.id.tv_guide_name);
                 tvTourName = view.findViewById(R.id.tv_tour_name);
-                tvCurrentLocation = view.findViewById(R.id.tv_current_location);
-                tvLastUpdate = view.findViewById(R.id.tv_last_update);
                 ivGuidePhoto = view.findViewById(R.id.iv_guide_photo);
-                ivLocateGuide = view.findViewById(R.id.iv_locate_guide);
-                ivContactGuide = view.findViewById(R.id.iv_contact_guide);
-                viewStatusIndicator = view.findViewById(R.id.view_status_indicator);
+                btnShowDetails = view.findViewById(R.id.btn_show_guide_details);
             }
         }
     }

@@ -40,6 +40,22 @@ public class CreateTourActivity extends AppCompatActivity {
     private static final String TAG = "CreateTourActivity";
     private static final int REQ_LOCATIONS = 101;
     private static final int REQ_MEETING_POINT = 102;
+    
+    // Mapeo de nombres completos a códigos ISO de idiomas
+    private static final java.util.Map<String, String> LANGUAGE_CODES = new java.util.HashMap<String, String>() {{
+        put("Español", "es");
+        put("Inglés", "en");
+        put("Portugués", "pt");
+        put("Francés", "fr");
+        put("Quechua", "qu");
+        put("Alemán", "de");
+        put("Italiano", "it");
+        put("Chino", "zh");
+        put("Japonés", "ja");
+        put("Coreano", "ko");
+        put("Ruso", "ru");
+        put("Árabe", "ar");
+    }};
 
     private TextInputEditText etTourName, etTourDescription, etTourPrice, etTourDuration;
     private TextInputEditText etTourDate, etStartTime, etEndTime, etMeetingTime, etMaxCapacity;
@@ -464,6 +480,47 @@ public class CreateTourActivity extends AppCompatActivity {
         }
     }
     
+    /**
+     * Convierte una lista de nombres de idiomas a sus códigos ISO correspondientes
+     */
+    private List<String> convertLanguageNamesToCodes(List<String> languageNames) {
+        List<String> codes = new ArrayList<>();
+        for (String name : languageNames) {
+            String code = LANGUAGE_CODES.get(name);
+            if (code != null) {
+                codes.add(code);
+                Log.d(TAG, "Idioma convertido: " + name + " -> " + code);
+            } else {
+                // Si no está en el mapa, usar el nombre tal cual (por si acaso)
+                codes.add(name);
+                Log.w(TAG, "Idioma no encontrado en mapa, usando tal cual: " + name);
+            }
+        }
+        return codes;
+    }
+    
+    /**
+     * Convierte códigos ISO de idiomas a sus nombres completos (para mostrar al editar)
+     */
+    private List<String> convertLanguageCodesToNames(List<String> languageCodes) {
+        List<String> names = new ArrayList<>();
+        for (String code : languageCodes) {
+            boolean found = false;
+            for (java.util.Map.Entry<String, String> entry : LANGUAGE_CODES.entrySet()) {
+                if (entry.getValue().equalsIgnoreCase(code)) {
+                    names.add(entry.getKey());
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // Si no está en el mapa, usar el código tal cual
+                names.add(code);
+            }
+        }
+        return names;
+    }
+    
     private void setupCategoryDropdown() {
         if (actvTourCategory != null) {
             // Obtener array de departamentos desde strings.xml
@@ -765,7 +822,11 @@ public class CreateTourActivity extends AppCompatActivity {
         tour.setTotalDuration(totalDurationMinutes);
         tour.setCompanyId(currentCompanyId);
         tour.setCompanyName(currentCompanyName);
-        tour.setLanguages(selectedLanguages);
+        
+        // Convertir nombres de idiomas a códigos ISO antes de guardar
+        List<String> languageCodes = convertLanguageNamesToCodes(selectedLanguages);
+        tour.setLanguages(languageCodes);
+        
         tour.setMeetingPoint(meetingPointName);
         tour.setMeetingPointLatitude(meetingPointLat);
         tour.setMeetingPointLongitude(meetingPointLng);
@@ -1103,7 +1164,12 @@ public class CreateTourActivity extends AppCompatActivity {
         // Idiomas - marcar los checkboxes correspondientes
         if (tour.getLanguages() != null && !tour.getLanguages().isEmpty()) {
             selectedLanguages.clear();
-            selectedLanguages.addAll(tour.getLanguages());
+            // Convertir códigos ISO a nombres completos para mostrar en UI
+            List<String> languageNames = convertLanguageCodesToNames(tour.getLanguages());
+            selectedLanguages.addAll(languageNames);
+            
+            Log.d(TAG, "Idiomas cargados desde BD (códigos): " + tour.getLanguages());
+            Log.d(TAG, "Idiomas convertidos a nombres: " + languageNames);
             
             // Marcar los checkboxes según los idiomas seleccionados
             markLanguageCheckboxes();

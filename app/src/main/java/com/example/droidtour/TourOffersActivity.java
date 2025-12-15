@@ -314,6 +314,7 @@ public class TourOffersActivity extends AppCompatActivity {
                 }
                 intent.putExtra("createdTime", createdTime);
                 intent.putExtra("languages", "es,en"); // Por defecto español e inglés
+                intent.putExtra("additionalNotes", offer.getAdditionalNotes() != null ? offer.getAdditionalNotes() : "");
                 startActivity(intent);
             });
         }

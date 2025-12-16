@@ -26,6 +26,7 @@ import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 public class AdminProfileActivity extends AppCompatActivity {
@@ -40,6 +41,7 @@ public class AdminProfileActivity extends AppCompatActivity {
     private CardView cardLanguages;
     private FloatingActionButton fabEdit;
     private View rowBirthDate, dividerBeforeBirthDate, dividerAfterBirthDate;
+    private View ratingSection;
 
     private PreferencesManager prefsManager;
     private FirestoreManager firestoreManager;
@@ -75,6 +77,9 @@ public class AdminProfileActivity extends AppCompatActivity {
 
         // Ocultar sección de idiomas para admin
         hideLanguagesSection();
+        
+        // Ocultar sección de valoración para administrador de empresa
+        hideRatingSection();
     }
 
     private void setupToolbar() {
@@ -114,6 +119,7 @@ public class AdminProfileActivity extends AppCompatActivity {
         tvToursCount = findViewById(R.id.tv_tours_count);
         tvRating = findViewById(R.id.tv_rating);
         tvMemberSince = findViewById(R.id.tv_member_since);
+        ratingSection = findViewById(R.id.rating_section);
 
         // Sección de idiomas (para ocultar)
         cardLanguages = findViewById(R.id.card_languages);
@@ -140,7 +146,7 @@ public class AdminProfileActivity extends AppCompatActivity {
                 if (user != null) {
                     Log.d(TAG, "Usuario admin encontrado: " + user.getEmail());
                     updateUIWithUserData(user);
-                    loadStatistics(userId);
+                    loadStatistics(user);
                     setupClickListeners();
                 } else {
                     Log.e(TAG, "Usuario es null en Firestore");
@@ -215,31 +221,69 @@ public class AdminProfileActivity extends AppCompatActivity {
         setupClickListeners();
     }
 
-    private void loadStatistics(String userId) {
+    private void loadStatistics(User user) {
         // Cambiar etiqueta para admin
         TextView tvStatLabel1 = findViewById(R.id.tv_stat_label_1);
         if (tvStatLabel1 != null) {
             tvStatLabel1.setText("Tours\nCreados");
         }
 
-        // Por ahora valores estáticos - se pueden conectar a Firebase después
-        if (tvToursCount != null) {
-            tvToursCount.setText("0");
-        }
-        if (tvRating != null) {
-            tvRating.setText("N/A");
+        // Obtener companyId del usuario
+        String companyId = user.getCompanyId();
+        if (companyId != null && !companyId.isEmpty()) {
+            // Cargar tours de la empresa desde Firebase
+            firestoreManager.getAllToursByCompany(companyId, new FirestoreManager.FirestoreCallback() {
+                @Override
+                public void onSuccess(Object result) {
+                    @SuppressWarnings("unchecked")
+                    List<com.example.droidtour.models.Tour> tours = (List<com.example.droidtour.models.Tour>) result;
+                    int toursCount = tours != null ? tours.size() : 0;
+                    
+                    if (tvToursCount != null) {
+                        tvToursCount.setText(String.valueOf(toursCount));
+                    }
+                    
+                    Log.d(TAG, "Tours creados cargados: " + toursCount);
+                }
+                
+                @Override
+                public void onFailure(Exception e) {
+                    Log.e(TAG, "Error cargando tours de la empresa", e);
+                    if (tvToursCount != null) {
+                        tvToursCount.setText("0");
+                    }
+                }
+            });
+        } else {
+            Log.w(TAG, "Usuario no tiene companyId asignado");
+            if (tvToursCount != null) {
+                tvToursCount.setText("0");
+            }
         }
 
         // Miembro desde
         if (tvMemberSince != null) {
-            int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-            tvMemberSince.setText(String.valueOf(currentYear));
+            if (user.getCreatedAt() != null) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(user.getCreatedAt());
+                int year = cal.get(Calendar.YEAR);
+                tvMemberSince.setText(String.valueOf(year));
+            } else {
+                int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+                tvMemberSince.setText(String.valueOf(currentYear));
+            }
         }
     }
 
     private void hideLanguagesSection() {
         if (cardLanguages != null) {
             cardLanguages.setVisibility(View.GONE);
+        }
+    }
+    
+    private void hideRatingSection() {
+        if (ratingSection != null) {
+            ratingSection.setVisibility(View.GONE);
         }
     }
 

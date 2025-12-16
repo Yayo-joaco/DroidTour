@@ -528,6 +528,26 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
     }
 
     private void setupClickListeners() {
+        // Botón Ver Perfil de Empresa
+        android.widget.ImageButton btnCompanyProfile = findViewById(R.id.btn_company_profile);
+        if (btnCompanyProfile != null) {
+            btnCompanyProfile.setOnClickListener(v -> {
+                String finalCompanyId = null;
+                if (currentTour != null && currentTour.getCompanyId() != null) {
+                    finalCompanyId = currentTour.getCompanyId();
+                } else if (companyId != null && !companyId.isEmpty()) {
+                    finalCompanyId = companyId;
+                }
+                
+                if (finalCompanyId != null && !finalCompanyId.isEmpty()) {
+                    Intent intent = new Intent(this, com.example.droidtour.client.CompanyProfileActivity.class);
+                    intent.putExtra("company_id", finalCompanyId);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(this, "No se encontró información de la empresa", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
 
         if (btnSeeAllReviews != null) {
             btnSeeAllReviews.setOnClickListener(v -> {

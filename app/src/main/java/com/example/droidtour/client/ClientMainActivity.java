@@ -806,6 +806,7 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
         private final com.google.android.material.chip.Chip chipService1;
         private final com.google.android.material.chip.Chip chipService2;
         private final com.google.android.material.chip.Chip chipService3;
+        private final com.google.android.material.button.MaterialButton btnViewCompany;
         private final android.view.View btnViewTours;
 
         ViewHolder(android.view.View v, android.content.Context ctx) {
@@ -822,6 +823,7 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
             chipService1 = v.findViewById(R.id.chip_service_1);
             chipService2 = v.findViewById(R.id.chip_service_2);
             chipService3 = v.findViewById(R.id.chip_service_3);
+            btnViewCompany = v.findViewById(R.id.btn_view_company);
             btnViewTours = v.findViewById(R.id.btn_view_tours);
         }
 
@@ -951,6 +953,13 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
 
             // Click listeners
             itemView.setOnClickListener(v -> onCompanyClick.onClick(company));
+            if (btnViewCompany != null) {
+                btnViewCompany.setOnClickListener(v -> {
+                    android.content.Intent intent = new android.content.Intent(context, CompanyProfileActivity.class);
+                    intent.putExtra("company_id", company.getCompanyId());
+                    context.startActivity(intent);
+                });
+            }
             if (btnViewTours != null) {
                 btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(company));
             }

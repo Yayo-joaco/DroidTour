@@ -237,6 +237,11 @@
             android:parentActivityName=".client.ClientMainActivity" />
 
         <activity
+            android:name=".client.CompanyProfileActivity"
+            android:exported="false"
+            android:parentActivityName=".client.ClientMainActivity" />
+
+        <activity
             android:name=".client.ClientEditProfileActivity"
             android:theme="@style/Theme.DroidTour"
             android:parentActivityName=".client.ClientProfileActivity"

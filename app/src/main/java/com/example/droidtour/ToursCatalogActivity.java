@@ -302,6 +302,16 @@ public class ToursCatalogActivity extends AppCompatActivity {
         tvCompanyName = findViewById(R.id.tv_company_name);
         tvCompanyRating = findViewById(R.id.tv_company_rating);
         tvToursCount = findViewById(R.id.tv_tours_count);
+        
+        // Botón Ver Perfil
+        MaterialButton btnProfile = findViewById(R.id.btn_profile);
+        if (btnProfile != null && companyId != null && !companyId.isEmpty()) {
+            btnProfile.setOnClickListener(v -> {
+                Intent intent = new Intent(this, com.example.droidtour.client.CompanyProfileActivity.class);
+                intent.putExtra("company_id", companyId);
+                startActivity(intent);
+            });
+        }
     }
 
     private void setupCompanyHeader() {

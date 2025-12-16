@@ -528,14 +528,12 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
                 if (result instanceof List) {
                     List<Company> allCompanies = (List<Company>) result;
 
-                    // Agregar todas las empresas o filtrar por algún criterio
-                    // Ejemplo: empresas que tienen tours activos
+                    // Agregar solo las primeras 3 empresas (top 3)
                     for (Company company : allCompanies) {
-                        // Aquí puedes agregar lógica de filtrado si es necesario
                         popularCompanies.add(company);
 
-                        // Para mostrar solo las primeras 5 o 10
-                        if (popularCompanies.size() >= 10) {
+                        // Limitar a top 3
+                        if (popularCompanies.size() >= 3) {
                             break;
                         }
                     }
@@ -721,8 +719,18 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
 
         tourName.setText(tour.getTourName() != null ? tour.getTourName() : "Tour sin nombre");
         companyName.setText(tour.getCompanyName() != null ? tour.getCompanyName() : "Compañía");
+        
+        // Rating
         Double avg = tour.getAverageRating();
-        rating.setText(avg != null ? String.format("%.1f", avg) : "4.5");
+        rating.setText(avg != null ? String.format("%.1f", avg) : "0.0");
+        
+        // Reviews count dinámico
+        TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
+        Integer totalReviews = tour.getTotalReviews();
+        if (reviewsCount != null) {
+            reviewsCount.setText(" (" + (totalReviews != null ? totalReviews : 0) + ")");
+        }
+        
         Double priceVal = tour.getPricePerPerson();
         if (priceVal != null && priceVal > 0) {
             price.setText("S/. " + String.format("%.0f", priceVal));
@@ -885,33 +893,6 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
                             tvRating.setText(String.format("%.1f", avgRating));
                         }
                         tvReviewsCount.setText(totalReviews + " reseñas");
-
-                        // Cargar servicios reales del primer tour
-                        if (!tours.isEmpty() && tours.get(0).getIncludedServices() != null) {
-                            List<String> inclusions = tours.get(0).getIncludedServices();
-                            if (inclusions.size() > 0 && chipService1 != null) {
-                                chipService1.setText(inclusions.get(0));
-                                chipService1.setVisibility(android.view.View.VISIBLE);
-                            } else if (chipService1 != null) {
-                                chipService1.setVisibility(android.view.View.GONE);
-                            }
-                            if (inclusions.size() > 1 && chipService2 != null) {
-                                chipService2.setText(inclusions.get(1));
-                                chipService2.setVisibility(android.view.View.VISIBLE);
-                            } else if (chipService2 != null) {
-                                chipService2.setVisibility(android.view.View.GONE);
-                            }
-                            if (inclusions.size() > 2 && chipService3 != null) {
-                                chipService3.setText(inclusions.get(2));
-                                chipService3.setVisibility(android.view.View.VISIBLE);
-                            } else if (chipService3 != null) {
-                                chipService3.setVisibility(android.view.View.GONE);
-                            }
-                        } else {
-                            if (chipService1 != null) chipService1.setVisibility(android.view.View.GONE);
-                            if (chipService2 != null) chipService2.setVisibility(android.view.View.GONE);
-                            if (chipService3 != null) chipService3.setVisibility(android.view.View.GONE);
-                        }
                     }
                 }
 
@@ -922,6 +903,51 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
                     tvReviewsCount.setText("0 reseñas");
                 }
             });
+
+            // Cargar servicios reales de la empresa (desde company.getServiceIds())
+            if (company.getServiceIds() != null && !company.getServiceIds().isEmpty()) {
+                firestoreManager.getServicesByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public void onSuccess(Object result) {
+                        if (result instanceof List) {
+                            List<com.example.droidtour.models.Service> services = (List<com.example.droidtour.models.Service>) result;
+                            
+                            if (services.size() > 0 && chipService1 != null) {
+                                chipService1.setText(services.get(0).getName());
+                                chipService1.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService1 != null) {
+                                chipService1.setVisibility(android.view.View.GONE);
+                            }
+                            
+                            if (services.size() > 1 && chipService2 != null) {
+                                chipService2.setText(services.get(1).getName());
+                                chipService2.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService2 != null) {
+                                chipService2.setVisibility(android.view.View.GONE);
+                            }
+                            
+                            if (services.size() > 2 && chipService3 != null) {
+                                chipService3.setText(services.get(2).getName());
+                                chipService3.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService3 != null) {
+                                chipService3.setVisibility(android.view.View.GONE);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        if (chipService1 != null) chipService1.setVisibility(android.view.View.GONE);
+                        if (chipService2 != null) chipService2.setVisibility(android.view.View.GONE);
+                        if (chipService3 != null) chipService3.setVisibility(android.view.View.GONE);
+                    }
+                });
+            } else {
+                if (chipService1 != null) chipService1.setVisibility(android.view.View.GONE);
+                if (chipService2 != null) chipService2.setVisibility(android.view.View.GONE);
+                if (chipService3 != null) chipService3.setVisibility(android.view.View.GONE);
+            }
 
             // Click listeners
             itemView.setOnClickListener(v -> onCompanyClick.onClick(company));

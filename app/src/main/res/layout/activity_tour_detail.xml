@@ -226,21 +226,6 @@
                             android:textSize="14sp"
                             android:textColor="#757575"
                             tools:text=" (127 reseñas)" />
-
-                        <View
-                            android:layout_width="0dp"
-                            android:layout_height="1dp"
-                            android:layout_weight="1" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_write_review"
-                            style="@style/Widget.Material3.Button.TextButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Escribir reseña"
-                            android:textSize="12sp"
-                            app:icon="@drawable/ic_edit"
-                            app:iconSize="16dp" />
                     </LinearLayout>
 
                     <!-- Divisor -->
@@ -481,125 +466,12 @@
                         android:background="#EEEEEE"
                         android:layout_marginBottom="16dp" />
 
-                    <!-- Lista de servicios -->
+                    <!-- Lista de servicios (cargados dinámicamente) -->
                     <LinearLayout
                         android:id="@+id/layout_services"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <!-- Item de servicio -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingVertical="10dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_check"
-                                android:tint="#4CAF50"
-                                android:layout_marginEnd="12dp"
-                                android:contentDescription="Incluido" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Transporte privado"
-                                android:textSize="14sp"
-                                android:textColor="#424242" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="#F5F5F5" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingVertical="10dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_check"
-                                android:tint="#4CAF50"
-                                android:layout_marginEnd="12dp"
-                                android:contentDescription="Incluido" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Guía profesional certificado"
-                                android:textSize="14sp"
-                                android:textColor="#424242" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="#F5F5F5" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingVertical="10dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_check"
-                                android:tint="#4CAF50"
-                                android:layout_marginEnd="12dp"
-                                android:contentDescription="Incluido" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Entradas a museos y atracciones"
-                                android:textSize="14sp"
-                                android:textColor="#424242" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="#F5F5F5" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingVertical="10dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_check"
-                                android:tint="#4CAF50"
-                                android:layout_marginEnd="12dp"
-                                android:contentDescription="Incluido" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Almuerzo típico"
-                                android:textSize="14sp"
-                                android:textColor="#424242" />
-                        </LinearLayout>
-                    </LinearLayout>
+                        android:orientation="vertical" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -645,13 +517,13 @@
                             android:textColor="#2C2C2C" />
 
                         <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_expand_itinerary"
+                            android:id="@+id/btn_view_stops_map"
                             style="@style/Widget.Material3.Button.TextButton"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Ver todo"
+                            android:text="Ver mapa"
                             android:textSize="12sp"
-                            app:icon="@drawable/ic_expand_more"
+                            app:icon="@drawable/ic_map_location"
                             app:iconSize="18dp" />
                     </LinearLayout>
 
@@ -790,38 +662,17 @@
                             tools:text="Plaza Mayor de Lima, Lima 15001" />
                     </LinearLayout>
 
-                    <!-- Botones de acción -->
-                    <LinearLayout
+                    <!-- Botón Ver mapa -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_view_map"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_view_map"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="8dp"
-                            android:text="Ver mapa"
-                            android:textSize="13sp"
-                            app:icon="@drawable/ic_map_location"
-                            app:iconSize="18dp"
-                            app:cornerRadius="8dp" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_directions"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
-                            android:layout_height="44dp"
-                            android:layout_weight="1"
-                            android:layout_marginStart="8dp"
-                            android:text="Cómo llegar"
-                            android:textSize="13sp"
-                            app:icon="@drawable/ic_map_location"
-                            app:iconSize="18dp"
-                            app:cornerRadius="8dp" />
-                    </LinearLayout>
+                        android:layout_height="44dp"
+                        android:text="Ver mapa"
+                        android:textSize="13sp"
+                        app:icon="@drawable/ic_map_location"
+                        app:iconSize="18dp"
+                        app:cornerRadius="8dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -1142,147 +993,6 @@
                         android:nestedScrollingEnabled="false"
                         tools:itemCount="3"
                         tools:listitem="@layout/item_review" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Políticas de Cancelación -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#E0E0E0">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <!-- Header -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:paddingBottom="12dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_info"
-                            android:tint="#9C27B0"
-                            android:layout_marginEnd="12dp"
-                            android:contentDescription="Políticas" />
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Políticas de Cancelación"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            android:textColor="#2C2C2C" />
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="#EEEEEE"
-                        android:layout_marginBottom="16dp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingVertical="10dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_check_circle"
-                                android:tint="#4CAF50"
-                                android:layout_marginEnd="12dp"
-                                android:contentDescription="Disponible" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Cancelación gratuita hasta 24 horas antes"
-                                android:textSize="14sp"
-                                android:textColor="#424242"
-                                android:lineSpacingExtra="2dp" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="#F5F5F5" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingVertical="10dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_info"
-                                android:tint="#FF9800"
-                                android:layout_marginEnd="12dp"
-                                android:contentDescription="Información" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Reembolso del 50% entre 24-12 horas antes"
-                                android:textSize="14sp"
-                                android:textColor="#424242"
-                                android:lineSpacingExtra="2dp" />
-                        </LinearLayout>
-
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="#F5F5F5" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical"
-                            android:paddingVertical="10dp">
-
-                            <ImageView
-                                android:layout_width="20dp"
-                                android:layout_height="20dp"
-                                android:src="@drawable/ic_close"
-                                android:tint="#F44336"
-                                android:layout_marginEnd="12dp"
-                                android:contentDescription="No disponible" />
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="Sin reembolso con menos de 12 horas"
-                                android:textSize="14sp"
-                                android:textColor="#424242"
-                                android:lineSpacingExtra="2dp" />
-                        </LinearLayout>
-                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 

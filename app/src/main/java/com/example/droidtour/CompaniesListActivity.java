@@ -144,6 +144,41 @@ public class CompaniesListActivity extends AppCompatActivity {
                 }
             }
         });
+        
+        // Configurar búsqueda por nombre
+        etSearch.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterBySearchText(s.toString());
+            }
+            
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+    }
+    
+    private void filterBySearchText(String searchText) {
+        filteredCompanies.clear();
+        
+        if (searchText.isEmpty()) {
+            filteredCompanies.addAll(allCompanies);
+        } else {
+            String lowerCaseSearch = searchText.toLowerCase();
+            for (Company company : allCompanies) {
+                String commercialName = company.getCommercialName();
+                String businessName = company.getBusinessName();
+                
+                if ((commercialName != null && commercialName.toLowerCase().contains(lowerCaseSearch)) ||
+                    (businessName != null && businessName.toLowerCase().contains(lowerCaseSearch))) {
+                    filteredCompanies.add(company);
+                }
+            }
+        }
+        
+        companiesAdapter.notifyDataSetChanged();
     }
 
     private void applyFilter(String filterType) {
@@ -153,16 +188,137 @@ public class CompaniesListActivity extends AppCompatActivity {
             case "all":
                 filteredCompanies.addAll(allCompanies);
                 break;
+                
             case "best_rated":
+                // Ordenar por mejor valoradas (basado en promedio de ratings de tours)
+                List<Company> sortedByRating = new ArrayList<>(allCompanies);
+                for (Company company : sortedByRating) {
+                    calculateCompanyRating(company);
+                }
+                Collections.sort(sortedByRating, (c1, c2) -> {
+                    double rating1 = getCompanyRatingCache(c1);
+                    double rating2 = getCompanyRatingCache(c2);
+                    return Double.compare(rating2, rating1);
+                });
+                filteredCompanies.addAll(sortedByRating);
+                break;
+                
             case "most_tours":
+                // Ordenar por m\u00e1s tours
+                List<Company> sortedByTours = new ArrayList<>(allCompanies);
+                for (Company company : sortedByTours) {
+                    calculateCompanyToursCount(company);
+                }
+                Collections.sort(sortedByTours, (c1, c2) -> {
+                    int tours1 = getCompanyToursCountCache(c1);
+                    int tours2 = getCompanyToursCountCache(c2);
+                    return Integer.compare(tours2, tours1);
+                });
+                filteredCompanies.addAll(sortedByTours);
+                break;
+                
             case "best_price":
-                // Por ahora solo mostrar todas, ya que Company no tiene estos campos
-                // TODO: Implementar cuando se agreguen campos averageRating, totalTours
-                filteredCompanies.addAll(allCompanies);
+                // Ordenar por mejor precio (menor precio promedio de tours)
+                List<Company> sortedByPrice = new ArrayList<>(allCompanies);
+                for (Company company : sortedByPrice) {
+                    calculateCompanyAveragePrice(company);
+                }
+                Collections.sort(sortedByPrice, (c1, c2) -> {
+                    double price1 = getCompanyPriceCache(c1);
+                    double price2 = getCompanyPriceCache(c2);
+                    return Double.compare(price1, price2);
+                });
+                filteredCompanies.addAll(sortedByPrice);
                 break;
         }
 
         companiesAdapter.notifyDataSetChanged();
+    }
+
+    // Caché temporal para ratings, tours count y precios
+    private final java.util.Map<String, Double> ratingCache = new java.util.HashMap<>();
+    private final java.util.Map<String, Integer> toursCountCache = new java.util.HashMap<>();
+    private final java.util.Map<String, Double> priceCache = new java.util.HashMap<>();
+
+    private void calculateCompanyRating(Company company) {
+        firestoreManager.getToursByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public void onSuccess(Object result) {
+                if (result instanceof List) {
+                    List<com.example.droidtour.models.Tour> tours = (List<com.example.droidtour.models.Tour>) result;
+                    double totalRating = 0.0;
+                    int count = 0;
+                    for (com.example.droidtour.models.Tour tour : tours) {
+                        if (tour.getAverageRating() != null && tour.getAverageRating() > 0) {
+                            totalRating += tour.getAverageRating();
+                            count++;
+                        }
+                    }
+                    double avgRating = count > 0 ? totalRating / count : 0.0;
+                    ratingCache.put(company.getCompanyId(), avgRating);
+                }
+            }
+            @Override
+            public void onFailure(Exception e) {
+                ratingCache.put(company.getCompanyId(), 0.0);
+            }
+        });
+    }
+
+    private void calculateCompanyToursCount(Company company) {
+        firestoreManager.getToursByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public void onSuccess(Object result) {
+                if (result instanceof List) {
+                    List<com.example.droidtour.models.Tour> tours = (List<com.example.droidtour.models.Tour>) result;
+                    toursCountCache.put(company.getCompanyId(), tours.size());
+                }
+            }
+            @Override
+            public void onFailure(Exception e) {
+                toursCountCache.put(company.getCompanyId(), 0);
+            }
+        });
+    }
+
+    private void calculateCompanyAveragePrice(Company company) {
+        firestoreManager.getToursByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public void onSuccess(Object result) {
+                if (result instanceof List) {
+                    List<com.example.droidtour.models.Tour> tours = (List<com.example.droidtour.models.Tour>) result;
+                    double totalPrice = 0.0;
+                    int count = 0;
+                    for (com.example.droidtour.models.Tour tour : tours) {
+                        if (tour.getPricePerPerson() != null && tour.getPricePerPerson() > 0) {
+                            totalPrice += tour.getPricePerPerson();
+                            count++;
+                        }
+                    }
+                    double avgPrice = count > 0 ? totalPrice / count : Double.MAX_VALUE;
+                    priceCache.put(company.getCompanyId(), avgPrice);
+                }
+            }
+            @Override
+            public void onFailure(Exception e) {
+                priceCache.put(company.getCompanyId(), Double.MAX_VALUE);
+            }
+        });
+    }
+
+    private double getCompanyRatingCache(Company company) {
+        return ratingCache.getOrDefault(company.getCompanyId(), 0.0);
+    }
+
+    private int getCompanyToursCountCache(Company company) {
+        return toursCountCache.getOrDefault(company.getCompanyId(), 0);
+    }
+
+    private double getCompanyPriceCache(Company company) {
+        return priceCache.getOrDefault(company.getCompanyId(), Double.MAX_VALUE);
     }
 
     private void onCompanyClick(int position) {
@@ -216,68 +372,14 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
     @Override
     public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
         android.view.View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_company_detail, parent, false);
-        return new ViewHolder(view);
+                .inflate(R.layout.item_popular_company, parent, false);
+        return new ViewHolder(view, parent.getContext());
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         Company company = companies.get(position);
-
-        TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
-        TextView location = holder.itemView.findViewById(R.id.tv_company_location);
-        TextView rating = holder.itemView.findViewById(R.id.tv_rating);
-        TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
-        TextView toursCount = holder.itemView.findViewById(R.id.tv_tours_count);
-        TextView clientsCount = holder.itemView.findViewById(R.id.tv_clients_count);
-        TextView priceFrom = holder.itemView.findViewById(R.id.tv_price_from);
-        TextView description = holder.itemView.findViewById(R.id.tv_company_description);
-        MaterialButton btnContact = holder.itemView.findViewById(R.id.btn_contact);
-        MaterialButton btnViewTours = holder.itemView.findViewById(R.id.btn_view_tours);
-
-        // Nombre de la empresa (preferir commercialName, si no businessName)
-        String displayName = getCompanyDisplayName(company);
-        companyName.setText(displayName);
-
-        // Ubicación: usar address si existe
-        String locationText = "📍 ";
-        if (company.getAddress() != null && !company.getAddress().isEmpty()) {
-            locationText += company.getAddress();
-        } else {
-            locationText += "Ubicación no especificada";
-        }
-        location.setText(locationText);
-
-        // Rating y reseñas (placeholder - Company actual no tiene estos campos)
-        // TODO: Agregar estos campos al modelo Company o cargarlos de una colección separada
-        rating.setText("⭐ 0.0");
-        reviewsCount.setText("(0 reseñas)");
-
-        // Total de tours (placeholder)
-        // TODO: Cargar desde la colección de tours
-        toursCount.setText("0");
-
-        // Clientes (placeholder)
-        clientsCount.setText("0");
-
-        // Precio (placeholder)
-        priceFrom.setText("--");
-
-        // Descripción: usar businessType o RUC como info adicional
-        String desc = buildCompanyDescription(company);
-        description.setText(desc);
-
-        // Botón de contacto
-        btnContact.setOnClickListener(v -> {
-            android.content.Intent intent = new android.content.Intent(v.getContext(), CompanyChatActivity.class);
-            intent.putExtra("company_name", displayName);
-            intent.putExtra("company_id", company.getCompanyId());
-            v.getContext().startActivity(intent);
-        });
-
-        // Botón de ver tours
-        btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(position));
-        holder.itemView.setOnClickListener(v -> onCompanyClick.onClick(position));
+        holder.bind(company, position, onCompanyClick);
     }
 
     /**
@@ -324,6 +426,167 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
     public int getItemCount() { return companies.size(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        ViewHolder(android.view.View v) { super(v); }
+        private final android.content.Context context;
+        private final android.widget.ImageView ivCompanyLogo;
+        private final TextView tvCompanyName;
+        private final TextView tvLocation;
+        private final TextView tvRating;
+        private final TextView tvToursCount;
+        private final TextView tvReviewsCount;
+        private final TextView tvExperienceYears;
+        private final android.widget.ImageButton btnFavorite;
+        private final com.google.android.material.chip.Chip chipService1;
+        private final com.google.android.material.chip.Chip chipService2;
+        private final com.google.android.material.chip.Chip chipService3;
+        private final MaterialButton btnViewTours;
+
+        ViewHolder(android.view.View v, android.content.Context ctx) {
+            super(v);
+            this.context = ctx;
+            ivCompanyLogo = v.findViewById(R.id.iv_company_logo);
+            tvCompanyName = v.findViewById(R.id.tv_company_name);
+            tvLocation = v.findViewById(R.id.tv_company_location);
+            tvRating = v.findViewById(R.id.tv_rating);
+            tvToursCount = v.findViewById(R.id.tv_tours_count);
+            tvReviewsCount = v.findViewById(R.id.tv_reviews_count);
+            tvExperienceYears = v.findViewById(R.id.tv_experience_years);
+            btnFavorite = v.findViewById(R.id.btn_favorite);
+            chipService1 = v.findViewById(R.id.chip_service_1);
+            chipService2 = v.findViewById(R.id.chip_service_2);
+            chipService3 = v.findViewById(R.id.chip_service_3);
+            btnViewTours = v.findViewById(R.id.btn_view_tours);
+        }
+
+        void bind(Company company, int position, OnCompanyClick onCompanyClick) {
+            // Nombre
+            String displayName = company.getCommercialName() != null ?
+                    company.getCommercialName() : company.getBusinessName();
+            tvCompanyName.setText(displayName != null ? displayName : "Empresa");
+
+            // Logo
+            if (ivCompanyLogo != null) {
+                String logoUrl = company.getLogoUrl();
+                if (logoUrl != null && !logoUrl.isEmpty()) {
+                    com.bumptech.glide.Glide.with(context)
+                            .load(logoUrl)
+                            .placeholder(R.drawable.ic_company)
+                            .error(R.drawable.ic_company)
+                            .centerInside()
+                            .into(ivCompanyLogo);
+                } else {
+                    ivCompanyLogo.setImageResource(R.drawable.ic_company);
+                }
+            }
+
+            // Ubicación
+            tvLocation.setText(company.getAddress() != null ? company.getAddress() : "Ubicación no disponible");
+
+            // Ocultar corazón
+            if (btnFavorite != null) {
+                btnFavorite.setVisibility(android.view.View.GONE);
+            }
+
+            // Calcular años de experiencia
+            int yearsExperience = 0;
+            if (company.getCreatedAt() != null) {
+                long diffMillis = new java.util.Date().getTime() - company.getCreatedAt().getTime();
+                yearsExperience = (int) (diffMillis / (1000L * 60 * 60 * 24 * 365));
+            }
+            tvExperienceYears.setText(yearsExperience + "+");
+
+            // Rating y reseñas - Cargar desde Firebase
+            tvRating.setText("0.0");
+            tvReviewsCount.setText("0 reseñas");
+            tvToursCount.setText("0");
+
+            FirestoreManager firestoreManager = FirestoreManager.getInstance();
+            firestoreManager.getToursByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+                @Override
+                @SuppressWarnings("unchecked")
+                public void onSuccess(Object result) {
+                    if (result instanceof java.util.List) {
+                        java.util.List<com.example.droidtour.models.Tour> tours = (java.util.List<com.example.droidtour.models.Tour>) result;
+                        int tourCount = tours.size();
+                        tvToursCount.setText(String.valueOf(tourCount));
+
+                        // Calcular rating promedio y total de reseñas
+                        double totalRating = 0.0;
+                        int totalReviews = 0;
+                        for (com.example.droidtour.models.Tour tour : tours) {
+                            if (tour.getAverageRating() != null) {
+                                totalRating += tour.getAverageRating();
+                            }
+                            if (tour.getTotalReviews() != null) {
+                                totalReviews += tour.getTotalReviews();
+                            }
+                        }
+
+                        if (tourCount > 0 && totalRating > 0) {
+                            double avgRating = totalRating / tourCount;
+                            tvRating.setText(String.format("%.1f", avgRating));
+                        }
+                        tvReviewsCount.setText(totalReviews + " reseñas");
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    tvToursCount.setText("0");
+                    tvRating.setText("0.0");
+                    tvReviewsCount.setText("0 reseñas");
+                }
+            });
+
+            // Cargar servicios reales de la empresa
+            if (company.getServiceIds() != null && !company.getServiceIds().isEmpty()) {
+                firestoreManager.getServicesByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    @SuppressWarnings("unchecked")
+                    public void onSuccess(Object result) {
+                        if (result instanceof java.util.List) {
+                            java.util.List<com.example.droidtour.models.Service> services = (java.util.List<com.example.droidtour.models.Service>) result;
+                            
+                            if (services.size() > 0 && chipService1 != null) {
+                                chipService1.setText(services.get(0).getName());
+                                chipService1.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService1 != null) {
+                                chipService1.setVisibility(android.view.View.GONE);
+                            }
+                            
+                            if (services.size() > 1 && chipService2 != null) {
+                                chipService2.setText(services.get(1).getName());
+                                chipService2.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService2 != null) {
+                                chipService2.setVisibility(android.view.View.GONE);
+                            }
+                            
+                            if (services.size() > 2 && chipService3 != null) {
+                                chipService3.setText(services.get(2).getName());
+                                chipService3.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService3 != null) {
+                                chipService3.setVisibility(android.view.View.GONE);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        if (chipService1 != null) chipService1.setVisibility(android.view.View.GONE);
+                        if (chipService2 != null) chipService2.setVisibility(android.view.View.GONE);
+                        if (chipService3 != null) chipService3.setVisibility(android.view.View.GONE);
+                    }
+                });
+            } else {
+                if (chipService1 != null) chipService1.setVisibility(android.view.View.GONE);
+                if (chipService2 != null) chipService2.setVisibility(android.view.View.GONE);
+                if (chipService3 != null) chipService3.setVisibility(android.view.View.GONE);
+            }
+
+            // Click listeners
+            itemView.setOnClickListener(v -> onCompanyClick.onClick(position));
+            if (btnViewTours != null) {
+                btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(position));
+            }
+        }
     }
 }

@@ -969,6 +969,7 @@ public class FirestoreManager {
 
     /**
      * Obtener todos los servicios de una empresa
+     * Ahora usa el campo serviceIds del documento de la empresa
      */
     public void getServicesByCompany(String companyId, FirestoreCallback callback) {
         if (companyId == null || companyId.trim().isEmpty()) {
@@ -976,21 +977,57 @@ public class FirestoreManager {
             return;
         }
 
-        db.collection(COLLECTION_SERVICES)
-                .whereEqualTo("companyId", companyId)
+        // Primero obtener la empresa para acceder a su array serviceIds
+        db.collection(COLLECTION_COMPANIES)
+                .document(companyId)
                 .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    List<com.example.droidtour.models.Service> services = new ArrayList<>();
-                    for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
-                        com.example.droidtour.models.Service service = doc.toObject(com.example.droidtour.models.Service.class);
-                        if (service != null) {
-                            if (service.getServiceId() == null || service.getServiceId().isEmpty()) {
-                                service.setServiceId(doc.getId());
-                            }
-                            services.add(service);
-                        }
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        callback.onFailure(new Exception("Company not found"));
+                        return;
                     }
-                    callback.onSuccess(services);
+
+                    Company company = documentSnapshot.toObject(Company.class);
+                    if (company == null || company.getServiceIds() == null || company.getServiceIds().isEmpty()) {
+                        // No hay servicios registrados
+                        callback.onSuccess(new ArrayList<com.example.droidtour.models.Service>());
+                        return;
+                    }
+
+                    List<String> serviceIds = company.getServiceIds();
+                    List<com.example.droidtour.models.Service> services = new ArrayList<>();
+                    
+                    // Cargar cada servicio por su ID
+                    final int[] loadedCount = {0};
+                    for (String serviceId : serviceIds) {
+                        db.collection(COLLECTION_SERVICES)
+                                .document(serviceId)
+                                .get()
+                                .addOnSuccessListener(serviceDoc -> {
+                                    if (serviceDoc.exists()) {
+                                        com.example.droidtour.models.Service service = serviceDoc.toObject(com.example.droidtour.models.Service.class);
+                                        if (service != null) {
+                                            if (service.getServiceId() == null || service.getServiceId().isEmpty()) {
+                                                service.setServiceId(serviceDoc.getId());
+                                            }
+                                            services.add(service);
+                                        }
+                                    }
+                                    
+                                    loadedCount[0]++;
+                                    if (loadedCount[0] == serviceIds.size()) {
+                                        // Todos los servicios cargados
+                                        callback.onSuccess(services);
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error loading service: " + serviceId, e);
+                                    loadedCount[0]++;
+                                    if (loadedCount[0] == serviceIds.size()) {
+                                        callback.onSuccess(services);
+                                    }
+                                });
+                    }
                 })
                 .addOnFailureListener(callback::onFailure);
     }

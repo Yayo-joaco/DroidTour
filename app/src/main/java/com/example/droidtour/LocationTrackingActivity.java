@@ -139,16 +139,6 @@ public class LocationTrackingActivity extends AppCompatActivity implements OnMap
         // Verificar y solicitar permisos de ubicación
         checkLocationPermission();
         
-        // Configurar click en marcadores para marcar paradas como completadas
-        mMap.setOnMarkerClickListener(marker -> {
-            if (marker.getTag() != null && marker.getTag() instanceof Integer) {
-                int stopIndex = (int) marker.getTag();
-                toggleStopCompleted(stopIndex);
-                return true;
-            }
-            return false;
-        });
-        
         // Si ya tenemos el tour, mostrar paradas
         if (currentTour != null) {
             updateMapWithStops();
@@ -201,8 +191,8 @@ public class LocationTrackingActivity extends AppCompatActivity implements OnMap
     }
     
     private void loadTourData() {
-        Log.d(TAG, "🔄 Cargando datos del tour: " + tourId);
-        
+        Log.d(TAG, "Cargando datos del tour: " + tourId);
+
         firestoreManager.getTourById(tourId, new FirestoreManager.TourCallback() {
             @Override
             public void onSuccess(Tour tour) {
@@ -210,67 +200,65 @@ public class LocationTrackingActivity extends AppCompatActivity implements OnMap
                 if (progressLoading != null) {
                     progressLoading.setVisibility(android.view.View.GONE);
                 }
-                Log.d(TAG, "✅ Tour cargado: " + currentTour.getTourName());
-                
+                Log.d(TAG, "Tour cargado: " + currentTour.getTourName());
+
                 if (currentTour.getStops() != null) {
-                    Log.d(TAG, "   📍 Paradas totales: " + currentTour.getStops().size());
+                    Log.d(TAG, "Paradas totales: " + currentTour.getStops().size());
                 } else {
-                    Log.d(TAG, "   ⚠️ Tour no tiene paradas");
+                    Log.d(TAG, "Tour no tiene paradas");
                 }
-                
+
                 displayTourInfo();
                 updateMapWithStops();
             }
-            
+
             @Override
             public void onFailure(String error) {
                 if (progressLoading != null) {
                     progressLoading.setVisibility(android.view.View.GONE);
                 }
-                Log.e(TAG, "❌ Error cargando tour: " + error);
-                Toast.makeText(LocationTrackingActivity.this, 
-                    "Error al cargar tour: " + error, 
-                    Toast.LENGTH_SHORT).show();
+                Log.e(TAG, "Error cargando tour: " + error);
+                Toast.makeText(LocationTrackingActivity.this,
+                        "Error al cargar tour: " + error,
+                        Toast.LENGTH_SHORT).show();
             }
         });
     }
-    
+
     private void setupRealtimeListener() {
         if (tourListener != null) {
-            Log.d(TAG, "⚠️ Listener ya configurado, omitiendo duplicado");
+            Log.d(TAG, "Listener ya configurado, omitiendo duplicado");
             return;
         }
-        
-        Log.d(TAG, "🔔 Configurando listener en tiempo real para tour: " + tourId);
-        
-        // Listener en tiempo real para actualizar cuando se completen paradas
+
+        Log.d(TAG, "Configurando listener en tiempo real para tour: " + tourId);
+
         tourListener = db.collection("Tours").document(tourId)
-            .addSnapshotListener((snapshot, error) -> {
-                if (error != null) {
-                    Log.e(TAG, "❌ Error listening to tour updates", error);
-                    return;
-                }
-                
-                if (snapshot != null && snapshot.exists()) {
-                    Tour updatedTour = snapshot.toObject(Tour.class);
-                    if (updatedTour != null) {
-                        currentTour = updatedTour;
-                        Log.d(TAG, "🔔 Tour actualizado en tiempo real");
-                        runOnUiThread(() -> {
-                            displayTourInfo();
-                            updateMapWithStops();
-                        });
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error listening to tour updates", error);
+                        return;
                     }
-                }
-            });
+
+                    if (snapshot != null && snapshot.exists()) {
+                        Tour updatedTour = snapshot.toObject(Tour.class);
+                        if (updatedTour != null) {
+                            currentTour = updatedTour;
+                            Log.d(TAG, "Tour actualizado en tiempo real");
+                            runOnUiThread(() -> {
+                                displayTourInfo();
+                                updateMapWithStops();
+                            });
+                        }
+                    }
+                });
     }
-    
+
     private void displayTourInfo() {
         if (currentTour == null) return;
-        
+
         tvTourName.setText(currentTour.getTourName());
-        
-        // Calcular paradas completadas
+
         int total = 0;
         int completed = 0;
         if (currentTour.getStops() != null) {
@@ -281,145 +269,100 @@ public class LocationTrackingActivity extends AppCompatActivity implements OnMap
                 }
             }
         }
-        
+
         tvPointsCompleted.setText(completed + "/" + total + " paradas completadas");
     }
-    
+
     private void updateMapWithStops() {
         if (mMap == null) {
-            Log.d(TAG, "⚠️ Mapa no está listo");
+            Log.d(TAG, "Mapa no esta listo");
             return;
         }
-        
+
         if (currentTour == null || currentTour.getStops() == null) {
-            Log.d(TAG, "⚠️ No hay datos del tour para mostrar");
+            Log.d(TAG, "No hay datos del tour para mostrar");
             return;
         }
-        
-        Log.d(TAG, "🗺️ Actualizando mapa con paradas");
+
+        Log.d(TAG, "Actualizando mapa con paradas");
         mMap.clear();
         LatLngBounds.Builder boundsBuilder = new LatLngBounds.Builder();
         boolean hasMarkers = false;
-        
+
         // Punto de encuentro (AZUL)
         if (currentTour.getMeetingPointLatitude() != null && currentTour.getMeetingPointLongitude() != null) {
             LatLng meetingLatLng = new LatLng(currentTour.getMeetingPointLatitude(), currentTour.getMeetingPointLongitude());
             mMap.addMarker(new MarkerOptions()
-                .position(meetingLatLng)
-                .title("📍 Punto de Encuentro")
-                .snippet(currentTour.getMeetingPoint())
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+                    .position(meetingLatLng)
+                    .title("Punto de Encuentro")
+                    .snippet(currentTour.getMeetingPoint())
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
             boundsBuilder.include(meetingLatLng);
             hasMarkers = true;
-            Log.d(TAG, "   ✅ Marcador de punto de encuentro agregado");
+            Log.d(TAG, "Marcador de punto de encuentro agregado");
         }
-        
+
         // Paradas (ROJO = pendiente, VERDE = completada)
         if (currentTour.getStops() != null && !currentTour.getStops().isEmpty()) {
-            Log.d(TAG, "   📍 Agregando " + currentTour.getStops().size() + " paradas");
+            Log.d(TAG, "Agregando " + currentTour.getStops().size() + " paradas");
             for (int i = 0; i < currentTour.getStops().size(); i++) {
                 Tour.TourStop stop = currentTour.getStops().get(i);
                 LatLng stopLatLng = new LatLng(stop.getLatitude(), stop.getLongitude());
                 boolean isCompleted = stop.getCompleted() != null && stop.getCompleted();
-                
-                float markerColor = isCompleted ? 
-                    BitmapDescriptorFactory.HUE_GREEN : 
-                    BitmapDescriptorFactory.HUE_RED;
-                
+
+                float markerColor = isCompleted ?
+                        BitmapDescriptorFactory.HUE_GREEN :
+                        BitmapDescriptorFactory.HUE_RED;
+
                 String title = stop.getOrder() + ". " + stop.getName();
-                String snippet = "Toca para marcar como " + (isCompleted ? "pendiente" : "completada");
+                StringBuilder snippetBuilder = new StringBuilder();
                 if (stop.getTime() != null && !stop.getTime().isEmpty()) {
-                    snippet = stop.getTime() + " - " + snippet;
+                    snippetBuilder.append(stop.getTime());
+                }
+                if (stop.getDescription() != null && !stop.getDescription().isEmpty()) {
+                    if (snippetBuilder.length() > 0) snippetBuilder.append(" - ");
+                    snippetBuilder.append(stop.getDescription());
                 }
                 if (isCompleted) {
-                    title += " ✓";
+                    title += " (completada)";
                 }
-                
-                com.google.android.gms.maps.model.Marker marker = mMap.addMarker(new MarkerOptions()
-                    .position(stopLatLng)
-                    .title(title)
-                    .snippet(snippet)
-                    .icon(BitmapDescriptorFactory.defaultMarker(markerColor)));
-                
-                // Guardar el índice de la parada en el tag del marcador
-                if (marker != null) {
-                    marker.setTag(i);
-                }
-                
+
+                mMap.addMarker(new MarkerOptions()
+                        .position(stopLatLng)
+                        .title(title)
+                        .snippet(snippetBuilder.length() > 0 ? snippetBuilder.toString() : null)
+                        .icon(BitmapDescriptorFactory.defaultMarker(markerColor)));
+
                 boundsBuilder.include(stopLatLng);
                 hasMarkers = true;
-                
-                Log.d(TAG, "      " + (isCompleted ? "✅" : "🔴") + " Parada " + stop.getOrder() + ": " + stop.getName());
+
+                Log.d(TAG, "Parada " + stop.getOrder() + ": " + stop.getName());
             }
         } else {
-            Log.d(TAG, "   ⚠️ No hay paradas para mostrar");
+            Log.d(TAG, "No hay paradas para mostrar");
         }
-        
-        // Ajustar cámara
+
+        // Ajustar camara
         if (hasMarkers) {
             try {
                 LatLngBounds bounds = boundsBuilder.build();
                 int padding = 150;
                 mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding));
-                Log.d(TAG, "   ✅ Cámara ajustada a todos los marcadores");
+                Log.d(TAG, "Camara ajustada a todos los marcadores");
             } catch (Exception e) {
-                Log.e(TAG, "❌ Error ajustando cámara", e);
+                Log.e(TAG, "Error ajustando camara", e);
             }
         } else {
-            Log.d(TAG, "   ⚠️ No hay marcadores para ajustar cámara");
+            Log.d(TAG, "No hay marcadores para ajustar camara");
         }
     }
-    
-    private void toggleStopCompleted(int stopIndex) {
-        if (currentTour == null || currentTour.getStops() == null || 
-            stopIndex < 0 || stopIndex >= currentTour.getStops().size()) {
-            return;
-        }
-        
-        Tour.TourStop stop = currentTour.getStops().get(stopIndex);
-        boolean currentStatus = stop.getCompleted() != null && stop.getCompleted();
-        boolean newStatus = !currentStatus;
-        
-        Log.d(TAG, "🔄 Cambiando estado de parada " + stop.getOrder() + ": " + stop.getName());
-        Log.d(TAG, "   Estado actual: " + (currentStatus ? "Completada" : "Pendiente"));
-        Log.d(TAG, "   Nuevo estado: " + (newStatus ? "Completada" : "Pendiente"));
-        
-        // Actualizar localmente
-        stop.setCompleted(newStatus);
-        if (newStatus) {
-            stop.setCompletedAt(new java.util.Date());
-        } else {
-            stop.setCompletedAt(null);
-        }
-        
-        // Actualizar en Firestore
-        java.util.Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("stops", currentTour.getStops());
-        
-        firestoreManager.updateTour(tourId, updates, new FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                Log.d(TAG, "✅ Parada actualizada en Firestore");
-                String message = newStatus ? "✅ Parada completada" : "🔄 Parada marcada como pendiente";
-                Toast.makeText(LocationTrackingActivity.this, message, Toast.LENGTH_SHORT).show();
-                
-                // El listener en tiempo real actualizará el mapa automáticamente
-            }
-            
-            @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "❌ Error actualizando parada", e);
-                Toast.makeText(LocationTrackingActivity.this, 
-                    "Error al actualizar parada: " + e.getMessage(), 
-                    Toast.LENGTH_SHORT).show();
-                
-                // Revertir cambio local
-                stop.setCompleted(currentStatus);
-                stop.setCompletedAt(null);
-            }
-        });
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadTourData();
     }
-    
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -427,7 +370,7 @@ public class LocationTrackingActivity extends AppCompatActivity implements OnMap
             tourListener.remove();
         }
     }
-    
+
     private void redirectToLogin() {
         Intent intent = new Intent(this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

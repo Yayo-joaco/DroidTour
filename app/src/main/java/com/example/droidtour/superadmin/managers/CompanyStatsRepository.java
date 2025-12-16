@@ -111,9 +111,15 @@ public class CompanyStatsRepository {
                                                 stats.setConfirmedReservations(stats.getConfirmedReservations() + 1);
                                             } else if ("EN_CURSO".equals(status)) {
                                                 stats.setInProgressReservations(stats.getInProgressReservations() + 1);
-                                            } else if ("COMPLETADA".equals(status)) {
+                                            }
+                                            
+                                            // Completadas: considerar solo hasCheckedOut == true
+                                            Boolean hasCheckedOut = reservation.getHasCheckedOut();
+                                            if (hasCheckedOut != null && hasCheckedOut) {
                                                 stats.setCompletedReservations(stats.getCompletedReservations() + 1);
-                                            } else if ("CANCELADA".equals(status)) {
+                                            }
+                                            
+                                            if ("CANCELADA".equals(status)) {
                                                 stats.setCancelledReservations(stats.getCancelledReservations() + 1);
                                             }
                                             
@@ -182,9 +188,15 @@ public class CompanyStatsRepository {
                                                 stats.setConfirmedReservations(stats.getConfirmedReservations() + 1);
                                             } else if ("EN_CURSO".equals(status)) {
                                                 stats.setInProgressReservations(stats.getInProgressReservations() + 1);
-                                            } else if ("COMPLETADA".equals(status)) {
+                                            }
+                                            
+                                            // Completadas: considerar solo hasCheckedOut == true
+                                            Boolean hasCheckedOut = reservation.getHasCheckedOut();
+                                            if (hasCheckedOut != null && hasCheckedOut) {
                                                 stats.setCompletedReservations(stats.getCompletedReservations() + 1);
-                                            } else if ("CANCELADA".equals(status)) {
+                                            }
+                                            
+                                            if ("CANCELADA".equals(status)) {
                                                 stats.setCancelledReservations(stats.getCancelledReservations() + 1);
                                             }
                                             

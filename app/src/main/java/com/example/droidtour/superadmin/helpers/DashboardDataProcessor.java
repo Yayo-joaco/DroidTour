@@ -45,6 +45,12 @@ public class DashboardDataProcessor {
                 paymentStatus.equals("CONFIRMADO") || 
                 paymentStatus.equals("COBRADO")) {
                 
+                // Verificar hasCheckedOut
+                Boolean hasCheckedOut = doc.getBoolean("hasCheckedOut");
+                if (hasCheckedOut == null || !hasCheckedOut) {
+                    continue; // Saltar reservas que no han sido procesadas (check-out)
+                }
+                
                 // Obtener tourDate (puede estar en varios formatos)
                 String tourDate = doc.getString("tourDate");
                 if (tourDate != null && !tourDate.isEmpty()) {
@@ -170,3 +176,4 @@ public class DashboardDataProcessor {
         return 0;
     }
 }
+

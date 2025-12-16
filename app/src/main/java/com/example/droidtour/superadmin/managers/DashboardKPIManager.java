@@ -134,11 +134,15 @@ public class DashboardKPIManager {
                                     paymentStatus.equals("CONFIRMADO") || 
                                     paymentStatus.equals("COBRADO")) {
                                     
-                                    String tourDate = doc.getString("tourDate");
-                                    if (tourDate != null && !tourDate.isEmpty()) {
-                                        Date tourDateObj = DashboardDateHelper.parseDateFlexible(tourDate);
-                                        if (tourDateObj != null && isDateInRange(tourDateObj, dateRange)) {
-                                            totalBookings++;
+                                    // Verificar hasCheckedOut
+                                    Boolean hasCheckedOut = doc.getBoolean("hasCheckedOut");
+                                    if (hasCheckedOut != null && hasCheckedOut) {
+                                        String tourDate = doc.getString("tourDate");
+                                        if (tourDate != null && !tourDate.isEmpty()) {
+                                            Date tourDateObj = DashboardDateHelper.parseDateFlexible(tourDate);
+                                            if (tourDateObj != null && isDateInRange(tourDateObj, dateRange)) {
+                                                totalBookings++;
+                                            }
                                         }
                                     }
                                 }
@@ -186,11 +190,15 @@ public class DashboardKPIManager {
                                         paymentStatus.equals("CONFIRMADO") || 
                                         paymentStatus.equals("COBRADO")) {
                                         
-                                        String tourDate = doc.getString("tourDate");
-                                        if (tourDate != null && !tourDate.isEmpty()) {
-                                            Date tourDateObj = DashboardDateHelper.parseDateFlexible(tourDate);
-                                            if (tourDateObj != null && isDateInRange(tourDateObj, dateRange)) {
-                                                totalBookings++;
+                                        // Verificar hasCheckedOut
+                                        Boolean hasCheckedOut = doc.getBoolean("hasCheckedOut");
+                                        if (hasCheckedOut != null && hasCheckedOut) {
+                                            String tourDate = doc.getString("tourDate");
+                                            if (tourDate != null && !tourDate.isEmpty()) {
+                                                Date tourDateObj = DashboardDateHelper.parseDateFlexible(tourDate);
+                                                if (tourDateObj != null && isDateInRange(tourDateObj, dateRange)) {
+                                                    totalBookings++;
+                                                }
                                             }
                                         }
                                     }
@@ -244,13 +252,17 @@ public class DashboardKPIManager {
                                     paymentStatus.equals("CONFIRMADO") || 
                                     paymentStatus.equals("COBRADO")) {
                                     
-                                    String tourDate = doc.getString("tourDate");
-                                    if (tourDate != null && !tourDate.isEmpty()) {
-                                        Date tourDateObj = DashboardDateHelper.parseDateFlexible(tourDate);
-                                        if (tourDateObj != null && isDateInRange(tourDateObj, dateRange)) {
-                                            Object priceObj = doc.get("totalPrice");
-                                            if (priceObj != null) {
-                                                totalRevenue += parsePrice(priceObj);
+                                    // Verificar hasCheckedOut
+                                    Boolean hasCheckedOut = doc.getBoolean("hasCheckedOut");
+                                    if (hasCheckedOut != null && hasCheckedOut) {
+                                        String tourDate = doc.getString("tourDate");
+                                        if (tourDate != null && !tourDate.isEmpty()) {
+                                            Date tourDateObj = DashboardDateHelper.parseDateFlexible(tourDate);
+                                            if (tourDateObj != null && isDateInRange(tourDateObj, dateRange)) {
+                                                Object priceObj = doc.get("totalPrice");
+                                                if (priceObj != null) {
+                                                    totalRevenue += parsePrice(priceObj);
+                                                }
                                             }
                                         }
                                     }
@@ -300,13 +312,17 @@ public class DashboardKPIManager {
                                         paymentStatus.equals("CONFIRMADO") || 
                                         paymentStatus.equals("COBRADO")) {
                                         
-                                        String tourDate = doc.getString("tourDate");
-                                        if (tourDate != null && !tourDate.isEmpty()) {
-                                            Date tourDateObj = DashboardDateHelper.parseDateFlexible(tourDate);
-                                            if (tourDateObj != null && isDateInRange(tourDateObj, dateRange)) {
-                                                Object priceObj = doc.get("totalPrice");
-                                                if (priceObj != null) {
-                                                    totalRevenue += parsePrice(priceObj);
+                                        // Verificar hasCheckedOut
+                                        Boolean hasCheckedOut = doc.getBoolean("hasCheckedOut");
+                                        if (hasCheckedOut != null && hasCheckedOut) {
+                                            String tourDate = doc.getString("tourDate");
+                                            if (tourDate != null && !tourDate.isEmpty()) {
+                                                Date tourDateObj = DashboardDateHelper.parseDateFlexible(tourDate);
+                                                if (tourDateObj != null && isDateInRange(tourDateObj, dateRange)) {
+                                                    Object priceObj = doc.get("totalPrice");
+                                                    if (priceObj != null) {
+                                                        totalRevenue += parsePrice(priceObj);
+                                                    }
                                                 }
                                             }
                                         }
@@ -385,3 +401,4 @@ public class DashboardKPIManager {
         void onComplete();
     }
 }
+

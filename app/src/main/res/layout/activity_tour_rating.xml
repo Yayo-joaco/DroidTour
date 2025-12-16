@@ -13,12 +13,18 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
         app:title="Valorar Tour"
+        app:titleTextAppearance="@style/Toolbar.TitleText2"
         app:titleTextColor="@color/white"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        app:navigationIcon="@drawable/ic_back"
+        app:navigationIconTint="@color/white"
+        app:titleCentered="true" />
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:clipToPadding="false"
+        android:paddingBottom="18dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -30,9 +36,12 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="5dp"
+                app:cardBackgroundColor="@color/white"
+                app:strokeWidth="1dp"
+                app:strokeColor="#ECECEC">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -41,47 +50,61 @@
                     android:padding="16dp"
                     android:gravity="center_vertical">
 
-                    <ImageView
-                        android:layout_width="60dp"
-                        android:layout_height="60dp"
-                        android:src="@android:drawable/ic_menu_mapmode"
-                        android:background="@drawable/circle_primary"
-                        android:tint="@color/white"
-                        android:padding="12dp" />
+                    <FrameLayout
+                        android:layout_width="52dp"
+                        android:layout_height="52dp">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:layout_width="52dp"
+                            android:layout_height="52dp"
+                            app:cardCornerRadius="26dp"
+                            app:cardElevation="0dp"
+                            app:cardBackgroundColor="#142196F3" />
+
+                        <ImageView
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:layout_gravity="center"
+                            android:src="@android:drawable/ic_menu_mapmode"
+                            android:tint="@color/primary" />
+                    </FrameLayout>
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:layout_marginStart="16dp"
+                        android:layout_marginStart="14dp"
                         android:orientation="vertical">
 
                         <TextView
                             android:id="@+id/tv_tour_name"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="City Tour Lima Centro"
                             android:textSize="18sp"
                             android:textStyle="bold"
-                            android:textColor="@color/black" />
+                            android:textColor="#202124"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <TextView
                             android:id="@+id/tv_company_name"
-                            android:layout_width="wrap_content"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Lima Adventure Tours"
-                            android:textSize="14sp"
-                            android:textColor="@color/gray"
-                            android:layout_marginTop="4dp" />
+                            android:textSize="13sp"
+                            android:textColor="#6B7280"
+                            android:layout_marginTop="6dp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="✅ Tour completado"
+                            android:text="Tour completado"
                             android:textSize="12sp"
                             android:textColor="@color/green"
-                            android:layout_marginTop="4dp" />
-
+                            android:layout_marginTop="6dp" />
                     </LinearLayout>
 
                 </LinearLayout>
@@ -92,39 +115,51 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="5dp"
+                app:cardBackgroundColor="@color/white"
+                app:strokeWidth="1dp"
+                app:strokeColor="#ECECEC">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="18dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="¿Cómo calificarías este tour? *"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="10dp">
+
+
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Califica el tour"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="#202124" />
+                    </LinearLayout>
 
                     <!-- Star Rating Tour -->
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="16dp"
-                        android:gravity="center">
+                        android:gravity="center"
+                        android:layout_marginBottom="8dp">
 
                         <TextView
                             android:id="@+id/star_tour_1"
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -135,7 +170,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -146,7 +181,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -157,7 +192,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -168,24 +203,23 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
                             android:background="?attr/selectableItemBackgroundBorderless" />
-
                     </LinearLayout>
 
                     <TextView
                         android:id="@+id/tv_rating_text"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Selecciona tu calificación"
-                        android:textSize="14sp"
-                        android:textColor="@color/gray" />
+                        android:textSize="13sp"
+                        android:textColor="#6B7280"
+                        android:textAlignment="center" />
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Section 2: Guide Rating -->
@@ -193,48 +227,50 @@
                 android:id="@+id/card_guide_rating"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="5dp"
+                app:cardBackgroundColor="@color/white"
+                app:strokeWidth="1dp"
+                app:strokeColor="#ECECEC">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="18dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="¿Cómo calificarías al guía?"
-                        android:textSize="18sp"
+                        android:text="Califica al guía"
+                        android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="8dp" />
+                        android:textColor="#202124" />
 
                     <TextView
                         android:id="@+id/tv_guide_name"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Nombre del Guía"
-                        android:textSize="14sp"
-                        android:textColor="@color/gray"
-                        android:layout_marginBottom="16dp" />
+                        android:textSize="13sp"
+                        android:textColor="#6B7280"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginBottom="12dp" />
 
-                    <!-- Star Rating Guide -->
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="16dp"
-                        android:gravity="center">
+                        android:gravity="center"
+                        android:layout_marginBottom="8dp">
 
                         <TextView
                             android:id="@+id/star_guide_1"
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -246,7 +282,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -258,7 +294,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -270,7 +306,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -282,25 +318,24 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
                             android:alpha="0.3"
                             android:background="?attr/selectableItemBackgroundBorderless" />
-
                     </LinearLayout>
 
                     <TextView
                         android:id="@+id/tv_guide_rating_text"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="(Opcional)"
-                        android:textSize="14sp"
-                        android:textColor="@color/gray" />
+                        android:textSize="13sp"
+                        android:textColor="#6B7280"
+                        android:textAlignment="center" />
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Section 3: Company Rating -->
@@ -308,39 +343,41 @@
                 android:id="@+id/card_company_rating"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="5dp"
+                app:cardBackgroundColor="@color/white"
+                app:strokeWidth="1dp"
+                app:strokeColor="#ECECEC">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="18dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="¿Cómo calificarías a la empresa?"
-                        android:textSize="18sp"
+                        android:text="Califica a la empresa"
+                        android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
+                        android:textColor="#202124"
+                        android:layout_marginBottom="10dp" />
 
-                    <!-- Star Rating Company -->
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginBottom="16dp"
-                        android:gravity="center">
+                        android:gravity="center"
+                        android:layout_marginBottom="8dp">
 
                         <TextView
                             android:id="@+id/star_company_1"
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -352,7 +389,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -364,7 +401,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -376,7 +413,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
@@ -388,70 +425,71 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:text="⭐"
-                            android:textSize="32sp"
+                            android:textSize="30sp"
                             android:gravity="center"
                             android:clickable="true"
                             android:focusable="true"
                             android:alpha="0.3"
                             android:background="?attr/selectableItemBackgroundBorderless" />
-
                     </LinearLayout>
 
                     <TextView
                         android:id="@+id/tv_company_rating_text"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="(Opcional)"
-                        android:textSize="14sp"
-                        android:textColor="@color/gray" />
+                        android:textSize="13sp"
+                        android:textColor="#6B7280"
+                        android:textAlignment="center" />
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Comment Section Tour -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                android:layout_marginBottom="14dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="5dp"
+                app:cardBackgroundColor="@color/white"
+                app:strokeWidth="1dp"
+                app:strokeColor="#ECECEC">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="18dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Comparte tu experiencia del tour"
-                        android:textSize="18sp"
+                        android:text="Tu comentario del tour"
+                        android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
+                        android:textColor="#202124"
+                        android:layout_marginBottom="12dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Escribe tu comentario (opcional)"
                         app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary">
+                        app:hintTextColor="@color/primary"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_comment_tour"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minLines="2"
-                            android:maxLines="4"
+                            android:maxLines="5"
                             android:gravity="top"
                             android:inputType="textMultiLine|textCapSentences" />
-
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Comment Section Guide (Optional) -->
@@ -459,16 +497,19 @@
                 android:id="@+id/card_guide_comment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="14dp"
                 android:visibility="gone"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="5dp"
+                app:cardBackgroundColor="@color/white"
+                app:strokeWidth="1dp"
+                app:strokeColor="#ECECEC">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="18dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -476,29 +517,28 @@
                         android:text="Comentario sobre el guía (opcional)"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
+                        android:textColor="#202124"
+                        android:layout_marginBottom="12dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Escribe tu comentario sobre el guía"
                         app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary">
+                        app:hintTextColor="@color/primary"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_comment_guide"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minLines="2"
-                            android:maxLines="4"
+                            android:maxLines="5"
                             android:gravity="top"
                             android:inputType="textMultiLine|textCapSentences" />
-
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Comment Section Company (Optional) -->
@@ -506,16 +546,19 @@
                 android:id="@+id/card_company_comment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="14dp"
                 android:visibility="gone"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="16dp"
+                app:cardElevation="5dp"
+                app:cardBackgroundColor="@color/white"
+                app:strokeWidth="1dp"
+                app:strokeColor="#ECECEC">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="18dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -523,43 +566,50 @@
                         android:text="Comentario sobre la empresa (opcional)"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="@color/primary"
-                        android:layout_marginBottom="16dp" />
+                        android:textColor="#202124"
+                        android:layout_marginBottom="12dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:hint="Escribe tu comentario sobre la empresa"
                         app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary">
+                        app:hintTextColor="@color/primary"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_comment_company"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:minLines="2"
-                            android:maxLines="4"
+                            android:maxLines="5"
                             android:gravity="top"
                             android:inputType="textMultiLine|textCapSentences" />
-
                     </com.google.android.material.textfield.TextInputLayout>
 
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Submit Button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_submit_rating"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:text="Enviar Valoración"
-                android:textSize="16sp"
-                android:paddingVertical="12dp"
-                android:layout_marginTop="8dp" />
+                android:textAllCaps="false"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                app:cornerRadius="14dp"
+                app:icon="@drawable/ic_send"
+                app:iconGravity="textStart"
+                app:iconPadding="10dp"
+                app:iconTint="@color/white"
+                app:backgroundTint="@color/primary"
+                android:textColor="@color/white"
+                android:layout_marginTop="6dp" />
 
         </LinearLayout>
 
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

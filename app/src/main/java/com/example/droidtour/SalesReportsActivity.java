@@ -38,9 +38,13 @@ public class SalesReportsActivity extends AppCompatActivity {
     private ViewPager2 viewPager;
     private SalesReportsPagerAdapter pagerAdapter;
     private com.example.droidtour.utils.PreferencesManager prefsManager;
+    private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     
     // KPI Views
     private TextView tvTotalRevenue, tvTotalReservations, tvAvgTicket;
+    
+    // Data
+    private String currentCompanyId;
     
     // Date selection views
     private LinearLayout dateSelectionContainer;
@@ -87,6 +91,12 @@ public class SalesReportsActivity extends AppCompatActivity {
         setupDateSelectors();
         setupPeriodFilters();
         setupViewPager();
+        
+        // Inicializar FirestoreManager
+        firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
+        
+        // Cargar companyId del usuario
+        loadCompanyId();
         
         // Inicializar con período por defecto (General)
         // El chip ya está marcado en el layout, solo configuramos el estado
@@ -468,10 +478,214 @@ public class SalesReportsActivity extends AppCompatActivity {
         }
     }
     
+    private void loadCompanyId() {
+        String userId = prefsManager.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            Log.w(TAG, "No se encontró userId, no se pueden cargar KPIs");
+            showEmptyKPIs();
+            return;
+        }
+        
+        firestoreManager.getUserById(userId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+                if (user != null && user.getCompanyId() != null && !user.getCompanyId().isEmpty()) {
+                    currentCompanyId = user.getCompanyId();
+                    // Cargar KPIs después de obtener el companyId
+                    updateKPIHeader(currentPeriodType, getSelectedDateForPeriod());
+                } else {
+                    Log.w(TAG, "Usuario no tiene companyId asignado");
+                    showEmptyKPIs();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando usuario para obtener companyId", e);
+                showEmptyKPIs();
+            }
+        });
+    }
+    
     private void updateKPIHeader(int periodType, Date periodDate) {
-        // TODO: Cargar datos reales desde Firebase
-        // Por ahora solo actualizamos los valores hardcodeados
-        // Esto se implementará cuando se conecte con los datos reales
+        if (currentCompanyId == null || currentCompanyId.isEmpty()) {
+            Log.w(TAG, "No hay companyId, no se pueden cargar KPIs");
+            showEmptyKPIs();
+            return;
+        }
+        
+        // Cargar reservaciones de la empresa desde Firebase
+        firestoreManager.getReservationsByCompany(currentCompanyId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<com.example.droidtour.models.Reservation> reservations = (List<com.example.droidtour.models.Reservation>) result;
+                
+                if (reservations == null) {
+                    reservations = new ArrayList<>();
+                }
+                
+                // Filtrar reservaciones según el período seleccionado
+                List<com.example.droidtour.models.Reservation> filteredReservations = filterReservationsByPeriod(reservations, periodType, periodDate);
+                
+                // Calcular KPIs
+                double totalRevenue = 0;
+                int validReservations = 0;
+                
+                for (com.example.droidtour.models.Reservation r : filteredReservations) {
+                    if (isValidReservationForReports(r)) {
+                        totalRevenue += r.getTotalPrice() != null ? r.getTotalPrice() : 0;
+                        validReservations++;
+                    }
+                }
+                
+                double avgTicket = validReservations > 0 ? totalRevenue / validReservations : 0;
+                
+                // Actualizar UI
+                if (tvTotalRevenue != null) {
+                    tvTotalRevenue.setText(String.format(Locale.getDefault(), "S/. %.0f", totalRevenue));
+                }
+                if (tvTotalReservations != null) {
+                    tvTotalReservations.setText(String.valueOf(validReservations));
+                }
+                if (tvAvgTicket != null) {
+                    tvAvgTicket.setText(String.format(Locale.getDefault(), "S/. %.0f", avgTicket));
+                }
+                
+                Log.d(TAG, "KPIs actualizados - Ingresos: S/. " + totalRevenue + 
+                      ", Reservas: " + validReservations + 
+                      ", Ticket Prom: S/. " + avgTicket);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando reservaciones para KPIs", e);
+                showEmptyKPIs();
+            }
+        });
+    }
+    
+    private void showEmptyKPIs() {
+        if (tvTotalRevenue != null) tvTotalRevenue.setText("S/. 0");
+        if (tvTotalReservations != null) tvTotalReservations.setText("0");
+        if (tvAvgTicket != null) tvAvgTicket.setText("S/. 0");
+    }
+    
+    /**
+     * Verifica si la reserva es válida para reportes de ventas
+     * Requiere: hasCheckedOut = true (ya se cobró) y status válido (CONFIRMADA, EN_CURSO, COMPLETADA)
+     */
+    private boolean isValidReservationForReports(com.example.droidtour.models.Reservation reservation) {
+        if (reservation == null) return false;
+        
+        // Verificar que hasCheckedOut sea true (ya se realizó el pago)
+        Boolean hasCheckedOut = reservation.getHasCheckedOut();
+        if (hasCheckedOut == null || !hasCheckedOut) {
+            return false;
+        }
+        
+        // Verificar que el status sea válido
+        String status = reservation.getStatus();
+        if (status == null) return false;
+        return "CONFIRMADA".equals(status) || 
+               "EN_CURSO".equals(status) || 
+               "COMPLETADA".equals(status);
+    }
+    
+    /**
+     * Obtiene la fecha relevante de la reserva para filtrado por período
+     * Prioriza tourDate (fecha del servicio) sobre createdAt (fecha de reserva)
+     */
+    private Date getReservationDateForFiltering(com.example.droidtour.models.Reservation reservation) {
+        // Priorizar tourDate (fecha del servicio) sobre createdAt
+        if (reservation.getTourDate() != null) {
+            try {
+                // Formato DD/MM/YYYY
+                String[] parts = reservation.getTourDate().split("/");
+                if (parts.length == 3) {
+                    Calendar cal = Calendar.getInstance();
+                    cal.set(
+                        Integer.parseInt(parts[2]),
+                        Integer.parseInt(parts[1]) - 1,
+                        Integer.parseInt(parts[0])
+                    );
+                    return cal.getTime();
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Error parseando tourDate: " + reservation.getTourDate(), e);
+            }
+        }
+        
+        // Fallback a createdAt si no hay tourDate
+        return reservation.getCreatedAt();
+    }
+    
+    /**
+     * Filtra reservaciones según el período seleccionado
+     */
+    private List<com.example.droidtour.models.Reservation> filterReservationsByPeriod(
+            List<com.example.droidtour.models.Reservation> reservations, 
+            int periodType, 
+            Date periodDate) {
+        
+        if (periodType == 3) {
+            // General: sin filtro
+            return reservations;
+        }
+        
+        if (periodDate == null) {
+            Log.w(TAG, "periodDate es null, retornando todas las reservaciones");
+            return reservations;
+        }
+        
+        Calendar periodCal = Calendar.getInstance();
+        periodCal.setTime(periodDate);
+        // Normalizar hora a medianoche para comparación precisa
+        periodCal.set(Calendar.HOUR_OF_DAY, 0);
+        periodCal.set(Calendar.MINUTE, 0);
+        periodCal.set(Calendar.SECOND, 0);
+        periodCal.set(Calendar.MILLISECOND, 0);
+        
+        Calendar reservationCal = Calendar.getInstance();
+        
+        List<com.example.droidtour.models.Reservation> filtered = new ArrayList<>();
+        
+        for (com.example.droidtour.models.Reservation r : reservations) {
+            Date reservationDate = getReservationDateForFiltering(r);
+            if (reservationDate == null) {
+                continue;
+            }
+            
+            reservationCal.setTime(reservationDate);
+            // Normalizar hora a medianoche para comparación precisa
+            reservationCal.set(Calendar.HOUR_OF_DAY, 0);
+            reservationCal.set(Calendar.MINUTE, 0);
+            reservationCal.set(Calendar.SECOND, 0);
+            reservationCal.set(Calendar.MILLISECOND, 0);
+            
+            boolean matches = false;
+            switch (periodType) {
+                case 0: // Diario
+                    matches = reservationCal.get(Calendar.YEAR) == periodCal.get(Calendar.YEAR) &&
+                             reservationCal.get(Calendar.MONTH) == periodCal.get(Calendar.MONTH) &&
+                             reservationCal.get(Calendar.DAY_OF_MONTH) == periodCal.get(Calendar.DAY_OF_MONTH);
+                    break;
+                case 1: // Mensual
+                    matches = reservationCal.get(Calendar.YEAR) == periodCal.get(Calendar.YEAR) &&
+                             reservationCal.get(Calendar.MONTH) == periodCal.get(Calendar.MONTH);
+                    break;
+                case 2: // Anual
+                    matches = reservationCal.get(Calendar.YEAR) == periodCal.get(Calendar.YEAR);
+                    break;
+            }
+            
+            if (matches) {
+                filtered.add(r);
+            }
+        }
+        
+        return filtered;
     }
     
     @Override

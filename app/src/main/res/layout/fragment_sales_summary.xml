@@ -222,10 +222,10 @@
                         android:layout_marginBottom="6dp" />
 
                     <TextView
-                        android:id="@+id/tv_guide_payments"
+                        android:id="@+id/tv_guide_payments_kpi"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="S/ 3,200"
+                        android:text="S/. 0.00"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="#2C2C2C" />
@@ -287,11 +287,40 @@
                     android:background="#EEEEEE"
                     android:layout_marginBottom="12dp" />
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_top_tours"
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false" />
+                    android:layout_height="wrap_content">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_top_tours"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_empty_top_tours"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="32dp"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:src="@drawable/ic_empty_box"
+                            android:tint="#CCCCCC"
+                            android:layout_marginBottom="16dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No hay tours vendidos"
+                            android:textSize="14sp"
+                            android:textColor="#757575" />
+                    </LinearLayout>
+                </FrameLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -319,12 +348,39 @@
                     android:textColor="#2C2C2C"
                     android:layout_marginBottom="12dp" />
 
-                <!-- Placeholder gráfico -->
-                <com.github.mikephil.charting.charts.LineChart
-                    android:id="@+id/line_chart_trend"
+                <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="1" />
+                    android:layout_weight="1">
+
+                    <com.github.mikephil.charting.charts.LineChart
+                        android:id="@+id/line_chart_trend"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+
+                    <LinearLayout
+                        android:id="@+id/layout_empty_chart"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:src="@drawable/ic_empty_box"
+                            android:tint="#CCCCCC"
+                            android:layout_marginBottom="16dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No hay datos para mostrar"
+                            android:textSize="14sp"
+                            android:textColor="#757575" />
+                    </LinearLayout>
+                </FrameLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -396,6 +452,31 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="- S/ 1,245"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="#F44336" />
+                </LinearLayout>
+
+                <!-- Pagos a guías -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Pagos a guías"
+                        android:textSize="15sp"
+                        android:textColor="#757575" />
+
+                    <TextView
+                        android:id="@+id/tv_guide_payments"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="- S/. 0.00"
                         android:textSize="15sp"
                         android:textStyle="bold"
                         android:textColor="#F44336" />

@@ -33,7 +33,7 @@ public class ClientProfileActivity extends AppCompatActivity {
     private TextView tvUserName, tvUserEmail, tvUserRole;
     private TextView tvFirstName, tvLastName, tvBirthDate;
     private TextView tvDocumentType, tvDocumentNumber, tvPhone;
-    private TextView tvToursCount, tvRating, tvMemberSince;
+    private TextView tvToursCount, tvMemberSince;
     private CardView cardLanguages;
     private FloatingActionButton fabEdit;
     private View btnEditPhoto;
@@ -101,8 +101,10 @@ public class ClientProfileActivity extends AppCompatActivity {
 
         // Estadísticas
         tvToursCount = findViewById(R.id.tv_tours_count);
-        tvRating = findViewById(R.id.tv_rating);
         tvMemberSince = findViewById(R.id.tv_member_since);
+        
+        // Ocultar sección de valoración para clientes
+        hideRatingSection();
 
         // Sección de idiomas (para ocultar)
         cardLanguages = findViewById(R.id.card_languages);
@@ -326,10 +328,6 @@ public class ClientProfileActivity extends AppCompatActivity {
         // Cargar cantidad de reservas desde Firestore (implementación pendiente)
         // TODO: implementar la carga real cuando FirestoreManager devuelva reservas
 
-        // Cargar rating promedio del usuario
-        double avgRating = 4.8; // Valor por defecto
-        tvRating.setText(String.format("%.1f", avgRating));
-
         // Miembro desde (año actual por defecto)
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
         tvMemberSince.setText(String.valueOf(currentYear));
@@ -339,6 +337,14 @@ public class ClientProfileActivity extends AppCompatActivity {
         // Ocultar sección de idiomas para cliente
         if (cardLanguages != null) {
             cardLanguages.setVisibility(View.GONE);
+        }
+    }
+    
+    private void hideRatingSection() {
+        // Ocultar sección de valoración para clientes
+        View ratingSection = findViewById(R.id.rating_section);
+        if (ratingSection != null) {
+            ratingSection.setVisibility(View.GONE);
         }
     }
 

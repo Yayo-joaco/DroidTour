@@ -69,38 +69,7 @@
                 android:elevation="0dp"
                 app:layout_collapseMode="pin"
                 app:navigationIcon="?attr/homeAsUpIndicator"
-                app:navigationIconTint="@color/white"
-                >
-
-                <!-- Botones de acción personalizados -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_gravity="end"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginEnd="8dp">
-
-                    <ImageButton
-                        android:id="@+id/btn_share"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_person"
-                        android:tint="#FFFFFF"
-                        android:contentDescription="Compartir"
-                        android:layout_marginEnd="4dp" />
-
-                    <ImageButton
-                        android:id="@+id/btn_favorite"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_star_filled"
-                        android:tint="#FFFFFF"
-                        android:contentDescription="Favorito" />
-                </LinearLayout>
-            </com.google.android.material.appbar.MaterialToolbar>
+                app:navigationIconTint="@color/white" />
 
         </com.google.android.material.appbar.CollapsingToolbarLayout>
 
@@ -596,41 +565,13 @@
                         android:id="@+id/map_container"
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
-                        android:background="#F5F5F5"
                         android:layout_marginBottom="16dp">
 
-                        <!-- Placeholder del mapa -->
-                        <LinearLayout
+                        <fragment
+                            android:id="@+id/meeting_point_map"
+                            android:name="com.google.android.gms.maps.SupportMapFragment"
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:background="#E8F5E9">
-
-                            <ImageView
-                                android:layout_width="56dp"
-                                android:layout_height="56dp"
-                                android:src="@drawable/ic_map_location"
-                                android:tint="#4CAF50"
-                                android:contentDescription="Mapa" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Mapa de Google"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:textColor="#4CAF50"
-                                android:layout_marginTop="12dp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Toca para ver ubicación"
-                                android:textSize="12sp"
-                                android:textColor="#757575"
-                                android:layout_marginTop="4dp" />
-                        </LinearLayout>
+                            android:layout_height="match_parent" />
                     </FrameLayout>
 
                     <!-- Dirección -->
@@ -641,7 +582,7 @@
                         android:gravity="center_vertical"
                         android:padding="12dp"
                         android:background="@drawable/bg_detail_item"
-                        android:layout_marginBottom="12dp">
+                        android:layout_marginBottom="8dp">
 
                         <ImageView
                             android:layout_width="20dp"
@@ -660,6 +601,35 @@
                             android:textSize="14sp"
                             android:textColor="#424242"
                             tools:text="Plaza Mayor de Lima, Lima 15001" />
+                    </LinearLayout>
+
+                    <!-- Hora de Encuentro -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_detail_item"
+                        android:layout_marginBottom="12dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@android:drawable/ic_menu_recent_history"
+                            android:tint="#757575"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Hora de encuentro" />
+
+                        <TextView
+                            android:id="@+id/tv_meeting_time"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="No especificado"
+                            android:textSize="14sp"
+                            android:textColor="#424242"
+                            tools:text="08:00 AM" />
                     </LinearLayout>
 
                     <!-- Botón Ver mapa -->

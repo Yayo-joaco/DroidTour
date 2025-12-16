@@ -1,6 +1,8 @@
 package com.example.droidtour;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -23,6 +25,7 @@ import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -581,27 +584,83 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
      * Mostrar servicios desde una lista de strings
      */
     private void displayServicesFromList(List<String> services, ChipGroup chipGroup) {
-        if (services == null || services.isEmpty()) return;
+        if (chipGroup == null) return;
 
-        String[] colors = {"#FFF3E0", "#E3F2FD", "#E8F5E9", "#F3E5F5", "#FFF8E1", "#FCE4EC"};
-        String[] textColors = {"#F57C00", "#1976D2", "#388E3C", "#7B1FA2", "#FFA000", "#C2185B"};
+        chipGroup.removeAllViews();
 
-        for (int i = 0; i < Math.min(services.size(), 6); i++) {
-            String service = services.get(i);
+        if (services == null || services.isEmpty()) {
+            chipGroup.setVisibility(View.GONE);
+            return;
+        }
+        chipGroup.setVisibility(View.VISIBLE);
 
-            com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(chipGroup.getContext());
-            chip.setText(service);
-            chip.setTextSize(11);
-            chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(
-                    android.graphics.Color.parseColor(colors[i % colors.length])));
-            chip.setTextColor(android.graphics.Color.parseColor(textColors[i % textColors.length]));
-            chip.setChipMinHeight(28);
-            chip.setChipIconSize(14);
+        // ✅ Espaciado tipo "Companies"
+        chipGroup.setChipSpacingHorizontal(dp(chipGroup, 8));
+        chipGroup.setChipSpacingVertical(dp(chipGroup, 8));
+
+        int maxToShow = Math.min(3, services.size()); // opcional (como companies, no satures)
+        for (int i = 0; i < maxToShow; i++) {
+            String name = services.get(i);
+            if (name == null || name.trim().isEmpty()) continue;
+
+            Chip chip = new Chip(chipGroup.getContext());
+            chip.setText(name);
+
+            // ✅ No interactivo
             chip.setClickable(false);
+            chip.setCheckable(false);
+
+            // ✅ Que no lo “aplane” Material por touch target
+            chip.setEnsureMinTouchTargetSize(false);
+
+            // ✅ Altura + padding para que NO se vea estrecho
+            chip.setMinHeight(dp(chipGroup, 36));
+            chip.setChipMinHeight(dp(chipGroup, 36));
+            chip.setChipStartPadding(dp(chipGroup, 14));
+            chip.setChipEndPadding(dp(chipGroup, 14));
+            chip.setTextStartPadding(0f);
+            chip.setTextEndPadding(0f);
+
+            // ✅ Forma pill
+            chip.setChipCornerRadius(dp(chipGroup, 18));
+
+            // ✅ Colores neutros (ajústalos a tu paleta si quieres)
+            chip.setChipBackgroundColor(ColorStateList.valueOf(Color.parseColor("#E8F1FF")));
+            chip.setTextColor(Color.parseColor("#0B3B7A"));
+
+            // ✅ Opcional: borde suave como algunos chips de Companies
+            chip.setChipStrokeWidth(dp(chipGroup, 1));
+            chip.setChipStrokeColor(ColorStateList.valueOf(Color.parseColor("#C7DAFF")));
 
             chipGroup.addView(chip);
         }
+
+        // opcional: +N
+        int remaining = services.size() - maxToShow;
+        if (remaining > 0) {
+            Chip more = new Chip(chipGroup.getContext());
+            more.setText("+" + remaining);
+            more.setClickable(false);
+            more.setCheckable(false);
+            more.setEnsureMinTouchTargetSize(false);
+            more.setMinHeight(dp(chipGroup, 36));
+            more.setChipMinHeight(dp(chipGroup, 36));
+            more.setChipStartPadding(dp(chipGroup, 14));
+            more.setChipEndPadding(dp(chipGroup, 14));
+            more.setChipCornerRadius(dp(chipGroup, 18));
+            more.setChipBackgroundColor(ColorStateList.valueOf(Color.parseColor("#F1F5F9")));
+            more.setTextColor(Color.parseColor("#334155"));
+            more.setChipStrokeWidth(dp(chipGroup, 1));
+            more.setChipStrokeColor(ColorStateList.valueOf(Color.parseColor("#E2E8F0")));
+            chipGroup.addView(more);
+        }
     }
+
+    private int dp(View v, int dp) {
+        float density = v.getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
+    }
+
 
     /**
      * Cargar servicios por IDs desde Firestore

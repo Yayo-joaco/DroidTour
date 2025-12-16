@@ -9,7 +9,8 @@ public class Guide {
 
     private List<String> languages;
     private Boolean approved; // completamente necesario para validar si ingresa o no
-    private Float rating; //no hay campso en formulario y para esta version no usaremos :p
+    private Float rating; // Promedio de calificaciones recibidas (0.0 a 5.0)
+    private Integer totalReviews; // Total de reseñas recibidas
     private String specialties; //no hay campso en formulario y para esta version no usaremos :p
     private Integer yearsOfExperience; //no hay campso en formulario y para esta version no usaremos :p
     private String biography; //no hay campso en formulario y para esta version no usaremos :p
@@ -20,6 +21,7 @@ public class Guide {
         this.languages = languages;
         this.approved = false;
         this.rating = 0.0f;
+        this.totalReviews = 0;
     }
 
     public Guide() {}
@@ -74,5 +76,13 @@ public class Guide {
 
     public void setBiography(String biography) {
         this.biography = biography;
+    }
+
+    public Integer getTotalReviews() {
+        return totalReviews;
+    }
+
+    public void setTotalReviews(Integer totalReviews) {
+        this.totalReviews = totalReviews;
     }
 }

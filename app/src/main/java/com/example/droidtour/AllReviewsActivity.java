@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.ChipGroup;
+import com.example.droidtour.firebase.FirestoreManager;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -22,35 +23,10 @@ public class AllReviewsActivity extends AppCompatActivity {
     private ChipGroup chipGroupFilter;
     private TextView tvTourName, tvTotalReviews;
     
-    private String tourName;
-    private List<Review> allReviews;
-    private List<Review> filteredReviews;
-    
-    // Clase Review simple para reemplazar DatabaseHelper.Review
-    static class Review {
-        private String userName;
-        private String userInitial;
-        private double rating;
-        private String reviewText;
-        private String reviewDate;
-        private String tourName;
-
-        public Review(String userName, String userInitial, double rating, String reviewText, String reviewDate, String tourName) {
-            this.userName = userName;
-            this.userInitial = userInitial;
-            this.rating = rating;
-            this.reviewText = reviewText;
-            this.reviewDate = reviewDate;
-            this.tourName = tourName;
-        }
-
-        public String getUserName() { return userName; }
-        public String getUserInitial() { return userInitial; }
-        public double getRating() { return rating; }
-        public String getReviewText() { return reviewText; }
-        public String getReviewDate() { return reviewDate; }
-        public String getTourName() { return tourName; }
-    }
+    private String tourName, tourId;
+    private List<com.example.droidtour.models.Review> allReviews;
+    private List<com.example.droidtour.models.Review> filteredReviews;
+    private FirestoreManager firestoreManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,13 +55,14 @@ public class AllReviewsActivity extends AppCompatActivity {
         getIntentData();
         setupToolbar();
         initializeViews();
-        seedReviews();
+        loadReviewsFromFirebase();
         setupRecyclerView();
         setupFilters();
     }
 
     private void getIntentData() {
         tourName = getIntent().getStringExtra("tour_name");
+        tourId = getIntent().getStringExtra("tour_id");
         if (tourName == null) tourName = "Tour Increíble";
     }
 
@@ -103,45 +80,52 @@ public class AllReviewsActivity extends AppCompatActivity {
         chipGroupFilter = findViewById(R.id.chip_group_filter);
         tvTourName = findViewById(R.id.tv_tour_name);
         tvTotalReviews = findViewById(R.id.tv_total_reviews);
+        
+        firestoreManager = FirestoreManager.getInstance();
     }
 
-    private void seedReviews() {
-        allReviews = new ArrayList<>();
+    private void loadReviewsFromFirebase() {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            Toast.makeText(this, "Error: No se encontró el ID del tour", Toast.LENGTH_SHORT).show();
+            allReviews = new ArrayList<>();
+            filteredReviews = new ArrayList<>();
+            updateTotalReviewsLabel();
+            if (reviewsAdapter != null) {
+                reviewsAdapter.notifyDataSetChanged();
+            }
+            return;
+        }
         
-        // Reseñas para diferentes tours
-        allReviews.add(new Review("Ana García", "A", 5.0, 
-            "Excelente tour, el guía muy conocedor y amable. Los lugares visitados fueron increíbles y la comida deliciosa.", 
-            "Hace 2 semanas", tourName));
-        allReviews.add(new Review("Carlos Mendoza", "C", 5.0, 
-            "Una experiencia inolvidable. La organización fue perfecta y aprendimos mucho sobre la historia de Lima.", 
-            "Hace 1 mes", tourName));
-        allReviews.add(new Review("María López", "M", 4.0, 
-            "Muy recomendado. El tour cumplió todas nuestras expectativas y el precio es muy justo.", 
-            "Hace 3 semanas", tourName));
-        allReviews.add(new Review("Pedro Ramírez", "P", 4.5, 
-            "Increíble experiencia, el guía fue muy profesional y conocía todos los detalles históricos.", 
-            "Hace 1 semana", tourName));
-        allReviews.add(new Review("Laura Sánchez", "L", 3.5, 
-            "Buen tour en general, aunque el tiempo en algunos lugares fue un poco corto.", 
-            "Hace 2 meses", tourName));
-        allReviews.add(new Review("Roberto Torres", "R", 5.0, 
-            "Perfecto desde el inicio hasta el final. Definitivamente lo recomiendo a todos.", 
-            "Hace 5 días", tourName));
-        allReviews.add(new Review("Carmen Vega", "C", 4.0, 
-            "Muy buena experiencia, aprendimos mucho sobre la cultura local.", 
-            "Hace 1 mes", tourName));
-        allReviews.add(new Review("Diego Flores", "D", 2.5, 
-            "El tour estuvo bien pero esperaba más información histórica detallada.", 
-            "Hace 3 meses", tourName));
-        allReviews.add(new Review("Sofia Herrera", "S", 4.5, 
-            "Excelente servicio y muy buena atención. Los lugares fueron espectaculares.", 
-            "Hace 2 semanas", tourName));
-        allReviews.add(new Review("Miguel Castro", "M", 5.0, 
-            "Una de las mejores experiencias de mi vida. El guía hizo que todo fuera muy interesante.", 
-            "Hace 1 semana", tourName));
-
-        filteredReviews = new ArrayList<>(allReviews);
-        updateTotalReviewsLabel();
+        firestoreManager.getReviewsByTour(tourId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public void onSuccess(Object result) {
+                allReviews = (List<com.example.droidtour.models.Review>) result;
+                if (allReviews == null) {
+                    allReviews = new ArrayList<>();
+                }
+                filteredReviews = new ArrayList<>(allReviews);
+                updateTotalReviewsLabel();
+                
+                if (reviewsAdapter != null) {
+                    reviewsAdapter.notifyDataSetChanged();
+                } else {
+                    setupRecyclerView();
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                android.util.Log.e("AllReviews", "Error loading reviews", e);
+                Toast.makeText(AllReviewsActivity.this, "Error cargando reseñas", Toast.LENGTH_SHORT).show();
+                allReviews = new ArrayList<>();
+                filteredReviews = new ArrayList<>();
+                updateTotalReviewsLabel();
+                if (reviewsAdapter != null) {
+                    reviewsAdapter.notifyDataSetChanged();
+                }
+            }
+        });
     }
 
     private void setupRecyclerView() {
@@ -171,9 +155,17 @@ public class AllReviewsActivity extends AppCompatActivity {
         filteredReviews.addAll(allReviews);
         
         if ("best_rating".equals(filterType)) {
-            Collections.sort(filteredReviews, (r1, r2) -> Double.compare(r2.getRating(), r1.getRating()));
+            Collections.sort(filteredReviews, (r1, r2) -> {
+                Float rating1 = r1.getRating() != null ? r1.getRating() : 0f;
+                Float rating2 = r2.getRating() != null ? r2.getRating() : 0f;
+                return rating2.compareTo(rating1);
+            });
         } else if ("worst_rating".equals(filterType)) {
-            Collections.sort(filteredReviews, (r1, r2) -> Double.compare(r1.getRating(), r2.getRating()));
+            Collections.sort(filteredReviews, (r1, r2) -> {
+                Float rating1 = r1.getRating() != null ? r1.getRating() : 0f;
+                Float rating2 = r2.getRating() != null ? r2.getRating() : 0f;
+                return rating1.compareTo(rating2);
+            });
         }
         
         reviewsAdapter.notifyDataSetChanged();
@@ -203,10 +195,10 @@ public class AllReviewsActivity extends AppCompatActivity {
 
 // Adaptador para todas las reseñas
 class AllReviewsAdapter extends RecyclerView.Adapter<AllReviewsAdapter.ViewHolder> {
-    private final List<AllReviewsActivity.Review> reviews;
+    private final List<com.example.droidtour.models.Review> reviews;
     
-    AllReviewsAdapter(List<AllReviewsActivity.Review> reviews) { 
-        this.reviews = reviews; 
+    AllReviewsAdapter(List<com.example.droidtour.models.Review> reviews) { 
+        this.reviews = reviews != null ? reviews : new ArrayList<>(); 
     }
 
     @Override
@@ -218,7 +210,7 @@ class AllReviewsAdapter extends RecyclerView.Adapter<AllReviewsAdapter.ViewHolde
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        AllReviewsActivity.Review review = reviews.get(position);
+        com.example.droidtour.models.Review review = reviews.get(position);
         
         TextView userInitial = holder.itemView.findViewById(R.id.tv_user_initial);
         TextView userName = holder.itemView.findViewById(R.id.tv_user_name);
@@ -226,24 +218,53 @@ class AllReviewsAdapter extends RecyclerView.Adapter<AllReviewsAdapter.ViewHolde
         TextView reviewText = holder.itemView.findViewById(R.id.tv_review_text);
         TextView reviewDate = holder.itemView.findViewById(R.id.tv_review_date);
 
-        userInitial.setText(review.getUserInitial());
-        userName.setText(review.getUserName());
+        // Mostrar inicial del usuario
+        String initial = review.getUserInitial();
+        if (initial == null || initial.trim().isEmpty()) {
+            String name = review.getUserName();
+            if (name != null && !name.trim().isEmpty()) {
+                initial = name.trim().substring(0, 1).toUpperCase();
+            } else {
+                initial = "U";
+            }
+        }
+        userInitial.setText(initial);
         
-        // Crear estrellas basadas en la calificación (solo estrella normal)
+        // Mostrar nombre del usuario
+        userName.setText(review.getUserName() != null ? review.getUserName() : "Usuario");
+        
+        // Crear estrellas basadas en la calificación del tour
         StringBuilder stars = new StringBuilder();
-        int roundedRating = (int) Math.round(review.getRating());
+        Float tourRating = review.getRating();
+        if (tourRating == null) tourRating = 0f;
+        int roundedRating = Math.round(tourRating);
         
         for (int i = 0; i < roundedRating; i++) {
             stars.append("⭐");
         }
         
         rating.setText(stars.toString());
-        reviewText.setText(review.getReviewText());
-        reviewDate.setText(review.getReviewDate());
+        
+        // Mostrar texto del comentario del tour
+        String text = review.getReviewText();
+        if (text == null || text.trim().isEmpty()) {
+            text = "Sin comentario";
+        }
+        reviewText.setText(text);
+        
+        // Mostrar fecha de creación
+        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+        if (review.getCreatedAt() != null) {
+            reviewDate.setText(dateFormat.format(review.getCreatedAt()));
+        } else {
+            reviewDate.setText("Fecha no disponible");
+        }
     }
 
     @Override
-    public int getItemCount() { return reviews.size(); }
+    public int getItemCount() { 
+        return reviews != null ? reviews.size() : 0; 
+    }
 
     static class ViewHolder extends RecyclerView.ViewHolder { 
         ViewHolder(android.view.View v) { super(v); } 

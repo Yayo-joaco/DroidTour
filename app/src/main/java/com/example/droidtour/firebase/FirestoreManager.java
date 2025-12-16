@@ -1984,6 +1984,644 @@ public class FirestoreManager {
 
     // ==================== REVIEWS ====================
 
+    /**
+     * Obtener todas las reviews de un tour específico
+     */
+    public void getReviewsByTour(String tourId, FirestoreCallback callback) {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_REVIEWS)
+                .whereEqualTo("tourId", tourId)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Review> reviews = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Review review = doc.toObject(Review.class);
+                        if (review != null) {
+                            if (review.getReviewId() == null || review.getReviewId().isEmpty()) {
+                                review.setReviewId(doc.getId());
+                            }
+                            reviews.add(review);
+                        }
+                    }
+                    callback.onSuccess(reviews);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener todas las reviews de un guía específico
+     * Nota: Solo retorna reviews que tengan guideRating no nulo
+     */
+    public void getReviewsByGuide(String guideId, FirestoreCallback callback) {
+        if (guideId == null || guideId.trim().isEmpty()) {
+            callback.onFailure(new Exception("guideId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_REVIEWS)
+                .whereEqualTo("guideId", guideId)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Review> reviews = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Review review = doc.toObject(Review.class);
+                        if (review != null && review.getGuideRating() != null) {
+                            // Solo incluir reviews que tengan rating de guía
+                            if (review.getReviewId() == null || review.getReviewId().isEmpty()) {
+                                review.setReviewId(doc.getId());
+                            }
+                            reviews.add(review);
+                        }
+                    }
+                    // Ordenar por rating después de obtener los datos
+                    reviews.sort((r1, r2) -> {
+                        Float rating1 = r1.getGuideRating() != null ? r1.getGuideRating() : 0f;
+                        Float rating2 = r2.getGuideRating() != null ? r2.getGuideRating() : 0f;
+                        return rating2.compareTo(rating1);
+                    });
+                    callback.onSuccess(reviews);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener todas las reviews de una empresa específica
+     * Nota: Solo retorna reviews que tengan companyRating no nulo
+     */
+    public void getReviewsByCompany(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_REVIEWS)
+                .whereEqualTo("companyId", companyId)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Review> reviews = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Review review = doc.toObject(Review.class);
+                        if (review != null && review.getCompanyRating() != null) {
+                            // Solo incluir reviews que tengan rating de empresa
+                            if (review.getReviewId() == null || review.getReviewId().isEmpty()) {
+                                review.setReviewId(doc.getId());
+                            }
+                            reviews.add(review);
+                        }
+                    }
+                    // Ordenar por rating después de obtener los datos
+                    reviews.sort((r1, r2) -> {
+                        Float rating1 = r1.getCompanyRating() != null ? r1.getCompanyRating() : 0f;
+                        Float rating2 = r2.getCompanyRating() != null ? r2.getCompanyRating() : 0f;
+                        return rating2.compareTo(rating1);
+                    });
+                    callback.onSuccess(reviews);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Obtener una review específica por reservationId
+     */
+    public void getReviewByReservation(String reservationId, FirestoreCallback callback) {
+        if (reservationId == null || reservationId.trim().isEmpty()) {
+            callback.onFailure(new Exception("reservationId is required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_REVIEWS)
+                .whereEqualTo("reservationId", reservationId)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        com.google.firebase.firestore.DocumentSnapshot doc = querySnapshot.getDocuments().get(0);
+                        Review review = doc.toObject(Review.class);
+                        if (review != null) {
+                            if (review.getReviewId() == null || review.getReviewId().isEmpty()) {
+                                review.setReviewId(doc.getId());
+                            }
+                            callback.onSuccess(review);
+                        } else {
+                            callback.onSuccess(null);
+                        }
+                    } else {
+                        callback.onSuccess(null);
+                    }
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Verificar si un usuario ya ha calificado una reserva específica
+     */
+    public void hasUserReviewedTour(String userId, String reservationId, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty() || reservationId == null || reservationId.trim().isEmpty()) {
+            callback.onFailure(new Exception("userId and reservationId are required"));
+            return;
+        }
+        
+        db.collection(COLLECTION_REVIEWS)
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("reservationId", reservationId)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    boolean hasReviewed = !querySnapshot.isEmpty();
+                    callback.onSuccess(hasReviewed);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Calcular y actualizar el rating promedio de un tour
+     */
+    public void updateTourRating(String tourId, FirestoreCallback callback) {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+        
+        getReviewsByTour(tourId, new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<Review> reviews = (List<Review>) result;
+                
+                double averageRating = calculateTourAverageRating(reviews);
+                int totalReviews = reviews.size();
+                
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("averageRating", averageRating);
+                updates.put("totalReviews", totalReviews);
+                
+                updateTour(tourId, updates, callback);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                callback.onFailure(e);
+            }
+        });
+    }
+
+    /**
+     * Calcular y actualizar el rating promedio de un guía
+     */
+    public void updateGuideRating(String guideId, FirestoreCallback callback) {
+        if (guideId == null || guideId.trim().isEmpty()) {
+            callback.onFailure(new Exception("guideId is required"));
+            return;
+        }
+        
+        getReviewsByGuide(guideId, new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<Review> reviews = (List<Review>) result;
+                
+                double averageRating = calculateGuideAverageRating(reviews);
+                int totalReviews = reviews.size();
+                
+                Guide guide = new Guide();
+                guide.setGuideId(guideId);
+                guide.setRating((float) averageRating);
+                guide.setTotalReviews(totalReviews);
+                
+                upsertGuide(guide, callback);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                callback.onFailure(e);
+            }
+        });
+    }
+
+    /**
+     * Calcular y actualizar el rating promedio de una empresa
+     */
+    public void updateCompanyRating(String companyId, FirestoreCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+        
+        getReviewsByCompany(companyId, new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<Review> reviews = (List<Review>) result;
+                
+                double averageRating = calculateCompanyAverageRating(reviews);
+                int totalReviews = reviews.size();
+                
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("averageRating", averageRating);
+                updates.put("totalReviews", totalReviews);
+                
+                db.collection(COLLECTION_COMPANIES)
+                        .document(companyId)
+                        .update(updates)
+                        .addOnSuccessListener(unused -> {
+                            Log.d(TAG, "Company rating updated: " + companyId + " -> " + averageRating);
+                            callback.onSuccess(true);
+                        })
+                        .addOnFailureListener(callback::onFailure);
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                callback.onFailure(e);
+            }
+        });
+    }
+
+    /**
+     * Calcular el promedio de rating de un tour basado en sus reviews
+     */
+    private double calculateTourAverageRating(List<Review> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return 0.0;
+        }
+        
+        double sum = 0.0;
+        int count = 0;
+        
+        for (Review review : reviews) {
+            if (review.getRating() != null && review.getRating() > 0) {
+                sum += review.getRating();
+                count++;
+            }
+        }
+        
+        return count > 0 ? sum / count : 0.0;
+    }
+
+    /**
+     * Calcular el promedio de rating de un guía basado en sus reviews
+     */
+    private double calculateGuideAverageRating(List<Review> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return 0.0;
+        }
+        
+        double sum = 0.0;
+        int count = 0;
+        
+        for (Review review : reviews) {
+            if (review.getGuideRating() != null && review.getGuideRating() > 0) {
+                sum += review.getGuideRating();
+                count++;
+            }
+        }
+        
+        return count > 0 ? sum / count : 0.0;
+    }
+
+    /**
+     * Calcular el promedio de rating de una empresa basado en sus reviews
+     */
+    private double calculateCompanyAverageRating(List<Review> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return 0.0;
+        }
+        
+        double sum = 0.0;
+        int count = 0;
+        
+        for (Review review : reviews) {
+            if (review.getCompanyRating() != null && review.getCompanyRating() > 0) {
+                sum += review.getCompanyRating();
+                count++;
+            }
+        }
+        
+        return count > 0 ? sum / count : 0.0;
+    }
+
+    /**
+     * Actualizar todos los ratings relacionados con una review
+     * (Tour, Guide y Company)
+     */
+    public void updateAllRatingsFromReview(Review review, FirestoreCallback callback) {
+        if (review == null) {
+            callback.onFailure(new Exception("Review is null"));
+            return;
+        }
+        
+        final int[] completed = {0};
+        final int[] errors = {0};
+        final Exception[] lastError = {null};
+        
+        // Callback helper para contar completados
+        FirestoreCallback countCallback = new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                completed[0]++;
+                if (completed[0] == 3 && errors[0] == 0) {
+                    callback.onSuccess(true);
+                } else if (completed[0] + errors[0] == 3 && errors[0] > 0) {
+                    callback.onFailure(lastError[0] != null ? lastError[0] : new Exception("Some ratings failed to update"));
+                }
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                errors[0]++;
+                lastError[0] = e;
+                if (completed[0] + errors[0] == 3) {
+                    callback.onFailure(e);
+                }
+            }
+        };
+        
+        // Actualizar rating del tour
+        if (review.getTourId() != null && !review.getTourId().trim().isEmpty()) {
+            updateTourRating(review.getTourId(), countCallback);
+        } else {
+            completed[0]++;
+        }
+        
+        // Actualizar rating del guía
+        if (review.getGuideId() != null && !review.getGuideId().trim().isEmpty()) {
+            updateGuideRating(review.getGuideId(), countCallback);
+        } else {
+            completed[0]++;
+        }
+        
+        // Actualizar rating de la empresa
+        if (review.getCompanyId() != null && !review.getCompanyId().trim().isEmpty()) {
+            updateCompanyRating(review.getCompanyId(), countCallback);
+        } else {
+            completed[0]++;
+        }
+        
+        // Si todos eran null, retornar éxito inmediatamente
+        if (completed[0] == 3) {
+            callback.onSuccess(true);
+        }
+    }
+
+    /**
+     * Clase interna para resultados de validación
+     */
+    public static class ValidationResult {
+        public boolean isValid;
+        public String errorMessage;
+        
+        public ValidationResult(boolean isValid, String errorMessage) {
+            this.isValid = isValid;
+            this.errorMessage = errorMessage;
+        }
+    }
+
+    /**
+     * Validar que se puede crear una review para una reserva
+     * Verifica: tour completado, reserva pertenece al usuario, no existe review previa
+     */
+    public void validateReviewCreation(String userId, String reservationId, FirestoreCallback callback) {
+        if (userId == null || userId.trim().isEmpty() || reservationId == null || reservationId.trim().isEmpty()) {
+            callback.onFailure(new Exception("userId and reservationId are required"));
+            return;
+        }
+        
+        // 1. Obtener la reserva
+        getReservationById(reservationId, new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Reservation reservation = (Reservation) result;
+                
+                if (reservation == null) {
+                    callback.onFailure(new Exception("Reservation not found"));
+                    return;
+                }
+                
+                // 2. Validar que la reserva pertenezca al usuario
+                if (!userId.equals(reservation.getUserId())) {
+                    callback.onFailure(new Exception("Reservation does not belong to this user"));
+                    return;
+                }
+                
+                // 3. Validar que el tour esté completado
+                if (!"COMPLETADA".equals(reservation.getStatus())) {
+                    callback.onFailure(new Exception("Tour must be completed before rating. Current status: " + reservation.getStatus()));
+                    return;
+                }
+                
+                // 4. Validar que no exista review previa
+                hasUserReviewedTour(userId, reservationId, new FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        boolean hasReviewed = (Boolean) result;
+                        if (hasReviewed) {
+                            callback.onFailure(new Exception("Review already exists for this reservation"));
+                            return;
+                        }
+                        
+                        // Si todas las validaciones pasan, retornar éxito con la reserva
+                        callback.onSuccess(reservation);
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        callback.onFailure(e);
+                    }
+                });
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                callback.onFailure(e);
+            }
+        });
+    }
+
+    /**
+     * Crear una nueva review con todos los campos (método principal)
+     * Valida, crea la review y actualiza los ratings
+     */
+    public void createReview(Review review, FirestoreCallback callback) {
+        if (review == null) {
+            callback.onFailure(new Exception("Review is null"));
+            return;
+        }
+        
+        if (review.getUserId() == null || review.getReservationId() == null) {
+            callback.onFailure(new Exception("userId and reservationId are required"));
+            return;
+        }
+        
+        // Validar antes de crear
+        validateReviewCreation(review.getUserId(), review.getReservationId(), new FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                Reservation reservation = (Reservation) result;
+                
+                // Obtener tour para completar datos faltantes
+                if (review.getTourId() == null && reservation.getTourId() != null) {
+                    review.setTourId(reservation.getTourId());
+                }
+                if (review.getTourName() == null && reservation.getTourName() != null) {
+                    review.setTourName(reservation.getTourName());
+                }
+                if (review.getCompanyId() == null && reservation.getCompanyId() != null) {
+                    review.setCompanyId(reservation.getCompanyId());
+                }
+                if (review.getCompanyName() == null && reservation.getCompanyName() != null) {
+                    review.setCompanyName(reservation.getCompanyName());
+                }
+                if (review.getGuideId() == null && reservation.getGuideId() != null) {
+                    review.setGuideId(reservation.getGuideId());
+                }
+                if (review.getGuideName() == null && reservation.getGuideName() != null) {
+                    review.setGuideName(reservation.getGuideName());
+                }
+                
+                // Obtener usuario para completar datos
+                getUserById(review.getUserId(), new FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object userResult) {
+                        User user = (User) userResult;
+                        if (user != null) {
+                            if (review.getUserName() == null) {
+                                String fullName = user.getFirstName() + " " + user.getLastName();
+                                review.setUserName(fullName.trim());
+                                
+                                // Calcular inicial
+                                if (fullName.trim().length() > 0) {
+                                    review.setUserInitial(fullName.trim().substring(0, 1).toUpperCase());
+                                }
+                            }
+                            
+                            if (review.getUserProfileImageUrl() == null && user.getPersonalData() != null) {
+                                review.setUserProfileImageUrl(user.getPersonalData().getProfileImageUrl());
+                            }
+                        }
+                        
+                        // Validar que al menos un rating esté presente
+                        if (review.getRating() == null && review.getGuideRating() == null && review.getCompanyRating() == null) {
+                            callback.onFailure(new Exception("At least one rating (tour, guide, or company) is required"));
+                            return;
+                        }
+                        
+                        // Validar rangos de rating (1.0 a 5.0)
+                        if (review.getRating() != null && (review.getRating() < 1.0f || review.getRating() > 5.0f)) {
+                            callback.onFailure(new Exception("Tour rating must be between 1.0 and 5.0"));
+                            return;
+                        }
+                        if (review.getGuideRating() != null && (review.getGuideRating() < 1.0f || review.getGuideRating() > 5.0f)) {
+                            callback.onFailure(new Exception("Guide rating must be between 1.0 and 5.0"));
+                            return;
+                        }
+                        if (review.getCompanyRating() != null && (review.getCompanyRating() < 1.0f || review.getCompanyRating() > 5.0f)) {
+                            callback.onFailure(new Exception("Company rating must be between 1.0 and 5.0"));
+                            return;
+                        }
+                        
+                        // Si todo está bien, obtener el tour para asegurar que tenemos guideId
+                        if (review.getTourId() != null && (review.getGuideId() == null || review.getGuideId().trim().isEmpty())) {
+                            getTourById(review.getTourId(), new TourCallback() {
+                                @Override
+                                public void onSuccess(Tour tour) {
+                                    if (tour != null) {
+                                        if (review.getGuideId() == null && tour.getAssignedGuideId() != null) {
+                                            review.setGuideId(tour.getAssignedGuideId());
+                                        }
+                                        if (review.getGuideName() == null && tour.getAssignedGuideName() != null) {
+                                            review.setGuideName(tour.getAssignedGuideName());
+                                        }
+                                    }
+                                    saveReviewAndUpdateRatings(review, callback);
+                                }
+                                
+                                @Override
+                                public void onFailure(String error) {
+                                    // Continuar aunque no se pueda obtener el tour
+                                    saveReviewAndUpdateRatings(review, callback);
+                                }
+                            });
+                        } else {
+                            saveReviewAndUpdateRatings(review, callback);
+                        }
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        // Continuar aunque no se pueda obtener el usuario
+                        saveReviewAndUpdateRatings(review, callback);
+                    }
+                });
+            }
+            
+            @Override
+            public void onFailure(Exception e) {
+                callback.onFailure(e);
+            }
+        });
+    }
+
+    /**
+     * Guardar la review en Firestore y actualizar ratings
+     */
+    private void saveReviewAndUpdateRatings(Review review, FirestoreCallback callback) {
+        // Crear documento en Firestore
+        DocumentReference ref = db.collection(COLLECTION_REVIEWS).document();
+        review.setReviewId(ref.getId());
+        
+        ref.set(review.toMap())
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "Review created: " + review.getReviewId());
+                    
+                    // Actualizar ratings de Tour, Guide y Company
+                    updateAllRatingsFromReview(review, new FirestoreCallback() {
+                        @Override
+                        public void onSuccess(Object result) {
+                            // Marcar la reserva como revisada
+                            Map<String, Object> updates = new HashMap<>();
+                            updates.put("hasReview", true);
+                            
+                            updateReservation(review.getReservationId(), updates, new FirestoreCallback() {
+                                @Override
+                                public void onSuccess(Object result) {
+                                    callback.onSuccess(review);
+                                }
+                                
+                                @Override
+                                public void onFailure(Exception e) {
+                                    // La review ya se guardó, solo loguear el error
+                                    Log.e(TAG, "Error marking reservation as reviewed", e);
+                                    callback.onSuccess(review);
+                                }
+                            });
+                        }
+                        
+                        @Override
+                        public void onFailure(Exception e) {
+                            // La review ya se guardó, solo loguear el error
+                            Log.e(TAG, "Error updating ratings after review creation", e);
+                            callback.onSuccess(review);
+                        }
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error creating review", e);
+                    callback.onFailure(e);
+                });
+    }
+
+    /**
+     * Método antiguo mantenido por compatibilidad - será reemplazado
+     * @deprecated Usar createReview(Review, FirestoreCallback) en su lugar
+     */
+    @Deprecated
     public void createReview(String tourId, String userId, int rating, String comment, FirestoreCallback callback) {
         Review review = new Review();
         review.setTourId(tourId);

@@ -23,6 +23,10 @@ public class Company {
     private List<String> coverImageUrls;
     private List<String> serviceIds; // IDs de los servicios de la empresa
 
+    // Campos de calificación
+    private Double averageRating; // Promedio de calificaciones (0.0 a 5.0)
+    private Integer totalReviews; // Total de reseñas recibidas
+
     private String status; // active, inactive
     @ServerTimestamp private Date createdAt;
     @ServerTimestamp private Date updatedAt;
@@ -41,6 +45,8 @@ public class Company {
         this.email = email;
         this.phone = phone;
         this.status = "active";
+        this.averageRating = 0.0;
+        this.totalReviews = 0;
     }
 
     public String getCompanyId() {
@@ -169,5 +175,22 @@ public class Company {
 
     public void setServiceIds(List<String> serviceIds) {
         this.serviceIds = serviceIds;
+    }
+
+    // Getters y Setters para campos de rating
+    public Double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public Integer getTotalReviews() {
+        return totalReviews;
+    }
+
+    public void setTotalReviews(Integer totalReviews) {
+        this.totalReviews = totalReviews;
     }
 }

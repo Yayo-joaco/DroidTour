@@ -389,109 +389,6 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Filtros rápidos con chips -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginHorizontal="16dp"
-                android:layout_marginBottom="8dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Filtros rápidos"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:textColor="#757575"
-                    android:layout_marginBottom="8dp" />
-
-                <HorizontalScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:scrollbars="none">
-
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chip_group_filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        app:singleLine="true"
-                        app:chipSpacingHorizontal="8dp">
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_all"
-                            style="@style/Widget.Material3.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Todos"
-                            android:checkable="true"
-                            android:checked="true"
-                            app:chipBackgroundColor="@color/chip_bg_selector"
-                            app:checkedIconVisible="true" />
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_adventure"
-                            style="@style/Widget.Material3.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🏔️ Aventura"
-                            android:checkable="true"
-                            app:chipBackgroundColor="@color/chip_bg_selector"
-                            app:checkedIconVisible="true" />
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_culture"
-                            style="@style/Widget.Material3.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🏛️ Cultural"
-                            android:checkable="true"
-                            app:chipBackgroundColor="@color/chip_bg_selector"
-                            app:checkedIconVisible="true" />
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_nature"
-                            style="@style/Widget.Material3.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🌿 Naturaleza"
-                            android:checkable="true"
-                            app:chipBackgroundColor="@color/chip_bg_selector"
-                            app:checkedIconVisible="true" />
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_food"
-                            style="@style/Widget.Material3.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🍽️ Gastronómico"
-                            android:checkable="true"
-                            app:chipBackgroundColor="@color/chip_bg_selector"
-                            app:checkedIconVisible="true" />
-
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_best_price"
-                            style="@style/Widget.Material3.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="💰 Mejor precio"
-                            android:checkable="true"
-                            app:chipBackgroundColor="@color/chip_bg_selector"
-                            app:checkedIconVisible="true" />
-
-                        <!-- Filtro por duración (usado desde ToursCatalogActivity) -->
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chip_duration"
-                            style="@style/Widget.Material3.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="⏱️ Duración"
-                            android:checkable="true"
-                            app:chipBackgroundColor="@color/chip_bg_selector"
-                            app:checkedIconVisible="true" />
-                    </com.google.android.material.chip.ChipGroup>
-                </HorizontalScrollView>
-            </LinearLayout>
 
             <!-- Contador de resultados -->
             <LinearLayout
@@ -545,12 +442,12 @@
                 android:gravity="center"
                 android:padding="48dp"
                 android:visibility="gone"
-                tools:visibility="visible">
+                tools:visibility="gone">
 
                 <ImageView
                     android:layout_width="120dp"
                     android:layout_height="120dp"
-                    android:src="@drawable/ic_search"
+                    android:src="@drawable/ic_empty_box"
                     android:tint="#BDBDBD"
                     android:contentDescription="Sin tours" />
 

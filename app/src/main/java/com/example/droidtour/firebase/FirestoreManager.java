@@ -2210,6 +2210,125 @@ public class FirestoreManager {
 
 
 
+    // ==================== SERVICIOS NEO ====================
+    /**
+     * Obtener servicios incluidos en un tour (por tourId)
+     * Primero obtiene el tour, luego obtiene los servicios por sus IDs
+     */
+    public void getNeoServicesByTour(String tourId, FirestoreCallback callback) {
+        if (tourId == null || tourId.trim().isEmpty()) {
+            callback.onFailure(new Exception("tourId is required"));
+            return;
+        }
+
+        // 1. Obtener el tour para obtener los includedServiceIds
+        db.collection(COLLECTION_TOURS)
+                .document(tourId)
+                .get()
+                .addOnSuccessListener(tourDoc -> {
+                    if (!tourDoc.exists()) {
+                        callback.onFailure(new Exception("Tour not found"));
+                        return;
+                    }
+
+                    Tour tour = tourDoc.toObject(Tour.class);
+                    if (tour == null) {
+                        callback.onFailure(new Exception("Error parsing tour"));
+                        return;
+                    }
+
+                    // 2. Verificar si el tour tiene servicios incluidos
+                    List<String> serviceIds = tour.getIncludedServiceIds();
+                    if (serviceIds == null || serviceIds.isEmpty()) {
+                        // Si no tiene serviceIds específicos, obtener todos los servicios de la empresa
+                        getServicesByCompany(tour.getCompanyId(), callback);
+                        return;
+                    }
+
+                    // 3. Obtener cada servicio por su ID
+                    List<com.example.droidtour.models.Service> services = new ArrayList<>();
+                    final int[] loadedCount = {0};
+
+                    if (serviceIds.isEmpty()) {
+                        callback.onSuccess(services);
+                        return;
+                    }
+
+                    for (String serviceId : serviceIds) {
+                        db.collection(COLLECTION_SERVICES)
+                                .document(serviceId)
+                                .get()
+                                .addOnSuccessListener(serviceDoc -> {
+                                    if (serviceDoc.exists()) {
+                                        com.example.droidtour.models.Service service = serviceDoc.toObject(com.example.droidtour.models.Service.class);
+                                        if (service != null) {
+                                            if (service.getServiceId() == null || service.getServiceId().isEmpty()) {
+                                                service.setServiceId(serviceDoc.getId());
+                                            }
+                                            services.add(service);
+                                        }
+                                    }
+
+                                    loadedCount[0]++;
+                                    if (loadedCount[0] == serviceIds.size()) {
+                                        // Todos los servicios cargados
+                                        callback.onSuccess(services);
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error loading service: " + serviceId, e);
+                                    loadedCount[0]++;
+                                    if (loadedCount[0] == serviceIds.size()) {
+                                        callback.onSuccess(services);
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+
+    public void getNeoServicesByIds(List<String> serviceIds, FirestoreCallback callback) {
+        if (serviceIds == null || serviceIds.isEmpty()) {
+            callback.onSuccess(new ArrayList<com.example.droidtour.models.Service>());
+            return;
+        }
+
+        List<com.example.droidtour.models.Service> services = new ArrayList<>();
+        final int[] loadedCount = {0};
+
+        for (String serviceId : serviceIds) {
+            db.collection(COLLECTION_SERVICES)
+                    .document(serviceId)
+                    .get()
+                    .addOnSuccessListener(serviceDoc -> {
+                        if (serviceDoc.exists()) {
+                            com.example.droidtour.models.Service service = serviceDoc.toObject(com.example.droidtour.models.Service.class);
+                            if (service != null) {
+                                if (service.getServiceId() == null || service.getServiceId().isEmpty()) {
+                                    service.setServiceId(serviceDoc.getId());
+                                }
+                                services.add(service);
+                            }
+                        }
+
+                        loadedCount[0]++;
+                        if (loadedCount[0] == serviceIds.size()) {
+                            callback.onSuccess(services);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Error loading service: " + serviceId, e);
+                        loadedCount[0]++;
+                        if (loadedCount[0] == serviceIds.size()) {
+                            callback.onSuccess(services);
+                        }
+                    });
+        }
+    }
+
+
+
 
 
 

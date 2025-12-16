@@ -395,7 +395,8 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:layout_marginHorizontal="16dp"
-                android:layout_marginBottom="8dp">
+                android:layout_marginBottom="8dp"
+                android:visibility="gone">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -522,7 +523,8 @@
                     android:src="@drawable/ic_view_grid"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:tint="#757575"
-                    android:contentDescription="Cambiar vista" />
+                    android:contentDescription="Cambiar vista"
+                    android:visibility="gone"/>
             </LinearLayout>
 
             <!-- RecyclerView de tours -->

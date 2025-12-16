@@ -127,7 +127,7 @@ public class Tour {
     }
 
     // Clase interna para paradas del tour
-    public static class TourStop {
+    public static class TourStop implements java.io.Serializable {
         private double latitude;
         private double longitude;
         private String name;

@@ -192,6 +192,16 @@
             android:parentActivityName=".ToursCatalogActivity" />
         
         <activity
+            android:name=".MeetingPointMapActivity"
+            android:exported="false"
+            android:parentActivityName=".TourDetailActivity" />
+        
+        <activity
+            android:name=".TourStopsMapActivity"
+            android:exported="false"
+            android:parentActivityName=".TourDetailActivity" />
+        
+        <activity
             android:name=".MyReservationsActivity"
             android:exported="false"
             android:parentActivityName=".client.ClientMainActivity" />

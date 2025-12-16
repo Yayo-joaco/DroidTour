@@ -14,8 +14,14 @@ import com.example.droidtour.client.CompanyChatActivity;
 import com.example.droidtour.models.Tour;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
-public class TourDetailActivity extends AppCompatActivity {
+public class TourDetailActivity extends AppCompatActivity implements OnMapReadyCallback {
     
     private TextView tvTourName, tvCompanyName, tvTourDescription, tvRating;
     private TextView tvDuration, tvGroupSize, tvLanguages, tvPriceBottom;
@@ -25,6 +31,7 @@ public class TourDetailActivity extends AppCompatActivity {
     private android.widget.LinearLayout layoutServices;
     private double basePrice = 0.0;
     private double additionalServicesPrice = 0.0;
+    private GoogleMap meetingPointMap;
 
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private com.example.droidtour.firebase.FirebaseAuthManager authManager;
@@ -68,6 +75,47 @@ public class TourDetailActivity extends AppCompatActivity {
         setupRecyclerViews();
         setupClickListeners();
         checkExistingReservation();
+        
+        // Inicializar mapa del punto de encuentro
+        SupportMapFragment meetingMapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.meeting_point_map);
+        if (meetingMapFragment != null) {
+            meetingMapFragment.getMapAsync(this);
+        }
+    }
+    
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        meetingPointMap = googleMap;
+        
+        // Deshabilitar gestos para el mapa pequeño
+        meetingPointMap.getUiSettings().setScrollGesturesEnabled(false);
+        meetingPointMap.getUiSettings().setZoomGesturesEnabled(false);
+        meetingPointMap.getUiSettings().setRotateGesturesEnabled(false);
+        meetingPointMap.getUiSettings().setTiltGesturesEnabled(false);
+        
+        // Actualizar mapa si ya tenemos los datos del tour
+        if (currentTour != null) {
+            updateMeetingPointMap();
+        }
+    }
+    
+    private void updateMeetingPointMap() {
+        if (meetingPointMap != null && currentTour != null && 
+            currentTour.getMeetingPointLatitude() != null && 
+            currentTour.getMeetingPointLongitude() != null) {
+            
+            LatLng meetingPoint = new LatLng(
+                currentTour.getMeetingPointLatitude(),
+                currentTour.getMeetingPointLongitude()
+            );
+            
+            meetingPointMap.clear();
+            meetingPointMap.addMarker(new MarkerOptions()
+                    .position(meetingPoint)
+                    .title("Punto de Encuentro"));
+            meetingPointMap.moveCamera(CameraUpdateFactory.newLatLngZoom(meetingPoint, 15));
+        }
     }
 
     private void getIntentData() {
@@ -142,14 +190,33 @@ public class TourDetailActivity extends AppCompatActivity {
         // Establecer precio base
         basePrice = currentTour.getPricePerPerson();
         
-        // Cargar servicios del tour
-        loadTourServices();
+        // Cargar servicios del tour en segundo plano para evitar lag
+        new android.os.Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                loadTourServices();
+            }
+        }, 100);
         
         // Actualizar itinerario con paradas reales
         updateItineraryAdapter();
         
         // Actualizar punto de encuentro
         updateMeetingPoint();
+        
+        // Actualizar hora de encuentro
+        TextView tvMeetingTime = findViewById(R.id.tv_meeting_time);
+        if (tvMeetingTime != null) {
+            String meetingTime = currentTour.getMeetingTime();
+            if (meetingTime != null && !meetingTime.isEmpty()) {
+                tvMeetingTime.setText(meetingTime);
+            } else {
+                tvMeetingTime.setText("No especificado");
+            }
+        }
+        
+        // Actualizar mapa del punto de encuentro
+        updateMeetingPointMap();
     }
     
     private void updateMeetingPoint() {
@@ -165,12 +232,23 @@ public class TourDetailActivity extends AppCompatActivity {
     }
     
     private void loadTourServices() {
-        if (currentTour == null || currentTour.getIncludedServices() == null || currentTour.getIncludedServices().isEmpty()) {
+        android.util.Log.d("TourDetail", "loadTourServices called");
+        
+        if (currentTour == null) {
+            android.util.Log.e("TourDetail", "currentTour is null");
+            return;
+        }
+        
+        // IMPORTANTE: Usar includedServiceIds (IDs reales) en lugar de includedServices (nombres)
+        android.util.Log.d("TourDetail", "IncludedServiceIds: " + (currentTour.getIncludedServiceIds() != null ? currentTour.getIncludedServiceIds().toString() : "null"));
+        
+        if (currentTour.getIncludedServiceIds() == null || currentTour.getIncludedServiceIds().isEmpty()) {
             if (layoutServices != null) {
                 layoutServices.removeAllViews();
                 TextView noServices = new TextView(this);
-                noServices.setText("No hay servicios adicionales");
+                noServices.setText("No hay servicios adicionales disponibles");
                 noServices.setTextColor(0xFF757575);
+                noServices.setTextSize(14);
                 noServices.setPadding(0, 16, 0, 16);
                 layoutServices.addView(noServices);
             }
@@ -181,20 +259,25 @@ public class TourDetailActivity extends AppCompatActivity {
             layoutServices.removeAllViews();
         }
         
-        // Cargar cada servicio del tour
-        for (String serviceId : currentTour.getIncludedServices()) {
+        // Cargar cada servicio del tour usando los IDs correctos
+        android.util.Log.d("TourDetail", "Loading " + currentTour.getIncludedServiceIds().size() + " services");
+        for (String serviceId : currentTour.getIncludedServiceIds()) {
+            android.util.Log.d("TourDetail", "Loading service: " + serviceId);
             firestoreManager.getServiceById(serviceId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
                     com.example.droidtour.models.Service service = (com.example.droidtour.models.Service) result;
                     if (service != null) {
+                        android.util.Log.d("TourDetail", "Service loaded: " + service.getName());
                         addServiceToLayout(service);
+                    } else {
+                        android.util.Log.e("TourDetail", "Service is null");
                     }
                 }
                 
                 @Override
                 public void onFailure(Exception e) {
-                    android.util.Log.e("TourDetail", "Error loading service: " + e.getMessage());
+                    android.util.Log.e("TourDetail", "Error loading service: " + e.getMessage(), e);
                 }
             });
         }
@@ -222,7 +305,70 @@ public class TourDetailActivity extends AppCompatActivity {
             updateTotalPrice();
         });
         
+        // Hacer clickeable todo el view para ver detalles
+        serviceView.setOnClickListener(v -> showServiceDetailsDialog(service));
+        
         layoutServices.addView(serviceView);
+    }
+    
+    private void showServiceDetailsDialog(com.example.droidtour.models.Service service) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_service_details, null);
+        
+        // Inicializar vistas
+        android.widget.ImageView ivServiceImage1 = dialogView.findViewById(R.id.iv_service_image1);
+        android.widget.ImageView ivServiceImage2 = dialogView.findViewById(R.id.iv_service_image2);
+        TextView tvServiceName = dialogView.findViewById(R.id.tv_service_name);
+        TextView tvServicePrice = dialogView.findViewById(R.id.tv_service_price);
+        TextView tvServiceDescription = dialogView.findViewById(R.id.tv_service_description);
+        
+        // Establecer datos
+        tvServiceName.setText(service.getName());
+        tvServicePrice.setText("S/. " + String.format("%.2f", service.getPrice()));
+        
+        if (service.getDescription() != null && !service.getDescription().isEmpty()) {
+            tvServiceDescription.setText(service.getDescription());
+        } else {
+            tvServiceDescription.setText("Sin descripción disponible");
+        }
+        
+        // Cargar imágenes con Glide optimizado
+        if (service.getImageUrls() != null && !service.getImageUrls().isEmpty()) {
+            // Imagen 1
+            if (service.getImageUrls().size() > 0 && service.getImageUrls().get(0) != null && !service.getImageUrls().get(0).isEmpty()) {
+                Glide.with(this)
+                    .load(service.getImageUrls().get(0))
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_gallery)
+                    .thumbnail(0.1f)
+                    .override(600, 600)
+                    .centerCrop()
+                    .into(ivServiceImage1);
+            } else {
+                ivServiceImage1.setImageResource(android.R.drawable.ic_menu_gallery);
+            }
+            
+            // Imagen 2
+            if (service.getImageUrls().size() > 1 && service.getImageUrls().get(1) != null && !service.getImageUrls().get(1).isEmpty()) {
+                Glide.with(this)
+                    .load(service.getImageUrls().get(1))
+                    .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_gallery)
+                    .thumbnail(0.1f)
+                    .override(600, 600)
+                    .centerCrop()
+                    .into(ivServiceImage2);
+            } else {
+                ivServiceImage2.setImageResource(android.R.drawable.ic_menu_gallery);
+            }
+        } else {
+            ivServiceImage1.setImageResource(android.R.drawable.ic_menu_gallery);
+            ivServiceImage2.setImageResource(android.R.drawable.ic_menu_gallery);
+        }
+        
+        builder.setView(dialogView)
+               .setPositiveButton("Cerrar", null)
+               .show();
     }
     
     private void updateTotalPrice() {
@@ -409,46 +555,28 @@ public class TourDetailActivity extends AppCompatActivity {
     }
     
     private void showStopsMapDialog() {
-        // Crear un diálogo con mapa de paradas similar al seguimiento de guía
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
-        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_tour_stops_map, null);
+        // Abrir actividad con mapa completo de paradas
+        Intent intent = new Intent(this, TourStopsMapActivity.class);
         
-        // Aquí se implementaría el mapa con Google Maps API
-        TextView tvMapPlaceholder = dialogView.findViewById(R.id.tv_map_placeholder);
-        if (tvMapPlaceholder != null && currentTour != null) {
-            StringBuilder stopsInfo = new StringBuilder("Paradas del tour:\\n\\n");
-            for (Tour.TourStop stop : currentTour.getStops()) {
-                stopsInfo.append(stop.getOrder()).append(". ")
-                         .append(stop.getName()).append("\\n")
-                         .append("   Hora: ").append(stop.getTime()).append("\\n")
-                         .append("   ").append(stop.getDescription()).append("\\n\\n");
-            }
-            tvMapPlaceholder.setText(stopsInfo.toString());
+        // Pasar lista de paradas (TourStop ahora es Serializable)
+        if (currentTour != null && currentTour.getStops() != null) {
+            intent.putExtra("stops", new java.util.ArrayList<>(currentTour.getStops()));
         }
         
-        builder.setView(dialogView)
-               .setTitle("Mapa de Paradas")
-               .setPositiveButton("Cerrar", null)
-               .show();
+        startActivity(intent);
     }
     
     private void openMeetingPointMap() {
-        // Abrir mapa de Google con la ubicación del punto de encuentro
-        double lat = currentTour.getMeetingPointLatitude();
-        double lng = currentTour.getMeetingPointLongitude();
+        // Abrir actividad con mapa grande del punto de encuentro
+        Intent intent = new Intent(this, MeetingPointMapActivity.class);
         
-        String uri = "geo:" + lat + "," + lng + "?q=" + lat + "," + lng + "(Punto de Encuentro)";
-        Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri));
-        intent.setPackage("com.google.android.apps.maps");
-        
-        if (intent.resolveActivity(getPackageManager()) != null) {
-            startActivity(intent);
-        } else {
-            // Si Google Maps no está instalado, abrir en navegador
-            String browserUri = "https://www.google.com/maps/search/?api=1&query=" + lat + "," + lng;
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(browserUri));
-            startActivity(browserIntent);
+        if (currentTour != null) {
+            intent.putExtra("latitude", currentTour.getMeetingPointLatitude());
+            intent.putExtra("longitude", currentTour.getMeetingPointLongitude());
+            intent.putExtra("locationName", currentTour.getMeetingPoint());
         }
+        
+        startActivity(intent);
     }
 
     @Override

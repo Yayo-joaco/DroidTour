@@ -241,29 +241,9 @@ public class CompaniesListActivity extends AppCompatActivity {
     private final java.util.Map<String, Double> priceCache = new java.util.HashMap<>();
 
     private void calculateCompanyRating(Company company) {
-        firestoreManager.getToursByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
-            @Override
-            @SuppressWarnings("unchecked")
-            public void onSuccess(Object result) {
-                if (result instanceof List) {
-                    List<com.example.droidtour.models.Tour> tours = (List<com.example.droidtour.models.Tour>) result;
-                    double totalRating = 0.0;
-                    int count = 0;
-                    for (com.example.droidtour.models.Tour tour : tours) {
-                        if (tour.getAverageRating() != null && tour.getAverageRating() > 0) {
-                            totalRating += tour.getAverageRating();
-                            count++;
-                        }
-                    }
-                    double avgRating = count > 0 ? totalRating / count : 0.0;
-                    ratingCache.put(company.getCompanyId(), avgRating);
-                }
-            }
-            @Override
-            public void onFailure(Exception e) {
-                ratingCache.put(company.getCompanyId(), 0.0);
-            }
-        });
+        // Usar directamente Company.averageRating (actualizado por sistema de reviews)
+        Double averageRating = company.getAverageRating();
+        ratingCache.put(company.getCompanyId(), averageRating != null ? averageRating : 0.0);
     }
 
     private void calculateCompanyToursCount(Company company) {
@@ -496,11 +476,23 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
             }
             tvExperienceYears.setText(yearsExperience + "+");
 
-            // Rating y reseñas - Cargar desde Firebase
-            tvRating.setText("0.0");
-            tvReviewsCount.setText("0 reseñas");
-            tvToursCount.setText("0");
-
+            // Rating y reseñas - Usar directamente Company.averageRating y Company.totalReviews
+            Double averageRating = company.getAverageRating();
+            Integer totalReviews = company.getTotalReviews();
+            
+            if (averageRating != null && averageRating > 0) {
+                tvRating.setText(String.format("%.1f", averageRating));
+            } else {
+                tvRating.setText("0.0");
+            }
+            
+            if (totalReviews != null && totalReviews > 0) {
+                tvReviewsCount.setText(totalReviews + " reseñas");
+            } else {
+                tvReviewsCount.setText("0 reseñas");
+            }
+            
+            // Contar tours
             FirestoreManager firestoreManager = FirestoreManager.getInstance();
             firestoreManager.getToursByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
                 @Override
@@ -510,32 +502,12 @@ class CompaniesAdapter extends RecyclerView.Adapter<CompaniesAdapter.ViewHolder>
                         java.util.List<com.example.droidtour.models.Tour> tours = (java.util.List<com.example.droidtour.models.Tour>) result;
                         int tourCount = tours.size();
                         tvToursCount.setText(String.valueOf(tourCount));
-
-                        // Calcular rating promedio y total de reseñas
-                        double totalRating = 0.0;
-                        int totalReviews = 0;
-                        for (com.example.droidtour.models.Tour tour : tours) {
-                            if (tour.getAverageRating() != null) {
-                                totalRating += tour.getAverageRating();
-                            }
-                            if (tour.getTotalReviews() != null) {
-                                totalReviews += tour.getTotalReviews();
-                            }
-                        }
-
-                        if (tourCount > 0 && totalRating > 0) {
-                            double avgRating = totalRating / tourCount;
-                            tvRating.setText(String.format("%.1f", avgRating));
-                        }
-                        tvReviewsCount.setText(totalReviews + " reseñas");
                     }
                 }
 
                 @Override
                 public void onFailure(Exception e) {
                     tvToursCount.setText("0");
-                    tvRating.setText("0.0");
-                    tvReviewsCount.setText("0 reseñas");
                 }
             });
 

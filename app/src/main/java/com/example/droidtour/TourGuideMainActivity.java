@@ -923,65 +923,29 @@ public class TourGuideMainActivity extends AppCompatActivity {
         });
     }
 
-    // NUEVO MÉTODO PARA CARGAR RATING:
+    // Cargar rating desde colección guides (modelo actualizado con reviews)
     private void loadGuideRatingFromFirebase() {
-        com.google.firebase.firestore.FirebaseFirestore db = com.google.firebase.firestore.FirebaseFirestore.getInstance();
-
-        // Intentar cargar desde user_roles primero
-        db.collection(FirestoreManager.COLLECTION_USER_ROLES)
-                .document(currentUserId)
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (doc != null && doc.exists()) {
-                        Float rating = null;
-                        Integer toursCount = 0;
-
-                        // Extraer rating de diferentes estructuras posibles
-                        if (doc.contains("rating")) {
-                            Object ratingObj = doc.get("rating");
-                            if (ratingObj instanceof Number) {
-                                rating = ((Number) ratingObj).floatValue();
-                            }
-                        } else if (doc.contains("guide")) {
-                            Object guideObj = doc.get("guide");
-                            if (guideObj instanceof java.util.Map) {
-                                java.util.Map<String, Object> guideMap = (java.util.Map<String, Object>) guideObj;
-                                Object ratingObj = guideMap.get("rating");
-                                if (ratingObj instanceof Number) {
-                                    rating = ((Number) ratingObj).floatValue();
-                                }
-                            }
-                        }
-
-                        // Actualizar UI con el rating
-                        if (rating != null && rating > 0) {
-                            tvGuideRating.setText(String.format("Calificación: ⭐ %.1f", rating));
-                        } else {
-                            tvGuideRating.setText("Calificación: ⭐ 0.0");
-                        }
-                    } else {
-                        // Si no existe en user_roles, intentar desde guides
-                        loadRatingFromGuides();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    android.util.Log.w("TourGuideMain", "Error cargando rating desde user_roles: " + e.getMessage());
-                    loadRatingFromGuides();
-                });
-    }
-
-    // MÉTODO FALLBACK PARA RATING DESDE GUIDES:
-    private void loadRatingFromGuides() {
         com.google.firebase.firestore.FirebaseFirestore db = com.google.firebase.firestore.FirebaseFirestore.getInstance();
         db.collection(FirestoreManager.COLLECTION_GUIDES)
                 .document(currentUserId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc != null && doc.exists()) {
-                        Object ratingObj = doc.get("rating");
-                        if (ratingObj instanceof Number) {
-                            float rating = ((Number) ratingObj).floatValue();
-                            tvGuideRating.setText(String.format("Calificación: ⭐ %.1f", rating));
+                        com.example.droidtour.models.Guide guide = doc.toObject(com.example.droidtour.models.Guide.class);
+                        if (guide != null) {
+                            Float rating = guide.getRating();
+                            Integer totalReviews = guide.getTotalReviews();
+                            
+                            // Actualizar UI con el rating
+                            if (rating != null && rating > 0) {
+                                String ratingText = String.format("Calificación: ⭐ %.1f", rating);
+                                if (totalReviews != null && totalReviews > 0) {
+                                    ratingText += String.format(" (%d reseñas)", totalReviews);
+                                }
+                                tvGuideRating.setText(ratingText);
+                            } else {
+                                tvGuideRating.setText("Calificación: ⭐ 0.0");
+                            }
                         } else {
                             tvGuideRating.setText("Calificación: ⭐ 0.0");
                         }

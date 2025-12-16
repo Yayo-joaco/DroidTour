@@ -108,8 +108,7 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
                         android:paddingHorizontal="8dp"
-                        android:paddingVertical="4dp"
-                        android:visibility="gone">
+                        android:paddingVertical="4dp">
 
                         <ImageView
                             android:layout_width="14dp"
@@ -128,6 +127,16 @@
                             android:textColor="#FF9800"
                             android:layout_marginStart="3dp"
                             tools:text="4.9" />
+
+                        <TextView
+                            android:id="@+id/tv_reviews_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" (24)"
+                            android:textSize="11sp"
+                            android:textColor="#757575"
+                            android:layout_marginStart="4dp"
+                            tools:text=" (24)" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>

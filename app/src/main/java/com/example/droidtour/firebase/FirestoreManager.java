@@ -25,6 +25,7 @@ import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -2064,4 +2065,152 @@ public class FirestoreManager {
         void onSuccess(Tour tour);
         void onFailure(String error);
     }
+
+
+
+
+
+
+
+
+
+
+    // ==================== HEADER DATA PARA CATÁLOGO ====================
+
+    /**
+     * Obtener todos los datos necesarios para mostrar el header del catálogo de tours
+     * Incluye: info de empresa + estadísticas calculadas desde sus tours
+     */
+    public void getCompanyCatalogHeaderData(String companyId, CompanyCatalogCallback callback) {
+        if (companyId == null || companyId.trim().isEmpty()) {
+            callback.onFailure(new Exception("companyId is required"));
+            return;
+        }
+
+        // Resultado final que contenga empresa y estadísticas
+        Map<String, Object> result = new HashMap<>();
+
+        // 1. Obtener información de la empresa
+        db.collection(COLLECTION_COMPANIES)
+                .document(companyId)
+                .get()
+                .addOnSuccessListener(companyDoc -> {
+                    if (!companyDoc.exists()) {
+                        callback.onFailure(new Exception("Empresa no encontrada"));
+                        return;
+                    }
+
+                    Company company = companyDoc.toObject(Company.class);
+                    if (company == null) {
+                        callback.onFailure(new Exception("Error al procesar empresa"));
+                        return;
+                    }
+
+                    if (company.getCompanyId() == null) {
+                        company.setCompanyId(companyDoc.getId());
+                    }
+
+                    // Guardar empresa en el resultado
+                    result.put("company", company);
+
+                    // 2. Obtener tours de la empresa para calcular estadísticas
+                    db.collection(COLLECTION_TOURS)
+                            .whereEqualTo("companyId", companyId)
+                            .whereEqualTo("isPublic", true) // Solo tours públicos
+                            .get()
+                            .addOnSuccessListener(toursQuery -> {
+                                List<Tour> tours = new ArrayList<>();
+                                for (QueryDocumentSnapshot tourDoc : toursQuery) {
+                                    Tour tour = tourDoc.toObject(Tour.class);
+                                    if (tour.getTourId() == null) {
+                                        tour.setTourId(tourDoc.getId());
+                                    }
+                                    tours.add(tour);
+                                }
+
+                                // 3. Calcular estadísticas
+                                Map<String, Object> stats = calculateCompanyStats(company, tours);
+                                result.put("stats", stats);
+                                result.put("toursCount", tours.size());
+
+                                callback.onSuccess(result);
+                            })
+                            .addOnFailureListener(e -> {
+                                // Si falla obtener tours, al menos devolver empresa con estadísticas vacías
+                                Map<String, Object> emptyStats = new HashMap<>();
+                                emptyStats.put("toursCount", 0);
+                                emptyStats.put("minPrice", 0.0);
+                                emptyStats.put("experienceYears", 0);
+                                result.put("stats", emptyStats);
+                                callback.onSuccess(result);
+                            });
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
+    /**
+     * Calcular estadísticas de la empresa basadas en sus tours
+     */
+    private Map<String, Object> calculateCompanyStats(Company company, List<Tour> tours) {
+        Map<String, Object> stats = new HashMap<>();
+
+        int toursCount = tours.size();
+        double minPrice = Double.MAX_VALUE;
+        int experienceYears = 0; // Valor por defecto
+
+        // Calcular precio mínimo
+        for (Tour tour : tours) {
+            if (tour.getPricePerPerson() != null && tour.getPricePerPerson() > 0) {
+                minPrice = Math.min(minPrice, tour.getPricePerPerson());
+            }
+        }
+
+        // Si no hay tours con precio, usar valor por defecto
+        if (minPrice == Double.MAX_VALUE) {
+            minPrice = 0.0;
+        }
+
+        // Calcular años de experiencia (podrías agregar campo en Company o calcular de otra forma)
+        // Por ahora, usamos un valor basado en la fecha de creación
+        if (company.getCreatedAt() != null) {
+            long diff = new Date().getTime() - company.getCreatedAt().getTime();
+            experienceYears = (int) (diff / (1000L * 60 * 60 * 24 * 365));
+            experienceYears = Math.max(0, experienceYears);
+        }
+
+        // También podrías considerar la fecha del primer tour
+        Date oldestTourDate = null;
+        for (Tour tour : tours) {
+            if (tour.getCreatedAt() != null) {
+                if (oldestTourDate == null || tour.getCreatedAt().before(oldestTourDate)) {
+                    oldestTourDate = tour.getCreatedAt();
+                }
+            }
+        }
+
+        if (oldestTourDate != null) {
+            long diff = new Date().getTime() - oldestTourDate.getTime();
+            int yearsFromTours = (int) (diff / (1000L * 60 * 60 * 24 * 365));
+            experienceYears = Math.max(experienceYears, yearsFromTours);
+        }
+
+        // Guardar estadísticas
+        stats.put("toursCount", toursCount);
+        stats.put("minPrice", minPrice);
+        stats.put("experienceYears", experienceYears);
+
+        return stats;
+    }
+
+    // Nueva interfaz para el callback específico
+    public interface CompanyCatalogCallback {
+        void onSuccess(Map<String, Object> result); // {company: Company, stats: Map, toursCount: int}
+        void onFailure(Exception e);
+    }
+
+
+
+
+
+
 }

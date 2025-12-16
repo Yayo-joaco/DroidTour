@@ -6,17 +6,25 @@ import android.view.MenuItem;
 import android.view.LayoutInflater;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.example.droidtour.models.Company;
 import com.example.droidtour.models.Tour;
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.Map;
 
 public class ToursCatalogActivity extends AppCompatActivity {
 
@@ -25,6 +33,10 @@ public class ToursCatalogActivity extends AppCompatActivity {
     private TextInputEditText etSearch;
     private ChipGroup chipGroupFilter;
     private TextView tvCompanyName, tvCompanyRating, tvToursCount;
+
+    // Variables para el collapsing toolbar
+    private CollapsingToolbarLayout collapsingToolbar;
+    private AppBarLayout appBarLayout;
 
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private String companyId, companyName;
@@ -60,6 +72,7 @@ public class ToursCatalogActivity extends AppCompatActivity {
 
         getIntentData();
         setupToolbar();
+        setupCollapsingToolbar(); // ✅ NUEVO: Configurar efecto del título
         initializeViews();
         setupCompanyHeader(); // Establecer header inicial
         loadCompanyFromFirebase();
@@ -82,26 +95,31 @@ public class ToursCatalogActivity extends AppCompatActivity {
             return;
         }
 
-        firestoreManager.getCompany(companyId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                com.example.droidtour.models.Company company = (com.example.droidtour.models.Company) result;
-                displayCompanyInfo(company);
-            }
+        // Usar el nuevo método que obtiene empresa + estadísticas
+        firestoreManager.getCompanyCatalogHeaderData(companyId,
+                new com.example.droidtour.firebase.FirestoreManager.CompanyCatalogCallback() {
+                    @Override
+                    public void onSuccess(Map<String, Object> result) {
+                        Company company = (Company) result.get("company");
+                        Map<String, Object> stats = (Map<String, Object>) result.get("stats");
+                        int toursCount = (int) result.get("toursCount");
 
-            @Override
-            public void onFailure(Exception e) {
-                android.util.Log.e("ToursCatalog", "Error cargando empresa: " + e.getMessage());
-                setupCompanyHeader(); // Usar valores por defecto
-            }
-        });
+                        displayCompanyInfo(company, stats, toursCount);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        android.util.Log.e("ToursCatalog", "Error cargando datos del catálogo: " + e.getMessage());
+                        setupCompanyHeader(); // Usar valores por defecto
+                    }
+                });
     }
 
     /**
-     * Mostrar información de la empresa
+     * Mostrar información completa de la empresa con estadísticas
      */
-    private void displayCompanyInfo(com.example.droidtour.models.Company company) {
-        // Nombre: preferir commercialName, luego businessName
+    private void displayCompanyInfo(Company company, Map<String, Object> stats, int toursCount) {
+        // 1. Nombre: preferir commercialName, luego businessName
         String displayName = company.getCommercialName();
         if (displayName == null || displayName.isEmpty()) {
             displayName = company.getBusinessName();
@@ -111,11 +129,70 @@ public class ToursCatalogActivity extends AppCompatActivity {
         }
         tvCompanyName.setText(displayName);
 
-        // Rating y reseñas (placeholder - Company no tiene estos campos)
-        // TODO: Implementar cuando se agreguen estos campos al modelo
-        tvCompanyRating.setText("⭐ --");
+        // 2. Logo
+        ImageView companyLogo = findViewById(R.id.iv_company_logo);
+        TextView companyInitial = findViewById(R.id.tv_company_initial);
 
-        // Contador de tours se actualiza cuando se cargan los tours
+        String logoUrl = company.getLogoUrl();
+        if (logoUrl != null && !logoUrl.isEmpty()) {
+            // Cargar logo con Glide
+            Glide.with(this)
+                    .load(logoUrl)
+                    .placeholder(R.drawable.ic_company)
+                    .error(R.drawable.ic_company)
+                    .into(companyLogo);
+            companyInitial.setVisibility(View.GONE);
+            companyLogo.setVisibility(View.VISIBLE);
+        } else {
+            // Mostrar iniciales si no hay logo
+            companyLogo.setVisibility(View.GONE);
+            companyInitial.setVisibility(View.VISIBLE);
+
+            if (displayName != null && !displayName.isEmpty()) {
+                // Tomar las primeras dos letras del nombre
+                String initials = displayName.substring(0, Math.min(2, displayName.length())).toUpperCase();
+                companyInitial.setText(initials);
+            }
+        }
+
+        // 3. Ubicación
+        TextView companyLocation = findViewById(R.id.tv_company_location);
+        String location = company.getAddress();
+        if (location != null && !location.isEmpty()) {
+            companyLocation.setText(location);
+        } else {
+            companyLocation.setText("Ubicación no disponible");
+        }
+
+        // 4. Estadísticas
+        TextView tvToursCount = findViewById(R.id.tv_tours_count);
+        TextView tvPriceFrom = findViewById(R.id.tv_price_from);
+        TextView tvExperienceYears = findViewById(R.id.tv_experience_years);
+
+        // Número de tours
+        tvToursCount.setText(String.valueOf(toursCount));
+
+        // Precio desde
+        double minPrice = (double) stats.get("minPrice");
+        if (minPrice > 0) {
+            tvPriceFrom.setText(String.format("S/ %.0f", minPrice));
+        } else {
+            tvPriceFrom.setText("S/ --");
+        }
+
+        // Años de experiencia
+        int years = (int) stats.get("experienceYears");
+        tvExperienceYears.setText(String.valueOf(years) + "+");
+
+        // 5. Rating (placeholder - agregar campo a Company si es necesario)
+        TextView tvCompanyRating = findViewById(R.id.tv_company_rating);
+        TextView tvReviewsCount = findViewById(R.id.tv_reviews_count);
+        tvCompanyRating.setText("4.8"); // Temporal
+        tvReviewsCount.setText("(245 reseñas)"); // Temporal
+
+        // Actualizar título del collapsing toolbar
+        CollapsingToolbarLayout collapsingToolbar = findViewById(R.id.collapsing_toolbar);
+        collapsingToolbar.setTitle(displayName); // O "Tours Disponibles" si prefieres
     }
 
     private void loadToursFromFirebase() {
@@ -159,8 +236,56 @@ public class ToursCatalogActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Tours Disponibles");
+            getSupportActionBar().setTitle(""); // Dejar vacío, el CollapsingToolbar maneja el título
         }
+    }
+
+    /**
+     * ✅ Configurar el efecto de título colapsable
+     * El título permanece invisible hasta que el AppBar está completamente colapsado
+     */
+    private void setupCollapsingToolbar() {
+        collapsingToolbar = findViewById(R.id.collapsing_toolbar);
+        appBarLayout = findViewById(R.id.app_bar_layout);
+
+        // Inicialmente, el título debe estar vacío o con un valor mínimo
+        collapsingToolbar.setTitle(""); // Vacío inicialmente
+
+        // Listener para controlar la visibilidad del título según el scroll
+        appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+            @Override
+            public void onOffsetChanged(AppBarLayout appBar, int verticalOffset) {
+                // Calcular el porcentaje de colapso (0 = expandido, 1 = colapsado)
+                float percentage = Math.abs(verticalOffset) / (float) appBar.getTotalScrollRange();
+
+                // Definir un umbral (ej: 95% colapsado)
+                float collapseThreshold = 0.95f;
+
+                if (percentage >= collapseThreshold) {
+                    // Cuando está completamente colapsado, mostrar el título
+                    collapsingToolbar.setTitle("Tours Disponibles");
+                    // Configurar el color del título colapsado
+                    collapsingToolbar.setCollapsedTitleTextColor(
+                            ContextCompat.getColor(ToursCatalogActivity.this, R.color.white)
+                    );
+                } else {
+                    // Cuando no está colapsado, ocultar el título
+                    collapsingToolbar.setTitle("");
+                    // Opcional: asegurar que sea transparente
+                    collapsingToolbar.setCollapsedTitleTextColor(
+                            android.graphics.Color.TRANSPARENT
+                    );
+                }
+
+                // También puedes ajustar el título expandido si es necesario
+                collapsingToolbar.setExpandedTitleColor(
+                        android.graphics.Color.TRANSPARENT
+                );
+            }
+        });
+
+        // Configurar también el color del título expandido como transparente
+        collapsingToolbar.setExpandedTitleColor(android.graphics.Color.TRANSPARENT);
     }
 
     private void initializeViews() {
@@ -175,7 +300,7 @@ public class ToursCatalogActivity extends AppCompatActivity {
     private void setupCompanyHeader() {
         // Establecer valores iniciales
         tvCompanyName.setText(companyName);
-        tvCompanyRating.setText("⭐ --");
+        tvCompanyRating.setText("--");
         tvToursCount.setText("-- tours");
     }
 
@@ -378,7 +503,7 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
         } else {
             rating.setText("⭐ --");
         }
-
+s
          */
 
         // Duración

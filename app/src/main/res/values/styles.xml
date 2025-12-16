@@ -71,6 +71,19 @@
     </style>
 
 
+    <style name="ExpandedAppearance" parent="TextAppearance.Design.CollapsingToolbar.Expanded">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:visibility">gone</item> <!-- ¡Importante! -->
+        <item name="android:textColor">@android:color/transparent</item>
+    </style>
+
+    <style name="CollapsedAppearance" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
 
 
 </resources>

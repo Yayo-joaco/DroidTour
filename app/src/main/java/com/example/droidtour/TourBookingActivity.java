@@ -295,6 +295,9 @@ public class TourBookingActivity extends AppCompatActivity {
                             }
                         });
                         
+                        // ✅ Incrementar expectedParticipants del tour
+                        incrementTourParticipants();
+                        
                         Toast.makeText(TourBookingActivity.this, "✅ ¡Reserva confirmada!", Toast.LENGTH_LONG).show();
                         Intent intent = new Intent(TourBookingActivity.this, MyReservationsActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -318,6 +321,50 @@ public class TourBookingActivity extends AppCompatActivity {
                 btnConfirmBooking.setEnabled(true);
                 btnConfirmBooking.setText("Confirmar Reserva");
                 Toast.makeText(TourBookingActivity.this, "❌ Error obteniendo datos", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * Incrementa el contador expectedParticipants del tour cuando se crea una reserva confirmada
+     */
+    private void incrementTourParticipants() {
+        Log.d(TAG, "🔄 Intentando incrementar expectedParticipants para tourId: " + tourId);
+        
+        firestoreManager.getTourById(tourId, new com.example.droidtour.firebase.FirestoreManager.TourCallback() {
+            @Override
+            public void onSuccess(com.example.droidtour.models.Tour tour) {
+                if (tour == null) {
+                    Log.e(TAG, "❌ Tour es null, no se puede incrementar");
+                    return;
+                }
+                
+                int currentCount = tour.getExpectedParticipants() != null ? tour.getExpectedParticipants() : 0;
+                int newCount = currentCount + 1;
+                
+                Log.d(TAG, "📊 expectedParticipants actual: " + currentCount + ", nuevo: " + newCount);
+                
+                tour.setExpectedParticipants(newCount);
+                
+                firestoreManager.updateTour(tour, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Log.d(TAG, "✅ expectedParticipants incrementado exitosamente a " + newCount);
+                        Toast.makeText(TourBookingActivity.this, "Participantes actualizados: " + newCount, Toast.LENGTH_SHORT).show();
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e(TAG, "❌ Error actualizando expectedParticipants en Firebase", e);
+                        Toast.makeText(TourBookingActivity.this, "Error actualizando contador de participantes", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            
+            @Override
+            public void onFailure(String error) {
+                Log.e(TAG, "❌ Error obteniendo tour para incrementar participantes: " + error);
+                Toast.makeText(TourBookingActivity.this, "Error al obtener tour: " + error, Toast.LENGTH_SHORT).show();
             }
         });
     }

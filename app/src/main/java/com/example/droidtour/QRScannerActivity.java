@@ -663,6 +663,7 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         // Registrar check-out en la reserva
         reservation.setHasCheckedOut(true);
         reservation.setCheckOutTime(new java.util.Date());
+        reservation.setStatus("COMPLETADA");
         
         firestoreManager.updateReservation(reservation, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override

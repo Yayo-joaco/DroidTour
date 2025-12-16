@@ -25,6 +25,7 @@ import com.example.droidtour.models.Message;
 import com.example.droidtour.models.Reservation;
 import com.example.droidtour.models.User;
 import com.example.droidtour.utils.PreferencesManager;
+import com.example.droidtour.utils.ConversationHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -56,6 +57,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
     // Firebase
     private FirestoreManager firestoreManager;
     private PreferencesManager preferencesManager;
+    private ConversationHelper conversationHelper;
     private String currentCompanyId;
     private String currentUserName;
 
@@ -71,6 +73,7 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
         // Inicializar Firebase
         firestoreManager = FirestoreManager.getInstance();
         preferencesManager = new PreferencesManager(this);
+        conversationHelper = new ConversationHelper();
 
         initViews();
         setupToolbar();
@@ -328,26 +331,21 @@ public class TourAdminMainActivity extends AppCompatActivity implements Navigati
             }
         });
         
-        // Cargar conteo de chats activos
-        firestoreManager.getMessagesByCompany(currentCompanyId, new FirestoreManager.FirestoreCallback() {
+        // Cargar conteo de chats activos (conversaciones) desde Realtime Database
+        conversationHelper.getConversationsForCompany(currentCompanyId, new ConversationHelper.ConversationsCallback() {
             @Override
-            public void onSuccess(Object result) {
-                List<Message> messages = (List<Message>) result;
-                // Contar mensajes no leídos
-                int unreadCount = 0;
-                if (messages != null) {
-                    for (Message msg : messages) {
-                        if (!msg.getIsRead()) {
-                            unreadCount++;
-                        }
-                    }
+            public void onConversationsLoaded(List<ConversationHelper.ConversationData> conversations) {
+                // Contar el número de conversaciones activas
+                int activeChatsCount = 0;
+                if (conversations != null) {
+                    activeChatsCount = conversations.size();
                 }
-                updateActiveChatCount(unreadCount);
+                updateActiveChatCount(activeChatsCount);
             }
             
             @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error cargando chats", e);
+            public void onError(Exception e) {
+                Log.e(TAG, "Error cargando conversaciones", e);
                 updateActiveChatCount(0);
             }
         });

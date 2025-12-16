@@ -114,9 +114,13 @@ public class UserEditActivity extends AppCompatActivity {
         etEmail = findViewById(R.id.et_email);
         ccpPhone = findViewById(R.id.ccp_phone);
         
-            // Registrar el EditText del teléfono con el CountryCodePicker
-            ccpPhone.registerCarrierNumberEditText(etPhone);
-            setupPhoneFormatter();
+        // Configurar país por defecto (Perú) antes de registrar el EditText
+        ccpPhone.setDefaultCountryUsingNameCode("PE");
+        ccpPhone.resetToDefaultCountry();
+        
+        // Registrar el EditText del teléfono con el CountryCodePicker
+        ccpPhone.registerCarrierNumberEditText(etPhone);
+        setupPhoneFormatter();
 
         // Secciones condicionales
         layoutCompanyInfo = findViewById(R.id.layout_company_info);
@@ -492,40 +496,50 @@ public class UserEditActivity extends AppCompatActivity {
             if (phone != null && !phone.isEmpty()) {
                 if (phone.startsWith("+")) {
                     try {
-                        // Intentar establecer el número completo en el CountryCodePicker
-                        ccpPhone.setFullNumber(phone);
-                        
                         // Extraer solo el número local (sin código de país)
                         // El formato puede ser "+51 962137991" o "+51962137991"
-                        String localNumber;
-                        if (phone.contains(" ")) {
-                            // Si tiene espacio, tomar lo que está después del espacio
-                            localNumber = phone.substring(phone.indexOf(" ") + 1);
-                        } else {
-                            // Si no tiene espacio, extraer el número después del código de país
-                            // El código de Perú es +51 (3 caracteres), así que empezamos desde la posición 3
+                        String localNumber = extractLocalPhoneNumber(phone);
+                        
+                        // Si se pudo extraer el número local correctamente, configurar el CountryCodePicker
+                        if (localNumber != null && !localNumber.isEmpty() && !localNumber.startsWith("+")) {
+                            // Construir el número completo para el CountryCodePicker
                             String countryCode = ccpPhone.getSelectedCountryCodeWithPlus();
-                            if (phone.startsWith(countryCode)) {
-                                localNumber = phone.substring(countryCode.length());
+                            String fullNumberForPicker = countryCode + localNumber;
+                            ccpPhone.setFullNumber(fullNumberForPicker);
+                            
+                            // Formatear y mostrar solo el número local
+                            String formattedPhone = formatPhoneNumber(localNumber);
+                            etPhone.setText(formattedPhone);
+                            // Guardar número original (sin formatear para comparación)
+                            originalPhone = localNumber.replaceAll("\\s+", "");
+                            Log.d(TAG, "Número cargado - Original: " + phone + ", Local extraído: " + localNumber);
+                        } else {
+                            // Si no se pudo extraer correctamente, intentar con setFullNumber directamente
+                            ccpPhone.setFullNumber(phone);
+                            // Intentar extraer de nuevo después de configurar el picker
+                            localNumber = extractLocalPhoneNumber(phone);
+                            if (localNumber != null && !localNumber.startsWith("+")) {
+                                String formattedPhone = formatPhoneNumber(localNumber);
+                                etPhone.setText(formattedPhone);
+                                originalPhone = localNumber.replaceAll("\\s+", "");
                             } else {
-                                // Si no coincide, intentar con +51 directamente
-                                if (phone.startsWith("+51") && phone.length() > 3) {
-                                    localNumber = phone.substring(3);
-                                } else {
-                                    localNumber = phone;
-                                }
+                                // Fallback: mostrar el número completo sin formatear
+                                Log.w(TAG, "No se pudo extraer número local, mostrando número completo: " + phone);
+                                etPhone.setText(phone);
+                                originalPhone = phone.replaceAll("\\s+", "");
                             }
                         }
-                        String formattedPhone = formatPhoneNumber(localNumber);
-                        etPhone.setText(formattedPhone);
-                        // Guardar número original (sin formatear para comparación)
-                        originalPhone = localNumber.replaceAll("\\s+", "");
-                        Log.d(TAG, "Número cargado - Original: " + phone + ", Local: " + localNumber);
                     } catch (Exception e) {
-                        Log.w(TAG, "Error procesando número de teléfono: " + e.getMessage());
-                        // Si falla, mostrar el número completo y dejar que el usuario lo edite
-                        etPhone.setText(formatPhoneNumber(phone));
-                        originalPhone = phone.replaceAll("\\s+", "");
+                        Log.w(TAG, "Error procesando número de teléfono: " + e.getMessage(), e);
+                        // Si falla, intentar extraer manualmente
+                        String localNumber = extractLocalPhoneNumber(phone);
+                        if (localNumber != null && !localNumber.startsWith("+")) {
+                            etPhone.setText(formatPhoneNumber(localNumber));
+                            originalPhone = localNumber.replaceAll("\\s+", "");
+                        } else {
+                            etPhone.setText(formatPhoneNumber(phone));
+                            originalPhone = phone.replaceAll("\\s+", "");
+                        }
                     }
                 } else {
                     // Si no empieza con +, es probablemente solo el número local
@@ -543,21 +557,101 @@ public class UserEditActivity extends AppCompatActivity {
         updateFabAppearance(false);
     }
     
+    /**
+     * Extrae el número local de teléfono (sin código de país) de un número completo
+     * Maneja diferentes formatos: "+51 962137991", "+51962137991", etc.
+     * 
+     * @param fullPhoneNumber Número completo con código de país (ej: "+51 962137991" o "+51962137991")
+     * @return Número local sin código de país (ej: "962137991") o null si no se puede extraer
+     */
+    private String extractLocalPhoneNumber(String fullPhoneNumber) {
+        if (fullPhoneNumber == null || fullPhoneNumber.isEmpty()) {
+            return null;
+        }
+        
+        // Remover espacios al inicio y final
+        String phone = fullPhoneNumber.trim();
+        
+        // Si no empieza con +, asumir que ya es un número local
+        if (!phone.startsWith("+")) {
+            // Remover todos los caracteres no numéricos y devolver
+            return phone.replaceAll("[^0-9]", "");
+        }
+        
+        // Si tiene espacio, tomar lo que está después del espacio
+        if (phone.contains(" ")) {
+            String localNumber = phone.substring(phone.indexOf(" ") + 1).trim();
+            // Remover caracteres no numéricos y devolver
+            return localNumber.replaceAll("[^0-9]", "");
+        }
+        
+        // Si no tiene espacio, intentar extraer el código de país
+        // Lista de códigos de país comunes para Perú y países vecinos
+        String[] countryCodes = {"+51", "+1", "+52", "+54", "+55", "+56", "+57", "+58", "+591", "+592", "+593", "+594", "+595", "+596", "+597", "+598", "+599"};
+        
+        for (String code : countryCodes) {
+            if (phone.startsWith(code) && phone.length() > code.length()) {
+                String localNumber = phone.substring(code.length()).trim();
+                // Validar que el número local tenga al menos 6 dígitos y máximo 15
+                String digitsOnly = localNumber.replaceAll("[^0-9]", "");
+                if (digitsOnly.length() >= 6 && digitsOnly.length() <= 15) {
+                    return digitsOnly;
+                }
+            }
+        }
+        
+        // Si no se encontró un código de país conocido, intentar con el código del CountryCodePicker
+        try {
+            String countryCode = ccpPhone.getSelectedCountryCodeWithPlus();
+            if (countryCode != null && phone.startsWith(countryCode) && phone.length() > countryCode.length()) {
+                String localNumber = phone.substring(countryCode.length()).trim();
+                String digitsOnly = localNumber.replaceAll("[^0-9]", "");
+                if (digitsOnly.length() >= 6 && digitsOnly.length() <= 15) {
+                    return digitsOnly;
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error obteniendo código de país del picker: " + e.getMessage());
+        }
+        
+        // Fallback: si el número tiene más de 3 caracteres después del +, 
+        // asumir que los primeros 2-3 dígitos son el código de país
+        // Para Perú (+51), el número local debería tener 9 dígitos
+        if (phone.length() > 4) {
+            // Intentar con +51 (Perú) que es el más común
+            if (phone.startsWith("+51") && phone.length() >= 12) {
+                // +51 tiene 3 caracteres, el número local debería ser de 9 dígitos
+                String localNumber = phone.substring(3).trim();
+                String digitsOnly = localNumber.replaceAll("[^0-9]", "");
+                if (digitsOnly.length() == 9) {
+                    return digitsOnly;
+                }
+            }
+            // Intentar con códigos de 2 dígitos (ej: +1, +52, etc.)
+            if (phone.length() >= 10) {
+                // Asumir que los primeros 2 dígitos después del + son el código de país
+                String localNumber = phone.substring(3).trim(); // +XX = 3 caracteres
+                String digitsOnly = localNumber.replaceAll("[^0-9]", "");
+                if (digitsOnly.length() >= 6 && digitsOnly.length() <= 15) {
+                    return digitsOnly;
+                }
+            }
+        }
+        
+        // Si no se pudo extraer, devolver null
+        Log.w(TAG, "No se pudo extraer número local de: " + fullPhoneNumber);
+        return null;
+    }
+
     private void initializeOriginalPhone(String phoneNumber) {
         if (phoneNumber != null && !phoneNumber.isEmpty()) {
             // Guardar el número local sin formatear para comparación
             if (phoneNumber.startsWith("+")) {
-                if (phoneNumber.contains(" ")) {
-                    originalPhone = phoneNumber.substring(phoneNumber.indexOf(" ") + 1).replaceAll("\\s+", "");
+                String localNumber = extractLocalPhoneNumber(phoneNumber);
+                if (localNumber != null && !localNumber.startsWith("+")) {
+                    originalPhone = localNumber.replaceAll("\\s+", "");
                 } else {
-                    String countryCode = ccpPhone.getSelectedCountryCodeWithPlus();
-                    if (phoneNumber.startsWith(countryCode)) {
-                        originalPhone = phoneNumber.substring(countryCode.length()).replaceAll("\\s+", "");
-                    } else if (phoneNumber.startsWith("+51") && phoneNumber.length() > 3) {
-                        originalPhone = phoneNumber.substring(3).replaceAll("\\s+", "");
-                    } else {
-                        originalPhone = phoneNumber.replaceAll("\\s+", "");
-                    }
+                    originalPhone = phoneNumber.replaceAll("\\s+", "");
                 }
             } else {
                 originalPhone = phoneNumber.replaceAll("\\s+", "");

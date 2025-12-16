@@ -165,6 +165,11 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
     private void displayTourData() {
         if (currentTour == null) return;
         
+        // Actualizar companyId si viene del tour
+        if (currentTour.getCompanyId() != null && !currentTour.getCompanyId().isEmpty()) {
+            companyId = currentTour.getCompanyId();
+        }
+        
         tvTourName.setText(currentTour.getTourName());
         tvCompanyName.setText("por " + currentTour.getCompanyName());
         tvPriceBottom.setText("S/. " + String.format("%.2f", currentTour.getPricePerPerson()));
@@ -537,6 +542,19 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 Intent intent = new Intent(this, CompanyChatActivity.class);
                 intent.putExtra("company_name", companyName);
                 intent.putExtra("tour_name", tourName);
+                
+                // Obtener companyId: primero del tour actual, luego del intent, luego del tour cargado
+                String finalCompanyId = null;
+                if (currentTour != null && currentTour.getCompanyId() != null) {
+                    finalCompanyId = currentTour.getCompanyId();
+                } else if (companyId != null && !companyId.isEmpty()) {
+                    finalCompanyId = companyId;
+                }
+                
+                if (finalCompanyId != null && !finalCompanyId.isEmpty()) {
+                    intent.putExtra("company_id", finalCompanyId);
+                }
+                
                 startActivity(intent);
             });
         }

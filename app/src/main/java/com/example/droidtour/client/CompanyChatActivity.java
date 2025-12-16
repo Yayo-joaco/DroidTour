@@ -63,6 +63,7 @@ public class CompanyChatActivity extends AppCompatActivity {
     private String companyId;
     private String companyName;
     private String companyLogoUrl;
+    private String adminUserId; // ID del administrador de la empresa
     private String currentUserId;
     private String currentUserName;
     
@@ -107,7 +108,6 @@ public class CompanyChatActivity extends AppCompatActivity {
         setupToolbar();
         initializeViews();
         setupClickListeners();
-        loadCompanyInfo();
 
         // Inicializar managers y obtener userId PRIMERO
         chatManager = new ChatManagerRealtime();
@@ -122,13 +122,17 @@ public class CompanyChatActivity extends AppCompatActivity {
         // Obtener companyId del intent
         companyId = getIntent().getStringExtra("company_id");
         
-        // Si no hay companyId, intentar obtenerlo del nombre de la empresa
+        // Validar que tengamos companyId antes de continuar
         if (companyId == null || companyId.isEmpty()) {
-            // Por ahora usar el nombre como fallback, pero idealmente debería venir del intent
-            initializeConversation();
-        } else {
-            initializeConversation();
+            Toast.makeText(this, "Error: No se pudo obtener la información de la empresa", Toast.LENGTH_LONG).show();
+            finish();
+            return;
         }
+        
+        // Cargar información de la empresa (nombre del intent y luego desde Firestore)
+        loadCompanyInfo();
+        
+        initializeConversation();
     }
 
     private void setupToolbar() {
@@ -173,16 +177,21 @@ public class CompanyChatActivity extends AppCompatActivity {
             if (getSupportActionBar() != null) getSupportActionBar().setTitle("Chat - " + companyName);
         }
         
-        // El logo se cargará en initializeConversation() cuando tengamos el companyId
+        // Cargar información de la empresa desde Firestore (logo y adminUserId)
+        loadCompanyInfoFromFirestore();
     }
     
-    private void loadCompanyLogo() {
+    /**
+     * Carga la información de la empresa desde Firestore, incluyendo el logo y el adminUserId
+     */
+    private void loadCompanyInfoFromFirestore() {
         firestoreManager.getCompanyById(companyId, new FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 if (result instanceof Company) {
                     Company company = (Company) result;
                     companyLogoUrl = company.getLogoUrl();
+                    adminUserId = company.getAdminUserId();
                     
                     // Actualizar el logo en el header
                     if (ivClientAvatar != null) {
@@ -202,6 +211,11 @@ public class CompanyChatActivity extends AppCompatActivity {
                     if (chatAdapter != null) {
                         chatAdapter.setCompanyLogoUrl(companyLogoUrl);
                     }
+                    
+                    // Si ya tenemos la conversación inicializada, actualizar el listener de presencia
+                    if (conversationId != null && adminUserId != null && !adminUserId.isEmpty()) {
+                        setupPresenceListener();
+                    }
                 }
             }
             
@@ -209,6 +223,7 @@ public class CompanyChatActivity extends AppCompatActivity {
             public void onFailure(Exception e) {
                 // Si falla, usar logo por defecto (ya está en el layout)
                 companyLogoUrl = null;
+                adminUserId = null;
                 if (ivClientAvatar != null) {
                     ivClientAvatar.setImageResource(R.drawable.ic_avatar_24);
                 }
@@ -216,16 +231,23 @@ public class CompanyChatActivity extends AppCompatActivity {
         });
     }
     
+    /**
+     * Método legacy para compatibilidad - ahora usa loadCompanyInfoFromFirestore()
+     */
+    private void loadCompanyLogo() {
+        loadCompanyInfoFromFirestore();
+    }
+    
     private void initializeConversation() {
-        // Si no tenemos companyId, usar un valor por defecto (esto debería mejorarse)
+        // Validar que tengamos companyId válido
         if (companyId == null || companyId.isEmpty()) {
-            companyId = "unknown_company";
+            Toast.makeText(this, "Error: No se pudo identificar la empresa", Toast.LENGTH_LONG).show();
+            finish();
+            return;
         }
         
-        // Cargar logo de la empresa si tenemos companyId válido
-        if (companyId != null && !companyId.isEmpty() && !companyId.equals("unknown_company")) {
-            loadCompanyLogo();
-        }
+        // Cargar información de la empresa desde Firestore (logo y adminUserId)
+        loadCompanyInfoFromFirestore();
         
         // Crear o obtener conversación
         chatManager.createOrGetConversation(
@@ -294,11 +316,28 @@ public class CompanyChatActivity extends AppCompatActivity {
             }
         });
         
-        // Escuchar estado en línea de la empresa
-        presenceManager.listenToPresence(companyId, new PresenceManager.PresenceCallback() {
+        // Escuchar estado en línea del administrador de la empresa
+        setupPresenceListener();
+    }
+    
+    /**
+     * Configura el listener de presencia para el administrador de la empresa
+     */
+    private void setupPresenceListener() {
+        // Si no tenemos adminUserId, intentar obtenerlo de la empresa
+        if (adminUserId == null || adminUserId.isEmpty()) {
+            // Si aún no se ha cargado la información de la empresa, esperar a que se cargue
+            // El listener se configurará automáticamente cuando loadCompanyInfoFromFirestore() termine
+            return;
+        }
+        
+        // Escuchar el estado de presencia del administrador (no de la empresa)
+        presenceManager.listenToPresence(adminUserId, new PresenceManager.PresenceCallback() {
             @Override
             public void onPresenceChanged(String userId, boolean isOnline, long lastSeen) {
                 runOnUiThread(() -> {
+                    if (tvClientStatus == null) return;
+                    
                     if (isOnline) {
                         tvClientStatus.setText("En línea");
                     } else {
@@ -318,7 +357,12 @@ public class CompanyChatActivity extends AppCompatActivity {
             
             @Override
             public void onError(Exception e) {
-                // Ignorar errores de presencia
+                // Si hay error, mostrar estado desconectado
+                runOnUiThread(() -> {
+                    if (tvClientStatus != null) {
+                        tvClientStatus.setText("Desconectado");
+                    }
+                });
             }
         });
     }

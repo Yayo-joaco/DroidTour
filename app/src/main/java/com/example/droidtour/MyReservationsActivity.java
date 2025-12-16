@@ -387,6 +387,12 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
             Intent intent = new Intent(v.getContext(), CompanyChatActivity.class);
             intent.putExtra("company_name", reservation.getCompanyName());
             intent.putExtra("tour_name", reservation.getTourName());
+            
+            // Pasar company_id desde la reserva
+            if (reservation.getCompanyId() != null && !reservation.getCompanyId().isEmpty()) {
+                intent.putExtra("company_id", reservation.getCompanyId());
+            }
+            
             v.getContext().startActivity(intent);
         });
         

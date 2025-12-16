@@ -1645,6 +1645,33 @@ public class FirestoreManager {
                 }).addOnFailureListener(callback::onFailure);
     }
 
+    /**
+     * Obtener solo tours públicos (con guía asignado) para clientes
+     * Valida que isPublic = true Y assignedGuideId no sea null/vacío
+     */
+    public void getPublicTours(FirestoreCallback callback) {
+        db.collection(COLLECTION_TOURS)
+                .whereEqualTo("isPublic", true)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    List<Tour> list = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : qs.getDocuments()) {
+                        Tour t = doc.toObject(Tour.class);
+                        if (t != null) {
+                            // Validar que realmente tenga guía asignado (doble validación)
+                            if (t.getAssignedGuideId() != null && !t.getAssignedGuideId().trim().isEmpty()) {
+                                if (t.getTourId() == null || t.getTourId().isEmpty()) {
+                                    t.setTourId(doc.getId());
+                                }
+                                list.add(t);
+                            }
+                        }
+                    }
+                    callback.onSuccess(list);
+                })
+                .addOnFailureListener(callback::onFailure);
+    }
+
     // ==================== CREAR/ACTUALIZAR USUARIOS & ROLES ====================
 
     public void createUser(User user, FirestoreCallback callback) {
@@ -1776,13 +1803,60 @@ public class FirestoreManager {
 
     public void createReservation(Reservation reservation, FirestoreCallback callback) {
         if (reservation == null) { callback.onFailure(new Exception("reservation is null")); return; }
-        DocumentReference ref = (reservation.getReservationId() == null || reservation.getReservationId().isEmpty())
-                ? db.collection(COLLECTION_RESERVATIONS).document()
-                : db.collection(COLLECTION_RESERVATIONS).document(reservation.getReservationId());
-        reservation.setReservationId(ref.getId());
-        ref.set(reservation, SetOptions.merge())
-                .addOnSuccessListener(unused -> callback.onSuccess(reservation))
-                .addOnFailureListener(callback::onFailure);
+        
+        // Validar que el tour tenga guía asignado antes de crear la reserva
+        if (reservation.getTourId() == null || reservation.getTourId().trim().isEmpty()) {
+            callback.onFailure(new Exception("Tour ID is required for reservation"));
+            return;
+        }
+        
+        // Obtener el tour para validar que tenga guía asignado
+        db.collection(COLLECTION_TOURS)
+                .document(reservation.getTourId())
+                .get()
+                .addOnSuccessListener(tourDoc -> {
+                    if (!tourDoc.exists()) {
+                        callback.onFailure(new Exception("Tour not found"));
+                        return;
+                    }
+                    
+                    Tour tour = tourDoc.toObject(Tour.class);
+                    if (tour == null) {
+                        callback.onFailure(new Exception("Tour data is invalid"));
+                        return;
+                    }
+                    
+                    // Validar que el tour sea público y tenga guía asignado
+                    Boolean isPublic = tour.getPublic();
+                    String assignedGuideId = tour.getAssignedGuideId();
+                    String assignedGuideName = tour.getAssignedGuideName();
+                    
+                    if (isPublic == null || !isPublic || assignedGuideId == null || assignedGuideId.trim().isEmpty()) {
+                        callback.onFailure(new Exception("Tour is not available. No guide assigned."));
+                        return;
+                    }
+                    
+                    // Asegurar que la reserva tenga los datos del guía
+                    if (reservation.getGuideId() == null || reservation.getGuideId().trim().isEmpty()) {
+                        reservation.setGuideId(assignedGuideId);
+                    }
+                    if (reservation.getGuideName() == null || reservation.getGuideName().trim().isEmpty()) {
+                        reservation.setGuideName(assignedGuideName != null ? assignedGuideName : "Guía asignado");
+                    }
+                    
+                    // Crear la reserva
+                    DocumentReference ref = (reservation.getReservationId() == null || reservation.getReservationId().isEmpty())
+                            ? db.collection(COLLECTION_RESERVATIONS).document()
+                            : db.collection(COLLECTION_RESERVATIONS).document(reservation.getReservationId());
+                    reservation.setReservationId(ref.getId());
+                    ref.set(reservation, SetOptions.merge())
+                            .addOnSuccessListener(unused -> callback.onSuccess(reservation))
+                            .addOnFailureListener(callback::onFailure);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error validating tour for reservation", e);
+                    callback.onFailure(new Exception("Error validating tour: " + e.getMessage()));
+                });
     }
 
     public void updateReservation(String reservationId, Map<String, Object> updates, FirestoreCallback callback) {

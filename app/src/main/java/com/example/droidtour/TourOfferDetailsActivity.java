@@ -253,17 +253,26 @@ public class TourOfferDetailsActivity extends AppCompatActivity {
         String tourId = currentOffer.getTourId();
         String guideId = currentOffer.getGuideId();
         
-        Log.d(TAG, "🔄 PASO 2: Obteniendo tours del guía");
+        Log.d(TAG, "🔄 PASO 2: Obteniendo tours del guía y datos del tour");
         
-        // Obtener tours existentes del guía para determinar status
-        firestoreManager.getToursByGuide(guideId, new FirestoreManager.FirestoreCallback() {
+        // Obtener el tour completo para acceder a startTime y endTime
+        firestoreManager.getTourById(tourId, new FirestoreManager.TourCallback() {
             @Override
-            public void onSuccess(Object result) {
-                List<Tour> existingTours = (List<Tour>) result;
-                Log.d(TAG, "✅ PASO 2: Tours obtenidos: " + existingTours.size());
+            public void onSuccess(Tour newTour) {
+                if (newTour == null) {
+                    Toast.makeText(TourOfferDetailsActivity.this, "Error: Tour no encontrado", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 
-                String tourStatus = determineTourStatus(existingTours, currentOffer.getTourDate());
-                Log.d(TAG, "📊 Status calculado: " + tourStatus);
+                // Obtener tours existentes del guía para determinar status
+                firestoreManager.getToursByGuide(guideId, new FirestoreManager.FirestoreCallback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        List<Tour> existingTours = (List<Tour>) result;
+                        Log.d(TAG, "✅ PASO 2: Tours obtenidos: " + existingTours.size());
+                        
+                        String tourStatus = determineTourStatus(existingTours, newTour);
+                        Log.d(TAG, "📊 Status calculado: " + tourStatus);
                 
                 // Actualizar el Tour con los datos del guía
                 java.util.Map<String, Object> updates = new java.util.HashMap<>();
@@ -314,44 +323,106 @@ public class TourOfferDetailsActivity extends AppCompatActivity {
                             Toast.LENGTH_LONG).show();
                     }
                 });
+                    }
+                    
+                    @Override
+                    public void onFailure(Exception e) {
+                        android.util.Log.e("TourOfferDetails", "Error obteniendo tours del guía", e);
+                        Toast.makeText(TourOfferDetailsActivity.this, 
+                            "Error verificando tours: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
             
             @Override
-            public void onFailure(Exception e) {
-                android.util.Log.e("TourOfferDetails", "Error obteniendo tours del guía", e);
+            public void onFailure(String error) {
+                android.util.Log.e("TourOfferDetails", "Error obteniendo tour: " + error);
                 Toast.makeText(TourOfferDetailsActivity.this, 
-                    "Error verificando tours: " + e.getMessage(), 
+                    "Error obteniendo datos del tour: " + error, 
                     Toast.LENGTH_SHORT).show();
             }
         });
     }
     
-    private String determineTourStatus(List<Tour> existingTours, String newTourDate) {
-        // Si no hay tours existentes, este es EN_PROGRESO
+    /**
+     * Determina el status de un tour usando fecha, hora de inicio y hora de fin para comparaciones precisas
+     */
+    private String determineTourStatus(List<Tour> existingTours, Tour newTour) {
+        if (newTour == null || newTour.getTourDate() == null) {
+            return "CONFIRMADA";
+        }
+        
+        // Si no hay tours existentes, verificar si está completado antes de asignar EN_PROGRESO
         if (existingTours == null || existingTours.isEmpty()) {
+            if (isTourCompleted(newTour.getTourDate(), newTour.getStartTime(), newTour.getEndTime())) {
+                return "COMPLETADA";
+            }
             return "EN_PROGRESO";
         }
         
-        // Buscar el tour más cercano entre todos los tours activos
         try {
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
-            java.util.Date newDate = sdf.parse(newTourDate);
-            java.util.Date today = new java.util.Date();
-            
-            // Si la nueva fecha ya pasó, no es EN_PROGRESO
-            if (newDate.before(today)) {
-                return "CONFIRMADA";
+            // Verificar si el nuevo tour ya está completado
+            if (isTourCompleted(newTour.getTourDate(), newTour.getStartTime(), newTour.getEndTime())) {
+                return "COMPLETADA";
             }
             
-            // Verificar si hay algún tour más cercano que el nuevo
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+            
+            java.util.Date newDate = dateFormat.parse(newTour.getTourDate());
+            java.util.Calendar todayCal = java.util.Calendar.getInstance();
+            java.util.Date today = todayCal.getTime();
+            
+            // Normalizar fechas a medianoche para comparación de fechas
+            java.util.Calendar newDateCal = java.util.Calendar.getInstance();
+            newDateCal.setTime(newDate);
+            newDateCal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            newDateCal.set(java.util.Calendar.MINUTE, 0);
+            newDateCal.set(java.util.Calendar.SECOND, 0);
+            newDateCal.set(java.util.Calendar.MILLISECOND, 0);
+            
+            java.util.Calendar todayCalNormalized = java.util.Calendar.getInstance();
+            todayCalNormalized.setTime(today);
+            todayCalNormalized.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            todayCalNormalized.set(java.util.Calendar.MINUTE, 0);
+            todayCalNormalized.set(java.util.Calendar.SECOND, 0);
+            todayCalNormalized.set(java.util.Calendar.MILLISECOND, 0);
+            
+            // Si la fecha ya pasó completamente (antes de hoy), es COMPLETADA
+            if (newDateCal.before(todayCalNormalized)) {
+                return "COMPLETADA";
+            }
+            
+            // Buscar el tour más cercano entre todos los tours activos
+            Tour closestTour = null;
+            java.util.Date closestDate = null;
+            
             for (Tour tour : existingTours) {
                 String status = tour.getTourStatus();
                 if ("EN_PROGRESO".equals(status) || "CONFIRMADA".equals(status)) {
                     try {
-                        java.util.Date existingDate = sdf.parse(tour.getTourDate());
-                        // Si existe una fecha más cercana, la nueva será CONFIRMADA
-                        if (existingDate.before(newDate) && existingDate.after(today)) {
-                            return "CONFIRMADA";
+                        if (tour.getTourDate() != null) {
+                            java.util.Date existingDate = dateFormat.parse(tour.getTourDate());
+                            
+                            // Normalizar a medianoche
+                            java.util.Calendar existingCal = java.util.Calendar.getInstance();
+                            existingCal.setTime(existingDate);
+                            existingCal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                            existingCal.set(java.util.Calendar.MINUTE, 0);
+                            existingCal.set(java.util.Calendar.SECOND, 0);
+                            existingCal.set(java.util.Calendar.MILLISECOND, 0);
+                            existingDate = existingCal.getTime();
+                            
+                            // Solo considerar tours futuros
+                            if (existingDate.after(todayCalNormalized.getTime()) || 
+                                existingDate.equals(todayCalNormalized.getTime())) {
+                                
+                                if (closestDate == null || existingDate.before(closestDate)) {
+                                    closestDate = existingDate;
+                                    closestTour = tour;
+                                }
+                            }
                         }
                     } catch (Exception e) {
                         android.util.Log.e("TourOfferDetails", "Error parseando fecha: " + tour.getTourDate());
@@ -359,12 +430,140 @@ public class TourOfferDetailsActivity extends AppCompatActivity {
                 }
             }
             
-            // Esta es la fecha más cercana
+            // Comparar el nuevo tour con el más cercano
+            if (closestDate != null) {
+                // Si hay un tour más cercano, este nuevo tour es CONFIRMADA
+                if (closestDate.before(newDateCal.getTime())) {
+                    return "CONFIRMADA";
+                }
+                // Si tienen la misma fecha, comparar por hora de inicio
+                if (closestDate.equals(newDateCal.getTime())) {
+                    String newStartTime = newTour.getStartTime();
+                    String closestStartTime = closestTour != null ? closestTour.getStartTime() : null;
+                    
+                    if (newStartTime != null && closestStartTime != null) {
+                        try {
+                            java.util.Date newStartTimeObj = timeFormat.parse(newStartTime);
+                            java.util.Date closestStartTimeObj = timeFormat.parse(closestStartTime);
+                            
+                            // Si el tour existente empieza antes, el nuevo es CONFIRMADA
+                            if (closestStartTimeObj.before(newStartTimeObj)) {
+                                return "CONFIRMADA";
+                            }
+                        } catch (Exception e) {
+                            android.util.Log.e("TourOfferDetails", "Error parseando hora de inicio", e);
+                        }
+                    }
+                }
+            }
+            
+            // Esta es la fecha más cercana, verificar si debe ser EN_PROGRESO
+            // Un tour está EN_PROGRESO si es hoy y ya pasó la hora de inicio pero no la de fin
+            if (newDateCal.equals(todayCalNormalized)) {
+                if (isTourInProgress(newTour.getStartTime(), newTour.getEndTime())) {
+                    return "EN_PROGRESO";
+                }
+            }
+            
+            // Si es futuro, puede ser EN_PROGRESO si es el más cercano
             return "EN_PROGRESO";
             
         } catch (Exception e) {
             android.util.Log.e("TourOfferDetails", "Error determinando status", e);
             return "CONFIRMADA";
+        }
+    }
+    
+    /**
+     * Verifica si un tour ya está completado (fecha pasó Y hora de fin pasó)
+     */
+    private boolean isTourCompleted(String tourDate, String startTime, String endTime) {
+        if (tourDate == null) return false;
+        
+        try {
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            java.util.Date tourDateObj = dateFormat.parse(tourDate);
+            
+            java.util.Calendar todayCal = java.util.Calendar.getInstance();
+            java.util.Calendar tourCal = java.util.Calendar.getInstance();
+            tourCal.setTime(tourDateObj);
+            
+            // Normalizar ambas fechas a medianoche
+            todayCal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            todayCal.set(java.util.Calendar.MINUTE, 0);
+            todayCal.set(java.util.Calendar.SECOND, 0);
+            todayCal.set(java.util.Calendar.MILLISECOND, 0);
+            
+            tourCal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            tourCal.set(java.util.Calendar.MINUTE, 0);
+            tourCal.set(java.util.Calendar.SECOND, 0);
+            tourCal.set(java.util.Calendar.MILLISECOND, 0);
+            
+            // Si la fecha ya pasó completamente, está completado
+            if (tourCal.before(todayCal)) {
+                return true;
+            }
+            
+            // Si es hoy, verificar si ya pasó la hora de fin
+            if (tourCal.equals(todayCal) && endTime != null && !endTime.isEmpty()) {
+                try {
+                    java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                    java.util.Date endTimeObj = timeFormat.parse(endTime);
+                    
+                    java.util.Calendar endCal = java.util.Calendar.getInstance();
+                    endCal.setTime(tourDateObj);
+                    endCal.set(java.util.Calendar.HOUR_OF_DAY, endTimeObj.getHours());
+                    endCal.set(java.util.Calendar.MINUTE, endTimeObj.getMinutes());
+                    endCal.set(java.util.Calendar.SECOND, 0);
+                    endCal.set(java.util.Calendar.MILLISECOND, 0);
+                    
+                    java.util.Calendar nowCal = java.util.Calendar.getInstance();
+                    
+                    // Si ya pasó la hora de fin, está completado
+                    return nowCal.after(endCal);
+                } catch (Exception e) {
+                    android.util.Log.e("TourOfferDetails", "Error parseando hora de fin: " + endTime, e);
+                }
+            }
+            
+            return false;
+        } catch (Exception e) {
+            android.util.Log.e("TourOfferDetails", "Error verificando si tour está completado", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Verifica si un tour está actualmente en progreso (hoy Y hora actual >= startTime Y hora actual < endTime)
+     */
+    private boolean isTourInProgress(String startTime, String endTime) {
+        if (startTime == null || endTime == null) return false;
+        
+        try {
+            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+            java.util.Date startTimeObj = timeFormat.parse(startTime);
+            java.util.Date endTimeObj = timeFormat.parse(endTime);
+            
+            java.util.Calendar nowCal = java.util.Calendar.getInstance();
+            java.util.Calendar startCal = java.util.Calendar.getInstance();
+            java.util.Calendar endCal = java.util.Calendar.getInstance();
+            
+            startCal.set(java.util.Calendar.HOUR_OF_DAY, startTimeObj.getHours());
+            startCal.set(java.util.Calendar.MINUTE, startTimeObj.getMinutes());
+            startCal.set(java.util.Calendar.SECOND, 0);
+            startCal.set(java.util.Calendar.MILLISECOND, 0);
+            
+            endCal.set(java.util.Calendar.HOUR_OF_DAY, endTimeObj.getHours());
+            endCal.set(java.util.Calendar.MINUTE, endTimeObj.getMinutes());
+            endCal.set(java.util.Calendar.SECOND, 0);
+            endCal.set(java.util.Calendar.MILLISECOND, 0);
+            
+            // Está en progreso si: hora actual >= hora inicio Y hora actual < hora fin
+            return (nowCal.after(startCal) || nowCal.equals(startCal)) && nowCal.before(endCal);
+            
+        } catch (Exception e) {
+            android.util.Log.e("TourOfferDetails", "Error verificando si tour está en progreso", e);
+            return false;
         }
     }
     

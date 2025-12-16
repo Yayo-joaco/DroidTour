@@ -603,8 +603,6 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             startActivity(new Intent(this, PaymentMethodsActivity.class));
         } else if (id == R.id.nav_profile) {
             startActivity(new Intent(this, ClientProfileActivity.class));
-        } else if (id == R.id.nav_settings) {
-            startActivity(new Intent(this, ClientSettingsActivity.class));
         } else if (id == R.id.nav_logout) {
             prefsManager.logout();
 

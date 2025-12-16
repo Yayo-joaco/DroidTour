@@ -44,11 +44,6 @@
                 android:title="Mi Perfil" />
 
             <item
-                android:id="@+id/nav_settings"
-                android:icon="@drawable/ic_settings"
-                android:title="Configuración" />
-
-            <item
                 android:id="@+id/nav_logout"
                 android:icon="@drawable/ic_logout"
                 android:title="Cerrar Sesión" />

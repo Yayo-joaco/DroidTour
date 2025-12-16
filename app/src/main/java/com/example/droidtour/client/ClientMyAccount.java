@@ -88,6 +88,11 @@ public class ClientMyAccount extends AppCompatActivity {
         CardView cardSettings = findViewById(R.id.card_settings);
         CardView cardLogout = findViewById(R.id.card_logout);
 
+        // Ocultar sección de Preferencias para cliente turista
+        if (cardSettings != null) {
+            cardSettings.setVisibility(android.view.View.GONE);
+        }
+
         if (cardProfile != null) {
             cardProfile.setOnClickListener(v -> {
                 Intent i = new Intent(ClientMyAccount.this, ClientProfileActivity.class);
@@ -98,13 +103,6 @@ public class ClientMyAccount extends AppCompatActivity {
         if (cardPayment != null) {
             cardPayment.setOnClickListener(v -> {
                 Intent i = new Intent(ClientMyAccount.this, PaymentMethodsActivity.class);
-                startActivity(i);
-            });
-        }
-
-        if (cardSettings != null) {
-            cardSettings.setOnClickListener(v -> {
-                Intent i = new Intent(ClientMyAccount.this, ClientSettingsActivity.class);
                 startActivity(i);
             });
         }

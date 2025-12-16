@@ -22,8 +22,9 @@
             app:expandedTitleMarginStart="16dp"
             app:expandedTitleMarginBottom="16dp"
             app:title="Tours Disponibles"
-            app:expandedTitleTextAppearance="@style/CollapsingExpandedTitle"
-            app:collapsedTitleTextAppearance="@style/ToolbarTitleBold">
+            app:collapsedTitleTextAppearance="@style/CollapsedAppearance"
+            app:expandedTitleTextAppearance="@style/ExpandedAppearance"
+            app:expandedTitleGravity="bottom">
 
             <!-- Header expandido de la empresa -->
             <LinearLayout

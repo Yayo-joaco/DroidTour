@@ -9,10 +9,13 @@ import android.text.TextWatcher;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.droidtour.models.Tour;
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
@@ -25,6 +28,10 @@ public class ToursCatalogActivity extends AppCompatActivity {
     private TextInputEditText etSearch;
     private ChipGroup chipGroupFilter;
     private TextView tvCompanyName, tvCompanyRating, tvToursCount;
+
+    // Variables para el collapsing toolbar
+    private CollapsingToolbarLayout collapsingToolbar;
+    private AppBarLayout appBarLayout;
 
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private String companyId, companyName;
@@ -60,6 +67,7 @@ public class ToursCatalogActivity extends AppCompatActivity {
 
         getIntentData();
         setupToolbar();
+        setupCollapsingToolbar(); // ✅ NUEVO: Configurar efecto del título
         initializeViews();
         setupCompanyHeader(); // Establecer header inicial
         loadCompanyFromFirebase();
@@ -159,8 +167,56 @@ public class ToursCatalogActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Tours Disponibles");
+            getSupportActionBar().setTitle(""); // Dejar vacío, el CollapsingToolbar maneja el título
         }
+    }
+
+    /**
+     * ✅ Configurar el efecto de título colapsable
+     * El título permanece invisible hasta que el AppBar está completamente colapsado
+     */
+    private void setupCollapsingToolbar() {
+        collapsingToolbar = findViewById(R.id.collapsing_toolbar);
+        appBarLayout = findViewById(R.id.app_bar_layout);
+
+        // Inicialmente, el título debe estar vacío o con un valor mínimo
+        collapsingToolbar.setTitle(""); // Vacío inicialmente
+
+        // Listener para controlar la visibilidad del título según el scroll
+        appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+            @Override
+            public void onOffsetChanged(AppBarLayout appBar, int verticalOffset) {
+                // Calcular el porcentaje de colapso (0 = expandido, 1 = colapsado)
+                float percentage = Math.abs(verticalOffset) / (float) appBar.getTotalScrollRange();
+
+                // Definir un umbral (ej: 95% colapsado)
+                float collapseThreshold = 0.95f;
+
+                if (percentage >= collapseThreshold) {
+                    // Cuando está completamente colapsado, mostrar el título
+                    collapsingToolbar.setTitle("Tours Disponibles");
+                    // Configurar el color del título colapsado
+                    collapsingToolbar.setCollapsedTitleTextColor(
+                            ContextCompat.getColor(ToursCatalogActivity.this, R.color.white)
+                    );
+                } else {
+                    // Cuando no está colapsado, ocultar el título
+                    collapsingToolbar.setTitle("");
+                    // Opcional: asegurar que sea transparente
+                    collapsingToolbar.setCollapsedTitleTextColor(
+                            android.graphics.Color.TRANSPARENT
+                    );
+                }
+
+                // También puedes ajustar el título expandido si es necesario
+                collapsingToolbar.setExpandedTitleColor(
+                        android.graphics.Color.TRANSPARENT
+                );
+            }
+        });
+
+        // Configurar también el color del título expandido como transparente
+        collapsingToolbar.setExpandedTitleColor(android.graphics.Color.TRANSPARENT);
     }
 
     private void initializeViews() {
@@ -175,7 +231,7 @@ public class ToursCatalogActivity extends AppCompatActivity {
     private void setupCompanyHeader() {
         // Establecer valores iniciales
         tvCompanyName.setText(companyName);
-        tvCompanyRating.setText("⭐ --");
+        tvCompanyRating.setText("--");
         tvToursCount.setText("-- tours");
     }
 
@@ -378,7 +434,7 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
         } else {
             rating.setText("⭐ --");
         }
-
+s
          */
 
         // Duración

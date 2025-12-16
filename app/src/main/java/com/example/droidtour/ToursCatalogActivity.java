@@ -49,6 +49,7 @@ public class ToursCatalogActivity extends AppCompatActivity {
     private String companyId, companyName;
     private java.util.List<Tour> allTours = new java.util.ArrayList<>();
     private java.util.List<Tour> filteredTours = new java.util.ArrayList<>();
+    private TextView tvResultsCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -303,6 +304,7 @@ public class ToursCatalogActivity extends AppCompatActivity {
         tvCompanyName = findViewById(R.id.tv_company_name);
         tvCompanyRating = findViewById(R.id.tv_company_rating);
         tvToursCount = findViewById(R.id.tv_tours_count);
+        tvResultsCount = findViewById(R.id.tv_results_count);
         
         // Botón Ver Perfil
         MaterialButton btnProfile = findViewById(R.id.btn_profile);
@@ -392,9 +394,40 @@ public class ToursCatalogActivity extends AppCompatActivity {
         updateToursCountLabel();
     }
 
+    private void updateResultsCount() {
+        int count = filteredTours.size();
+        String text;
+
+        if (count == 0) {
+            text = "No se encontraron tours";
+        } else if (count == 1) {
+            text = "1 tour encontrado";
+        } else {
+            text = String.format("%d tours encontrados", count);
+        }
+
+        tvResultsCount.setText(text);
+    }
+
     private void updateToursCountLabel() {
         int count = filteredTours.size();
-        tvToursCount.setText(count + (count == 1 ? " tour" : " tours"));
+
+        // Actualizar el texto "X tours" en el header
+        tvToursCount.setText(String.valueOf(count));
+
+        // Actualizar el contador de resultados
+        String text;
+        if (count == 0) {
+            text = "No se encontraron tours";
+        } else if (count == 1) {
+            text = "1 tour encontrado";
+        } else {
+            text = String.format("%d tours encontrados", count);
+        }
+
+        if (tvResultsCount != null) {
+            tvResultsCount.setText(text);
+        }
     }
 
     private long parseDurationToMinutes(String label) {
@@ -537,14 +570,18 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
         // Idiomas
         java.util.List<String> tourLanguages = tour.getLanguages();
         if (tourLanguages != null && !tourLanguages.isEmpty()) {
-            // Limitar a 2 idiomas para no saturar la vista
+            String languageNames = com.example.droidtour.utils.LanguageUtils.toNames(tourLanguages);
+
+            // Si hay más de 2 idiomas, mostrar solo los primeros 2 + indicador
             if (tourLanguages.size() > 2) {
-                languages.setText(tourLanguages.get(0) + ", " + tourLanguages.get(1) + "...");
+                List<String> firstTwo = tourLanguages.subList(0, 2);
+                String firstTwoNames = com.example.droidtour.utils.LanguageUtils.toNames(firstTwo);
+                languages.setText(firstTwoNames + "...");
             } else {
-                languages.setText(String.join(", ", tourLanguages));
+                languages.setText(languageNames);
             }
         } else {
-            languages.setText("ES");
+            languages.setText("--");
         }
 
         // Precio

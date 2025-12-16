@@ -97,55 +97,59 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="8dp" />
 
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chip_group_filter"
+                <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:singleSelection="true"
-                    app:singleLine="false"
-                    app:chipSpacingHorizontal="8dp"
-                    app:chipSpacingVertical="8dp">
+                    android:scrollbars="none">
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_all"
-                        style="@style/Widget.Material3.Chip.Filter"
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_filter"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Todas"
-                        android:checkable="true"
-                        android:checked="true"
-                        app:checkedIconVisible="true" />
+                        app:singleSelection="true"
+                        app:singleLine="true"
+                        app:chipSpacingHorizontal="8dp"
+                        app:chipSpacingVertical="8dp">
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_best_rated"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Mejor Valoradas"
-                        android:checkable="true"
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_all"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Todas"
+                            android:checkable="true"
+                            android:checked="true"
+                            app:checkedIconVisible="true" />
 
-                        app:checkedIconVisible="true" />
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_best_rated"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Mejor Valoradas"
+                            android:checkable="true"
+                            app:checkedIconVisible="true" />
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_most_tours"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Más Tours"
-                        android:checkable="true"
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_most_tours"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Más Tours"
+                            android:checkable="true"
+                            app:checkedIconVisible="true" />
 
-                        app:checkedIconVisible="true" />
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_best_price"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Mejor Precio"
+                            android:checkable="true"
+                            app:checkedIconVisible="true" />
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_best_price"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Mejor Precio"
-                        android:checkable="true"
-                        app:checkedIconVisible="true" />
-
-                </com.google.android.material.chip.ChipGroup>
+                    </com.google.android.material.chip.ChipGroup>
+                </HorizontalScrollView>
 
             </LinearLayout>
 

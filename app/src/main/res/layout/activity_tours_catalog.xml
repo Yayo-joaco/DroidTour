@@ -533,11 +533,11 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="12 tours encontrados"
+                    android:text="0 tours encontrados"
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:textColor="#2C2C2C"
-                    tools:text="12 tours encontrados" />
+                    tools:text="12 tours encontrados" /> <!-- Esto solo es para preview en diseño -->
 
                 <!-- Switch de vista (lista/grid) -->
                 <ImageButton

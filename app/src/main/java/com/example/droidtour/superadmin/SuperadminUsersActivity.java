@@ -32,6 +32,8 @@ import com.google.android.material.progressindicator.CircularProgressIndicator;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.SetOptions;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -559,6 +561,9 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
     /**
      * Actualiza el estado del usuario en Firestore
      */
+    /**
+     * Actualiza el estado del usuario en Firestore
+     */
     private void performUserStatusUpdate(User user, boolean isActive, boolean approveGuide) {
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
             Toast.makeText(this, "Error: ID de usuario no válido", Toast.LENGTH_SHORT).show();
@@ -578,12 +583,12 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                     user.setStatus(newStatus);
 
                     if (approveGuide) {
-                        // Actualizar user_roles para aprobar guía
+                        // 1. Actualizar user_roles para aprobar guía
                         FirestoreManager firestoreManager = FirestoreManager.getInstance();
-                        
+
                         // Verificar si es la primera vez que se aprueba (nunca ha sido aprobado antes)
                         boolean hasBeenApproved = usersAdapter.hasGuideBeenApproved(user.getUserId());
-                        
+
                         // Si nunca ha sido aprobado, marcar approved = true en user_roles
                         Map<String, Object> extraFields = null;
                         if (!hasBeenApproved) {
@@ -592,7 +597,10 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                             // Actualizar el estado en el adaptador
                             usersAdapter.setGuideApprovalStatus(user.getUserId(), true);
                         }
-                        
+
+                        // 2. Actualizar campo approved en la colección guides
+                        updateGuideApprovalStatus(user.getUserId(), true);
+
                         firestoreManager.saveUserRole(user.getUserId(), "GUIDE", "active", extraFields, new FirestoreManager.FirestoreCallback() {
                             @Override
                             public void onSuccess(Object result) {
@@ -611,13 +619,13 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                         });
                     } else {
                         if (!isActive && "GUIDE".equals(user.getUserType())) {
-                            // Desactivar guía en user_roles
+                            // Desactivar guía: solo actualizar user_roles, NO desaprobar en guides
                             FirestoreManager firestoreManager = FirestoreManager.getInstance();
                             firestoreManager.saveUserRole(user.getUserId(), "GUIDE", "inactive", null, new FirestoreManager.FirestoreCallback() {
                                 @Override
                                 public void onSuccess(Object result) {
                                     user.setStatus("inactive");
-                                    Toast.makeText(SuperadminUsersActivity.this, "Usuario desactivado", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(SuperadminUsersActivity.this, "Usuario desactivado (solo en user)", Toast.LENGTH_SHORT).show();
                                     int idx = userList.indexOf(user);
                                     if (idx >= 0) usersAdapter.notifyItemChanged(idx);
                                 }
@@ -641,6 +649,30 @@ public class SuperadminUsersActivity extends AppCompatActivity implements UsersA
                     Toast.makeText(this, "Error actualizando estado: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     int idx = userList.indexOf(user);
                     if (idx >= 0) usersAdapter.notifyItemChanged(idx);
+                });
+    }
+
+    /**
+     * Actualizar el campo approved en la colección guides
+     */
+    private void updateGuideApprovalStatus(String guideId, boolean approved) {
+        if (guideId == null || guideId.isEmpty()) {
+            Log.e(TAG, "ID de guía inválido para actualizar approval");
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("approved", approved);
+
+        db.collection(FirestoreManager.COLLECTION_GUIDES)
+                .document(guideId)
+                .set(updates, SetOptions.merge())
+                .addOnSuccessListener(unused -> {
+                    Log.d(TAG, "✅ Campo 'approved' actualizado en guides para guía: " + guideId + " -> " + approved);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Error actualizando campo 'approved' en guides: " + e.getMessage());
+                    // No mostrar error al usuario, solo loguear
                 });
     }
 

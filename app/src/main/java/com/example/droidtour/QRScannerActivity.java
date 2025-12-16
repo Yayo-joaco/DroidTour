@@ -178,9 +178,21 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         if (currentTour == null) return;
         
         tvTourName.setText(currentTour.getTourName());
-        expectedParticipants = currentTour.getExpectedParticipants() != null ? currentTour.getExpectedParticipants() : 0;
+        
+        String status = currentTour.getCheckInOutStatus();
+        if (status == null) status = "ESPERANDO_CHECKIN";
+
+        // Si el tour ya está esperando check-out o finalizado, forzar modo check-out
+        if ("ESPERANDO_CHECKOUT".equals(status) || "CHECKOUT_COMPLETADO".equals(status)) {
+            scanType = "CHECK_OUT";
+        }
+
+        int tourExpected = currentTour.getExpectedParticipants() != null ? currentTour.getExpectedParticipants() : 0;
+        int checkedIn = currentTour.getCheckedInCount() != null ? currentTour.getCheckedInCount() : 0;
+
+        expectedParticipants = "CHECK_OUT".equals(scanType) ? checkedIn : tourExpected;
         scannedCount = "CHECK_IN".equals(scanType) ? 
-            (currentTour.getCheckedInCount() != null ? currentTour.getCheckedInCount() : 0) :
+            checkedIn :
             (currentTour.getCheckedOutCount() != null ? currentTour.getCheckedOutCount() : 0);
         
         updateParticipantCount();
@@ -189,10 +201,12 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         
         // Mostrar u ocultar botón "Finalizar Check-In" según el tipo de escaneo
         if (btnFinishCheckIn != null) {
-            btnFinishCheckIn.setVisibility("CHECK_IN".equals(scanType) ? View.VISIBLE : View.GONE);
+            btnFinishCheckIn.setVisibility(
+                "CHECK_IN".equals(scanType) && "ESPERANDO_CHECKIN".equals(status) ? View.VISIBLE : View.GONE
+            );
         }
     }
-    
+
     private void updateScanHistory() {
         if (layoutScannedList == null || tvEmptyHistory == null) {
             Log.w(TAG, "updateScanHistory: vistas son null");
@@ -292,6 +306,11 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         String status = currentTour.getCheckInOutStatus();
         if (status == null) status = "ESPERANDO_CHECKIN";
         
+        // Si ya estamos en modo check-out, asegurar que el texto refleje ese estado
+        if ("CHECK_OUT".equals(scanType) && "ESPERANDO_CHECKIN".equals(status)) {
+            status = "ESPERANDO_CHECKOUT";
+        }
+        
         // Actualizar estado
         switch (status) {
             case "ESPERANDO_CHECKIN":
@@ -325,7 +344,7 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
             tvCheckInOutStatus.setText(progressText);
         }
         
-        // Mostrar/ocultar botón Finalizar Check-In
+        // Mostrar/ocultar bot??n Finalizar Check-In
         if (btnFinishCheckIn != null) {
             btnFinishCheckIn.setVisibility(
                 "CHECK_IN".equals(scanType) && "ESPERANDO_CHECKIN".equals(status) ? View.VISIBLE : View.GONE
@@ -447,18 +466,22 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         currentTour.setExpectedParticipants(scannedCount);
         expectedParticipants = scannedCount;
         
-        // Cambiar estado del tour a ESPERANDO_CHECKOUT
+        // Cambiar estado del tour a ESPERANDO_CHECKOUT y pasar a modo check-out
         currentTour.setCheckInOutStatus("ESPERANDO_CHECKOUT");
+        scanType = "CHECK_OUT";
         
         firestoreManager.updateTour(currentTour, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
                 Toast.makeText(QRScannerActivity.this, "Check-In finalizado. Ahora puedes hacer Check-Out.", Toast.LENGTH_LONG).show();
                 // Reiniciar conteo para check-out
-                scannedCount = 0;
+                scannedCount = currentTour.getCheckedOutCount() != null ? currentTour.getCheckedOutCount() : 0;
+                expectedParticipants = currentTour.getCheckedInCount() != null ? currentTour.getCheckedInCount() : expectedParticipants;
                 updateParticipantCount();
                 updateStatusDisplay();
-                btnFinishCheckIn.setVisibility(View.GONE);
+                if (btnFinishCheckIn != null) {
+                    btnFinishCheckIn.setVisibility(View.GONE);
+                }
             }
             
             @Override
@@ -467,23 +490,6 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
             }
         });
     }
-
-    private boolean areAllStopsConfirmed() {
-        if (currentTour == null || currentTour.getStops() == null || currentTour.getStops().isEmpty()) {
-            return true; // Si no hay paradas, permitir escaneo
-        }
-        
-        for (com.example.droidtour.models.Tour.TourStop stop : currentTour.getStops()) {
-            // Usar el campo 'completed' para verificar si la parada fue confirmada
-            if (stop.getCompleted() == null || !stop.getCompleted()) {
-                Log.w(TAG, "Parada sin completar: " + stop.getName());
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
     private void toggleFlash() {
         if (qrScannerManager != null) {
             if (qrScannerManager.hasFlash()) {
@@ -508,26 +514,37 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
 
     private void continueScanning() {
         cardScanResult.setVisibility(View.GONE);
-        tvScanStatus.setText("Esperando QR de Check-in");
-        tvScanStatus.setTextColor(getColor(R.color.orange));
-
+        if ("CHECK_OUT".equals(scanType)) {
+            tvScanStatus.setText("Esperando QR de Check-Out");
+            tvScanStatus.setTextColor(getColor(R.color.primary));
+        } else {
+            tvScanStatus.setText("Esperando QR de Check-in");
+            tvScanStatus.setTextColor(getColor(R.color.orange));
+        }
+        
         if (qrScannerManager != null) {
             qrScannerManager.resumeScanning();
         }
-
+        
         Toast.makeText(this, "Listo para escanear siguiente QR",
                 Toast.LENGTH_SHORT).show();
     }
 
+    private boolean areStopsCompleted() {
+        if (currentTour == null || currentTour.getStops() == null || currentTour.getStops().isEmpty()) {
+            return true;
+        }
+        for (com.example.droidtour.models.Tour.TourStop stop : currentTour.getStops()) {
+            if (stop.getCompleted() == null || !stop.getCompleted()) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
     // ==================== QR Validation ====================
     
     private void validateAndProcessQR(String qrData) {
-        // Validar que todas las paradas del tour estén confirmadas
-        if (!areAllStopsConfirmed()) {
-            showScanError("Paradas sin confirmar", "Debes confirmar todas las paradas del tour antes de escanear códigos QR.");
-            return;
-        }
-        
         // Parsear QR: Formato esperado CHECKIN-{reservationId}-{tourId} o CHECKOUT-{reservationId}-{tourId}
         String[] parts = qrData.split("-");
         
@@ -554,6 +571,12 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         // Validar que el QR sea del tour correcto
         if (!qrTourId.equals(tourId)) {
             showScanError("QR de otro tour", "Este QR pertenece a otro tour");
+            return;
+        }
+
+        // Para check-out, asegurar que las paradas esten completas
+        if ("CHECK_OUT".equals(scanType) && !areStopsCompleted()) {
+            showScanError("Paradas pendientes", "Marca todas las paradas como completadas antes de hacer check-out.");
             return;
         }
         
@@ -658,6 +681,8 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
     private void addParticipantToTour(com.example.droidtour.models.Reservation reservation, boolean checkedIn, boolean checkedOut) {
         if (currentTour == null) return;
         
+        String actionType = scanType;
+        
         // Inicializar lista si es null
         if (currentTour.getScannedParticipants() == null) {
             currentTour.setScannedParticipants(new java.util.ArrayList<>());
@@ -694,7 +719,7 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         }
         
         // Actualizar contadores
-        if ("CHECK_IN".equals(scanType)) {
+        if ("CHECK_IN".equals(actionType)) {
             currentTour.setCheckedInCount((currentTour.getCheckedInCount() != null ? currentTour.getCheckedInCount() : 0) + 1);
             scannedCount = currentTour.getCheckedInCount();
         } else {
@@ -712,7 +737,7 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
                 // Actualizar historial
                 updateScanHistory();
                 // Mostrar éxito
-                handleSuccessfulScan(reservation.getUserName());
+                handleSuccessfulScan(reservation.getUserName(), actionType);
             }
             
             @Override
@@ -721,24 +746,32 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
             }
         });
     }
-    
+
     private void checkAndUpdateTourStatus() {
         if (currentTour == null) return;
         
-        // Si todos hicieron check-in, cambiar a ESPERANDO_CHECKOUT
+        // Si todos hicieron check-in, cambiar a ESPERANDO_CHECKOUT y preparar modo check-out
         if ("CHECK_IN".equals(scanType) && scannedCount >= expectedParticipants) {
             currentTour.setCheckInOutStatus("ESPERANDO_CHECKOUT");
+            scanType = "CHECK_OUT";
+            expectedParticipants = currentTour.getCheckedInCount() != null ? currentTour.getCheckedInCount() : expectedParticipants;
+            scannedCount = currentTour.getCheckedOutCount() != null ? currentTour.getCheckedOutCount() : 0;
+            if (btnFinishCheckIn != null) {
+                btnFinishCheckIn.setVisibility(View.GONE);
+            }
         }
         
+        int checkedInTotal = currentTour.getCheckedInCount() != null ? currentTour.getCheckedInCount() : 0;
+        
         // Si todos hicieron check-out, cambiar a CHECKOUT_COMPLETADO y tourStatus a COMPLETADA
-        if ("CHECK_OUT".equals(scanType) && scannedCount >= currentTour.getCheckedInCount()) {
+        if ("CHECK_OUT".equals(scanType) && checkedInTotal > 0 && scannedCount >= checkedInTotal) {
             currentTour.setCheckInOutStatus("CHECKOUT_COMPLETADO");
             currentTour.setTourStatus("COMPLETADA");
             // Generar notificación al admin
             generateAdminPaymentNotification();
         }
     }
-    
+
     private void showScanError(String title, String message) {
         runOnUiThread(() -> {
             Toast.makeText(this, title + ": " + message, Toast.LENGTH_LONG).show();
@@ -753,16 +786,16 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         });
     }
     
-    private void handleSuccessfulScan(String clientName) {
+    private void handleSuccessfulScan(String clientName, String actionType) {
         // Actualizar UI
         updateParticipantCount();
         updateScanHistory();
         updateStatusDisplay();
         
         // Mostrar resultado exitoso
-        String message = "CHECK_IN".equals(scanType) ? 
-            "✓ Check-in exitoso" : 
-            "✓ Check-out exitoso";
+        String message = "CHECK_IN".equals(actionType) ? 
+            "Check-in exitoso" : 
+            "Check-out exitoso";
         
         tvScanStatus.setText(message);
         tvScanStatus.setTextColor(getColor(R.color.green));
@@ -771,7 +804,7 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         
         Toast.makeText(this, message + " para " + clientName, Toast.LENGTH_LONG).show();
     }
-
+    
     // ==================== Helpers ====================
 
 

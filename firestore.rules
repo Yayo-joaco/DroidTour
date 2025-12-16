@@ -1,0 +1,156 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // USERS collection
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isOwner(userId);
+      // Users can update their own data
+      allow write: if isOwner(userId);
+    }
+    
+    // COMPANIES collection
+    match /companies/{companyId} {
+      // Anyone authenticated can read companies
+      allow read: if isAuthenticated();
+      // Only company admins can write (should be further restricted in your app logic)
+      allow write: if isAuthenticated();
+      // Allow queries
+      allow list: if isAuthenticated();
+    }
+    
+    // TOURS collection
+    match /tours/{tourId} {
+      // Anyone authenticated can read public tours
+      allow read: if isAuthenticated();
+      // Only company admins can write (should be further restricted in your app logic)
+      allow write: if isAuthenticated();
+      // Allow queries (needed for getPublicTours, etc.)
+      allow list: if isAuthenticated();
+    }
+    
+    // RESERVATIONS collection
+    match /reservations/{reservationId} {
+      // Users can read their own reservations (by userId field)
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || 
+                      resource.data.guideId == request.auth.uid);
+      // Users can create/update their own reservations
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && 
+                       (resource.data.userId == request.auth.uid || 
+                        resource.data.guideId == request.auth.uid);
+      // Allow queries - Note: Firestore validates queries before execution
+      // The app should only query by userId matching request.auth.uid
+      allow list: if isAuthenticated();
+    }
+    
+    // NOTIFICATIONS collection
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // System can create notifications
+      allow create: if isAuthenticated();
+      // Users can update their own notifications (mark as read)
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Allow queries - Note: The app should only query by userId matching request.auth.uid
+      allow list: if isAuthenticated();
+    }
+    
+    // GUIDES collection
+    match /guides/{guideId} {
+      // Anyone authenticated can read guides
+      allow read: if isAuthenticated();
+      // Only the guide or admin can write
+      allow write: if isAuthenticated();
+      // Allow queries
+      allow list: if isAuthenticated();
+    }
+    
+    // REVIEWS collection
+    match /reviews/{reviewId} {
+      // Anyone authenticated can read reviews
+      allow read: if isAuthenticated();
+      // Users can create their own reviews
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Users can update their own reviews
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Allow queries
+      allow list: if isAuthenticated();
+    }
+    
+    // TOUR_OFFERS collection
+    match /tour_offers/{offerId} {
+      // Guides can read their own offers
+      allow read: if isAuthenticated() && resource.data.guideId == request.auth.uid;
+      // Company admins can create offers
+      allow create: if isAuthenticated();
+      // Guides can update their own offers
+      allow update: if isAuthenticated() && resource.data.guideId == request.auth.uid;
+      // Allow queries - Note: The app should only query by guideId matching request.auth.uid
+      allow list: if isAuthenticated();
+    }
+    
+    // SERVICES collection
+    match /services/{serviceId} {
+      // Anyone authenticated can read services
+      allow read: if isAuthenticated();
+      // Only company admins can write
+      allow write: if isAuthenticated();
+      // Allow queries
+      allow list: if isAuthenticated();
+    }
+    
+    // USER_ROLES collection
+    match /user_roles/{userId} {
+      // Users can read their own role
+      allow read: if isOwner(userId);
+      // System can write
+      allow write: if isAuthenticated();
+      // Allow queries for own role
+      allow list: if isAuthenticated();
+    }
+    
+    // MESSAGES collection
+    match /messages/{messageId} {
+      // Users can read messages where they are sender or receiver
+      allow read: if isAuthenticated() && 
+                     (resource.data.senderId == request.auth.uid || 
+                      resource.data.receiverId == request.auth.uid);
+      // Users can create messages
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      // Allow queries
+      allow list: if isAuthenticated();
+    }
+    
+    // PAYMENT_METHODS collection
+    match /payment_methods/{paymentId} {
+      // Users can read their own payment methods
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Users can create/update their own payment methods
+      allow write: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      // Allow queries - Note: The app should only query by userId matching request.auth.uid
+      allow list: if isAuthenticated();
+    }
+    
+    // USER_SESSIONS collection
+    match /user_sessions/{sessionId} {
+      // Users can read their own sessions
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // System can create/update sessions
+      allow write: if isAuthenticated();
+      // Allow queries
+      allow list: if isAuthenticated();
+    }
+  }
+}

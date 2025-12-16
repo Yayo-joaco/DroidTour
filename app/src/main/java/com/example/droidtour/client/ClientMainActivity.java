@@ -111,7 +111,19 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         // Inicializar Firebase
         authManager = FirebaseAuthManager.getInstance(this);
         firestoreManager = FirestoreManager.getInstance();
-        currentUserId = prefsManager.getUserId();
+        
+        // Verificar que el usuario esté realmente autenticado en Firebase Auth
+        String authUserId = authManager.getCurrentUserId();
+        if (authUserId == null || authUserId.isEmpty()) {
+            // Usuario no autenticado en Firebase Auth - redirigir a login
+            Toast.makeText(this, "Sesión expirada. Por favor, inicia sesión nuevamente.", Toast.LENGTH_LONG).show();
+            prefsManager.logout();
+            redirectToLogin();
+            finish();
+            return;
+        }
+        
+        currentUserId = authUserId;
 
         // Inicializar helpers
         notificationHelper = new NotificationHelper(this);
@@ -480,6 +492,58 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
                 if (result instanceof List) {
                     List<Tour> allTours = (List<Tour>) result;
 
+                    // Verificar y actualizar ratings si es necesario (en background)
+                    for (Tour tour : allTours) {
+                        if (tour.getAverageRating() == null || tour.getAverageRating() == 0.0) {
+                            // Verificar si hay reviews pero el rating no está actualizado
+                            firestoreManager.getReviewsByTour(tour.getTourId(), new FirestoreManager.FirestoreCallback() {
+                                @Override
+                                @SuppressWarnings("unchecked")
+                                public void onSuccess(Object result) {
+                                    if (result instanceof List) {
+                                        List<com.example.droidtour.models.Review> reviews = (List<com.example.droidtour.models.Review>) result;
+                                        if (!reviews.isEmpty()) {
+                                            // Calcular rating localmente primero para mostrar inmediatamente
+                                            double sum = 0.0;
+                                            int count = 0;
+                                            for (com.example.droidtour.models.Review r : reviews) {
+                                                if (r.getRating() != null && r.getRating() > 0) {
+                                                    sum += r.getRating();
+                                                    count++;
+                                                }
+                                            }
+                                            if (count > 0) {
+                                                double newAvg = sum / count;
+                                                tour.setAverageRating(newAvg);
+                                                tour.setTotalReviews(reviews.size());
+                                                // Refrescar adapter inmediatamente
+                                                if (rvFeaturedTours.getAdapter() != null) {
+                                                    rvFeaturedTours.getAdapter().notifyDataSetChanged();
+                                                }
+                                            }
+                                            
+                                            // Actualizar rating en Firestore en background
+                                            firestoreManager.updateTourRating(tour.getTourId(), new FirestoreManager.FirestoreCallback() {
+                                                @Override
+                                                public void onSuccess(Object updateResult) {
+                                                    // Rating actualizado en Firestore
+                                                }
+                                                @Override
+                                                public void onFailure(Exception e) {
+                                                    // Ignorar errores de actualización
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                                @Override
+                                public void onFailure(Exception e) {
+                                    // Ignorar errores al verificar reviews
+                                }
+                            });
+                        }
+                    }
+
                     // Ordenar por averageRating descendente
                     allTours.sort((t1, t2) -> {
                         Double r1 = t1.getAverageRating() != null ? t1.getAverageRating() : 0.0;
@@ -527,6 +591,58 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
             public void onSuccess(Object result) {
                 if (result instanceof List) {
                     List<Company> allCompanies = (List<Company>) result;
+
+                    // Verificar y actualizar ratings si es necesario (en background)
+                    for (Company company : allCompanies) {
+                        if (company.getAverageRating() == null || company.getAverageRating() == 0.0) {
+                            // Verificar si hay reviews pero el rating no está actualizado
+                            firestoreManager.getReviewsByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+                                @Override
+                                @SuppressWarnings("unchecked")
+                                public void onSuccess(Object result) {
+                                    if (result instanceof List) {
+                                        List<com.example.droidtour.models.Review> reviews = (List<com.example.droidtour.models.Review>) result;
+                                        if (!reviews.isEmpty()) {
+                                            // Calcular rating localmente primero para mostrar inmediatamente
+                                            double sum = 0.0;
+                                            int count = 0;
+                                            for (com.example.droidtour.models.Review r : reviews) {
+                                                if (r.getCompanyRating() != null && r.getCompanyRating() > 0) {
+                                                    sum += r.getCompanyRating();
+                                                    count++;
+                                                }
+                                            }
+                                            if (count > 0) {
+                                                double newAvg = sum / count;
+                                                company.setAverageRating(newAvg);
+                                                company.setTotalReviews(reviews.size());
+                                                // Refrescar adapter inmediatamente
+                                                if (rvPopularCompanies.getAdapter() != null) {
+                                                    rvPopularCompanies.getAdapter().notifyDataSetChanged();
+                                                }
+                                            }
+                                            
+                                            // Actualizar rating en Firestore en background
+                                            firestoreManager.updateCompanyRating(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+                                                @Override
+                                                public void onSuccess(Object updateResult) {
+                                                    // Rating actualizado en Firestore
+                                                }
+                                                @Override
+                                                public void onFailure(Exception e) {
+                                                    // Ignorar errores de actualización
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+                                @Override
+                                public void onFailure(Exception e) {
+                                    // Ignorar errores al verificar reviews
+                                }
+                            });
+                        }
+                    }
 
                     // Agregar solo las primeras 3 empresas (top 3)
                     for (Company company : allCompanies) {
@@ -720,7 +836,7 @@ class FeaturedToursAdapter extends RecyclerView.Adapter<FeaturedToursAdapter.Vie
         
         // Rating
         Double avg = tour.getAverageRating();
-        rating.setText(avg != null ? String.format("%.1f", avg) : "0.0");
+        rating.setText(avg != null && avg > 0 ? String.format("%.1f", avg) : "0.0");
         
         // Reviews count dinámico
         TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
@@ -862,10 +978,23 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
             }
             tvExperienceYears.setText(yearsExperience + "+");
 
-            // Rating y reseñas - Cargar desde Firebase
-            tvRating.setText("0.0");
-            tvReviewsCount.setText("0 reseñas");
-
+            // Rating y reseñas - Usar directamente Company.averageRating y Company.totalReviews
+            Double averageRating = company.getAverageRating();
+            Integer totalReviews = company.getTotalReviews();
+            
+            if (averageRating != null && averageRating > 0) {
+                tvRating.setText(String.format("%.1f", averageRating));
+            } else {
+                tvRating.setText("0.0");
+            }
+            
+            if (totalReviews != null && totalReviews > 0) {
+                tvReviewsCount.setText(totalReviews + " reseñas");
+            } else {
+                tvReviewsCount.setText("0 reseñas");
+            }
+            
+            // Contar tours
             FirestoreManager firestoreManager = FirestoreManager.getInstance();
             firestoreManager.getToursByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
                 @Override
@@ -875,32 +1004,12 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
                         List<Tour> tours = (List<Tour>) result;
                         int tourCount = tours.size();
                         tvToursCount.setText(String.valueOf(tourCount));
-
-                        // Calcular rating promedio y total de reseñas
-                        double totalRating = 0.0;
-                        int totalReviews = 0;
-                        for (Tour tour : tours) {
-                            if (tour.getAverageRating() != null) {
-                                totalRating += tour.getAverageRating();
-                            }
-                            if (tour.getTotalReviews() != null) {
-                                totalReviews += tour.getTotalReviews();
-                            }
-                        }
-
-                        if (tourCount > 0 && totalRating > 0) {
-                            double avgRating = totalRating / tourCount;
-                            tvRating.setText(String.format("%.1f", avgRating));
-                        }
-                        tvReviewsCount.setText(totalReviews + " reseñas");
                     }
                 }
 
                 @Override
                 public void onFailure(Exception e) {
                     tvToursCount.setText("0");
-                    tvRating.setText("0.0");
-                    tvReviewsCount.setText("0 reseñas");
                 }
             });
 

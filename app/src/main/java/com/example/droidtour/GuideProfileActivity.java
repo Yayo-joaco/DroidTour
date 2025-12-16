@@ -19,6 +19,7 @@ import com.example.droidtour.firebase.FirebaseAuthManager;
 import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.User;
 import com.example.droidtour.models.Reservation;
+import com.example.droidtour.models.Guide;
 import com.example.droidtour.utils.PreferencesManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
@@ -424,65 +425,26 @@ public class GuideProfileActivity extends AppCompatActivity {
     }
 
     /**
-     * Cargar rating desde user_roles o guides
+     * Cargar rating desde colección guides (modelo actualizado con reviews)
      */
     private void loadRatingFromFirestore() {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-        // Primero intentar desde user_roles
-        db.collection(FirestoreManager.COLLECTION_USER_ROLES)
-                .document(currentUserId)
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (doc != null && doc.exists()) {
-                        Float rating = null;
-
-                        if (doc.contains("rating")) {
-                            Object ratingObj = doc.get("rating");
-                            if (ratingObj instanceof Number) {
-                                rating = ((Number) ratingObj).floatValue();
-                            }
-                        } else if (doc.contains("guide")) {
-                            Object guideObj = doc.get("guide");
-                            if (guideObj instanceof Map) {
-                                Map<String, Object> guideMap = (Map<String, Object>) guideObj;
-                                Object ratingObj = guideMap.get("rating");
-                                if (ratingObj instanceof Number) {
-                                    rating = ((Number) ratingObj).floatValue();
-                                }
-                            }
-                        }
-
-                        if (rating != null && rating > 0) {
-                            tvRating.setText(String.format("%.1f", rating));
-                        } else {
-                            // Si no hay rating en user_roles, intentar desde guides
-                            loadRatingFromGuides();
-                        }
-                    } else {
-                        loadRatingFromGuides();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.w(TAG, "Error cargando rating desde user_roles: " + e.getMessage());
-                    loadRatingFromGuides();
-                });
-    }
-
-    /**
-     * Cargar rating desde colección guides (fallback)
-     */
-    private void loadRatingFromGuides() {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection(FirestoreManager.COLLECTION_GUIDES)
                 .document(currentUserId)
                 .get()
                 .addOnSuccessListener(doc -> {
                     if (doc != null && doc.exists()) {
-                        Object ratingObj = doc.get("rating");
-                        if (ratingObj instanceof Number) {
-                            float rating = ((Number) ratingObj).floatValue();
-                            tvRating.setText(String.format("%.1f", rating));
+                        Guide guide = doc.toObject(Guide.class);
+                        if (guide != null) {
+                            Float rating = guide.getRating();
+                            Integer totalReviews = guide.getTotalReviews();
+                            
+                            if (rating != null && rating > 0) {
+                                tvRating.setText(String.format("%.1f", rating));
+                                // Opcional: mostrar total de reviews si hay un TextView para eso
+                            } else {
+                                tvRating.setText("0.0");
+                            }
                         } else {
                             tvRating.setText("0.0");
                         }

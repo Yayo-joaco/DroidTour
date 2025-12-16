@@ -193,11 +193,24 @@ public class ToursCatalogActivity extends AppCompatActivity {
         int years = (int) stats.get("experienceYears");
         tvExperienceYears.setText(String.valueOf(years) + "+");
 
-        // 5. Rating (placeholder - agregar campo a Company si es necesario)
+        // 5. Rating y reseñas desde Company (actualizado por sistema de reviews)
         TextView tvCompanyRating = findViewById(R.id.tv_company_rating);
         TextView tvReviewsCount = findViewById(R.id.tv_reviews_count);
-        tvCompanyRating.setText("4.8"); // Temporal
-        tvReviewsCount.setText("(245 reseñas)"); // Temporal
+        
+        Double averageRating = company.getAverageRating();
+        Integer totalReviews = company.getTotalReviews();
+        
+        if (averageRating != null && averageRating > 0) {
+            tvCompanyRating.setText(String.format("%.1f", averageRating));
+        } else {
+            tvCompanyRating.setText("0.0");
+        }
+        
+        if (totalReviews != null && totalReviews > 0) {
+            tvReviewsCount.setText(String.format("(%d reseñas)", totalReviews));
+        } else {
+            tvReviewsCount.setText("(0 reseñas)");
+        }
 
         // Actualizar título del collapsing toolbar
         CollapsingToolbarLayout collapsingToolbar = findViewById(R.id.collapsing_toolbar);
@@ -547,12 +560,24 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
             tourDescription.setVisibility(android.view.View.GONE);
         }
 
-        // Rating
+        // Rating y conteo de reseñas
         Double avgRating = tour.getAverageRating();
+        Integer totalReviews = tour.getTotalReviews();
         if (avgRating != null && avgRating > 0) {
             rating.setText(String.format(java.util.Locale.US, "%.1f", avgRating));
         } else {
             rating.setText("--");
+        }
+        
+        // Mostrar conteo de reseñas si está disponible
+        TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
+        if (reviewsCount != null) {
+            if (totalReviews != null && totalReviews > 0) {
+                reviewsCount.setText(" (" + totalReviews + ")");
+                reviewsCount.setVisibility(android.view.View.VISIBLE);
+            } else {
+                reviewsCount.setVisibility(android.view.View.GONE);
+            }
         }
 
         // Duración

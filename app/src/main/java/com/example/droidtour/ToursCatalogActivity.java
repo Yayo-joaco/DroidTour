@@ -6,6 +6,8 @@ import android.view.MenuItem;
 import android.view.LayoutInflater;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -13,6 +15,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.example.droidtour.models.Company;
 import com.example.droidtour.models.Tour;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
@@ -20,6 +23,8 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.Map;
 
 public class ToursCatalogActivity extends AppCompatActivity {
 
@@ -90,26 +95,31 @@ public class ToursCatalogActivity extends AppCompatActivity {
             return;
         }
 
-        firestoreManager.getCompany(companyId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
-            @Override
-            public void onSuccess(Object result) {
-                com.example.droidtour.models.Company company = (com.example.droidtour.models.Company) result;
-                displayCompanyInfo(company);
-            }
+        // Usar el nuevo método que obtiene empresa + estadísticas
+        firestoreManager.getCompanyCatalogHeaderData(companyId,
+                new com.example.droidtour.firebase.FirestoreManager.CompanyCatalogCallback() {
+                    @Override
+                    public void onSuccess(Map<String, Object> result) {
+                        Company company = (Company) result.get("company");
+                        Map<String, Object> stats = (Map<String, Object>) result.get("stats");
+                        int toursCount = (int) result.get("toursCount");
 
-            @Override
-            public void onFailure(Exception e) {
-                android.util.Log.e("ToursCatalog", "Error cargando empresa: " + e.getMessage());
-                setupCompanyHeader(); // Usar valores por defecto
-            }
-        });
+                        displayCompanyInfo(company, stats, toursCount);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        android.util.Log.e("ToursCatalog", "Error cargando datos del catálogo: " + e.getMessage());
+                        setupCompanyHeader(); // Usar valores por defecto
+                    }
+                });
     }
 
     /**
-     * Mostrar información de la empresa
+     * Mostrar información completa de la empresa con estadísticas
      */
-    private void displayCompanyInfo(com.example.droidtour.models.Company company) {
-        // Nombre: preferir commercialName, luego businessName
+    private void displayCompanyInfo(Company company, Map<String, Object> stats, int toursCount) {
+        // 1. Nombre: preferir commercialName, luego businessName
         String displayName = company.getCommercialName();
         if (displayName == null || displayName.isEmpty()) {
             displayName = company.getBusinessName();
@@ -119,11 +129,70 @@ public class ToursCatalogActivity extends AppCompatActivity {
         }
         tvCompanyName.setText(displayName);
 
-        // Rating y reseñas (placeholder - Company no tiene estos campos)
-        // TODO: Implementar cuando se agreguen estos campos al modelo
-        tvCompanyRating.setText("⭐ --");
+        // 2. Logo
+        ImageView companyLogo = findViewById(R.id.iv_company_logo);
+        TextView companyInitial = findViewById(R.id.tv_company_initial);
 
-        // Contador de tours se actualiza cuando se cargan los tours
+        String logoUrl = company.getLogoUrl();
+        if (logoUrl != null && !logoUrl.isEmpty()) {
+            // Cargar logo con Glide
+            Glide.with(this)
+                    .load(logoUrl)
+                    .placeholder(R.drawable.ic_company)
+                    .error(R.drawable.ic_company)
+                    .into(companyLogo);
+            companyInitial.setVisibility(View.GONE);
+            companyLogo.setVisibility(View.VISIBLE);
+        } else {
+            // Mostrar iniciales si no hay logo
+            companyLogo.setVisibility(View.GONE);
+            companyInitial.setVisibility(View.VISIBLE);
+
+            if (displayName != null && !displayName.isEmpty()) {
+                // Tomar las primeras dos letras del nombre
+                String initials = displayName.substring(0, Math.min(2, displayName.length())).toUpperCase();
+                companyInitial.setText(initials);
+            }
+        }
+
+        // 3. Ubicación
+        TextView companyLocation = findViewById(R.id.tv_company_location);
+        String location = company.getAddress();
+        if (location != null && !location.isEmpty()) {
+            companyLocation.setText(location);
+        } else {
+            companyLocation.setText("Ubicación no disponible");
+        }
+
+        // 4. Estadísticas
+        TextView tvToursCount = findViewById(R.id.tv_tours_count);
+        TextView tvPriceFrom = findViewById(R.id.tv_price_from);
+        TextView tvExperienceYears = findViewById(R.id.tv_experience_years);
+
+        // Número de tours
+        tvToursCount.setText(String.valueOf(toursCount));
+
+        // Precio desde
+        double minPrice = (double) stats.get("minPrice");
+        if (minPrice > 0) {
+            tvPriceFrom.setText(String.format("S/ %.0f", minPrice));
+        } else {
+            tvPriceFrom.setText("S/ --");
+        }
+
+        // Años de experiencia
+        int years = (int) stats.get("experienceYears");
+        tvExperienceYears.setText(String.valueOf(years) + "+");
+
+        // 5. Rating (placeholder - agregar campo a Company si es necesario)
+        TextView tvCompanyRating = findViewById(R.id.tv_company_rating);
+        TextView tvReviewsCount = findViewById(R.id.tv_reviews_count);
+        tvCompanyRating.setText("4.8"); // Temporal
+        tvReviewsCount.setText("(245 reseñas)"); // Temporal
+
+        // Actualizar título del collapsing toolbar
+        CollapsingToolbarLayout collapsingToolbar = findViewById(R.id.collapsing_toolbar);
+        collapsingToolbar.setTitle(displayName); // O "Tours Disponibles" si prefieres
     }
 
     private void loadToursFromFirebase() {

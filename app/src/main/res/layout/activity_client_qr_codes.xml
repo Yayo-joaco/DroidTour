@@ -94,7 +94,8 @@
                         android:text="#DT2024001"
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:textColor="@color/white" />
+                        android:textColor="@color/white"
+                        android:visibility="gone" />
 
                 </LinearLayout>
 
@@ -144,11 +145,11 @@
                             android:id="@+id/tv_checkin_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="LISTO"
+                            android:text="⏳ Pendiente"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:textColor="@color/white"
-                            android:background="@drawable/bg_status_confirmed"
+                            android:background="@drawable/bg_status_pending"
                             android:padding="6dp" />
 
                     </LinearLayout>
@@ -328,7 +329,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="1. Llega 15 minutos antes del tour\n2. Muestra el QR de Check-in al guía\n3. Al finalizar, muestra el QR de Check-out\n4. Después podrás calificar tu experiencia"
+                        android:text="1. Muestra el QR de Check-in al guía\n2. Al finalizar, muestra el QR de Check-out\n3. Después podrás calificar tu experiencia"
                         android:textSize="14sp"
                         android:textColor="@color/black"
                         android:lineSpacingExtra="4dp" />

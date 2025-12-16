@@ -27,9 +27,10 @@ public class Reservation {
     // Detalles de la reserva
     private String tourDate;
     private String tourTime;
-    private Integer numberOfPeople;
-    private Double pricePerPerson;
-    private Double totalPrice;
+    private Integer numberOfPeople; // Deprecado - siempre 1 persona por reserva
+    private Double pricePerPerson; // Precio base del tour
+    private Double servicePrice; // Precio de servicios adicionales
+    private Double totalPrice; // pricePerPerson + servicePrice
     
     // QR Codes para check-in y check-out
     private String qrCodeCheckIn; // QR-Inicio: Mostrar al guía al iniciar el tour
@@ -62,7 +63,7 @@ public class Reservation {
     // Constructor completo
     public Reservation(String userId, String userName, String userEmail, String tourId, 
                       String tourName, String companyId, String companyName, String tourDate, 
-                      String tourTime, Integer numberOfPeople, Double pricePerPerson) {
+                      String tourTime, Integer numberOfPeople, Double pricePerPerson, Double servicePrice) {
         this.userId = userId;
         this.userName = userName;
         this.userEmail = userEmail;
@@ -72,9 +73,10 @@ public class Reservation {
         this.companyName = companyName;
         this.tourDate = tourDate;
         this.tourTime = tourTime;
-        this.numberOfPeople = numberOfPeople;
+        this.numberOfPeople = 1; // Siempre 1 persona por reserva
         this.pricePerPerson = pricePerPerson;
-        this.totalPrice = pricePerPerson * numberOfPeople;
+        this.servicePrice = servicePrice != null ? servicePrice : 0.0;
+        this.totalPrice = pricePerPerson + this.servicePrice;
         this.status = "PENDIENTE";
         this.paymentStatus = "PENDIENTE";
         this.hasReview = false;
@@ -124,6 +126,7 @@ public class Reservation {
         map.put("tourTime", tourTime);
         map.put("numberOfPeople", numberOfPeople);
         map.put("pricePerPerson", pricePerPerson);
+        map.put("servicePrice", servicePrice);
         map.put("totalPrice", totalPrice);
         map.put("qrCodeCheckIn", qrCodeCheckIn);
         map.put("qrCodeCheckOut", qrCodeCheckOut);
@@ -187,6 +190,9 @@ public class Reservation {
 
     public Double getTotalPrice() { return totalPrice; }
     public void setTotalPrice(Double totalPrice) { this.totalPrice = totalPrice; }
+
+    public Double getServicePrice() { return servicePrice; }
+    public void setServicePrice(Double servicePrice) { this.servicePrice = servicePrice; }
 
     public String getQrCodeCheckIn() { return qrCodeCheckIn; }
     public void setQrCodeCheckIn(String qrCodeCheckIn) { this.qrCodeCheckIn = qrCodeCheckIn; }

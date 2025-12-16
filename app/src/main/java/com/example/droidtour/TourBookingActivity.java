@@ -23,18 +23,19 @@ public class TourBookingActivity extends AppCompatActivity {
     private static final String TAG = "TourBookingActivity";
 
     private TextView tvTourName, tvCompanyName, tvPrice;
-    private TextView tvParticipantsCount, tvTotalPrice;
+    private TextView tvServicePrice, tvTotalPrice, tvTourDate;
     private TextView tvPaymentMethodName, tvPaymentMethodInfo;
     private ImageView ivCardIcon;
     private LinearLayout layoutPaymentMethod;
-    private TextInputEditText etTourDate, etParticipants, etComments;
     private MaterialButton btnConfirmBooking;
     
     private com.example.droidtour.firebase.FirebaseAuthManager authManager;
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
     private String currentUserId;
     private String tourId, tourName, companyId, companyName;
+    private String tourDate, tourTime;
     private double pricePerPerson;
+    private double servicePrice;
     
     // Payment method
     private List<PaymentMethod> paymentMethods = new ArrayList<>();
@@ -94,12 +95,17 @@ public class TourBookingActivity extends AppCompatActivity {
         tourName = getIntent().getStringExtra("tour_name");
         companyId = getIntent().getStringExtra("company_id");
         companyName = getIntent().getStringExtra("company_name");
-        pricePerPerson = getIntent().getDoubleExtra("price", 85.0);
+        tourDate = getIntent().getStringExtra("tour_date");
+        tourTime = getIntent().getStringExtra("tour_time");
+        pricePerPerson = getIntent().getDoubleExtra("price", 55.0);
+        servicePrice = getIntent().getDoubleExtra("service_price", 0.0);
         
         if (tourName == null) tourName = "Tour Increíble";
         if (companyName == null) companyName = "Empresa de Tours";
         if (tourId == null) tourId = "TOUR001";
         if (companyId == null) companyId = "COMP001";
+        if (tourDate == null) tourDate = "Por confirmar";
+        if (tourTime == null) tourTime = "09:00";
     }
 
     private void setupToolbar() {
@@ -115,17 +121,14 @@ public class TourBookingActivity extends AppCompatActivity {
         tvTourName = findViewById(R.id.tv_tour_name);
         tvCompanyName = findViewById(R.id.tv_company_name);
         tvPrice = findViewById(R.id.tv_price);
-        tvParticipantsCount = findViewById(R.id.tv_participants_count);
+        tvTourDate = findViewById(R.id.tv_tour_date_value);
+        tvServicePrice = findViewById(R.id.tv_service_price);
         tvTotalPrice = findViewById(R.id.tv_total_price);
         
         tvPaymentMethodName = findViewById(R.id.tv_payment_method_name);
         tvPaymentMethodInfo = findViewById(R.id.tv_payment_method_info);
         ivCardIcon = findViewById(R.id.iv_card_icon);
         layoutPaymentMethod = findViewById(R.id.layout_payment_method);
-        
-        etTourDate = findViewById(R.id.et_tour_date);
-        etParticipants = findViewById(R.id.et_participants);
-        etComments = findViewById(R.id.et_comments);
         
         btnConfirmBooking = findViewById(R.id.btn_confirm_booking);
         
@@ -137,39 +140,20 @@ public class TourBookingActivity extends AppCompatActivity {
         btnConfirmBooking.setOnClickListener(v -> confirmBooking());
         
         layoutPaymentMethod.setOnClickListener(v -> showPaymentMethodDialog());
-        
-        etParticipants.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                calculateTotal();
-            }
-        });
-        
-        etTourDate.setOnClickListener(v -> {
-            // TODO: Abrir DatePicker
-            Toast.makeText(this, "Selector de fecha próximamente", Toast.LENGTH_SHORT).show();
-        });
     }
 
     private void loadTourData() {
         tvTourName.setText(tourName);
         tvCompanyName.setText(companyName);
-        tvPrice.setText("S/. " + String.format("%.2f", pricePerPerson) + " por persona");
+        tvPrice.setText("S/. " + String.format("%.2f", pricePerPerson));
+        tvTourDate.setText(tourDate + " - " + tourTime);
+        tvServicePrice.setText("S/. " + String.format("%.2f", servicePrice));
+        calculateTotal();
     }
 
     private void calculateTotal() {
-        try {
-            String participantsText = etParticipants.getText().toString().trim();
-            if (!participantsText.isEmpty()) {
-                int participants = Integer.parseInt(participantsText);
-                double total = pricePerPerson * participants;
-                
-                tvParticipantsCount.setText(String.valueOf(participants));
-                tvTotalPrice.setText("S/. " + String.format("%.2f", total));
-            }
-        } catch (NumberFormatException e) {
-            tvParticipantsCount.setText("1");
-            tvTotalPrice.setText("S/. " + String.format("%.2f", pricePerPerson));
-        }
+        double total = pricePerPerson + servicePrice;
+        tvTotalPrice.setText("S/. " + String.format("%.2f", total));
     }
 
     private void loadPaymentMethods() {
@@ -256,25 +240,10 @@ public class TourBookingActivity extends AppCompatActivity {
     }
     
     private void confirmBooking() {
-        String participantsText = etParticipants.getText().toString().trim();
-        String dateTemp = etTourDate.getText().toString().trim();
-        if (dateTemp.isEmpty()) {
-            dateTemp = "2024-12-15";
-        }
-        final String dateText = dateTemp;
-        final String comments = etComments.getText().toString().trim();
-        
-        if (participantsText.isEmpty()) {
-            Toast.makeText(this, "Por favor ingresa el número de personas", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        
         if (selectedPaymentMethod == null) {
             Toast.makeText(this, "Por favor selecciona un método de pago", Toast.LENGTH_SHORT).show();
             return;
         }
-        
-        int participants = Integer.parseInt(participantsText);
         
         // Deshabilitar botón para evitar doble clic
         btnConfirmBooking.setEnabled(false);
@@ -293,14 +262,14 @@ public class TourBookingActivity extends AppCompatActivity {
                     tourName,
                     companyId,
                     companyName,
-                    dateText,
-                    "09:00",
-                    participants,
-                    pricePerPerson
+                    tourDate,
+                    tourTime,
+                    1, // Siempre 1 persona por reserva
+                    pricePerPerson,
+                    servicePrice
                 );
                 reservation.setStatus("CONFIRMADA");
                 reservation.setPaymentStatus("CONFIRMADO");
-                reservation.setSpecialRequests(comments);
                 
                 // Agregar información del método de pago
                 String last4 = selectedPaymentMethod.getCardNumber().substring(
@@ -323,33 +292,6 @@ public class TourBookingActivity extends AppCompatActivity {
                             @Override
                             public void onFailure(Exception e) {
                                 Log.e(TAG, "Error al regenerar QR codes", e);
-                            }
-                        });
-                        
-                        // Incrementar expectedParticipants en el tour
-                        firestoreManager.getTourById(tourId, new com.example.droidtour.firebase.FirestoreManager.TourCallback() {
-                            @Override
-                            public void onSuccess(com.example.droidtour.models.Tour tour) {
-                                int currentExpected = tour.getExpectedParticipants() != null ? tour.getExpectedParticipants() : 0;
-                                int newExpected = currentExpected + participants;
-                                
-                                java.util.Map<String, Object> updates = new java.util.HashMap<>();
-                                updates.put("expectedParticipants", newExpected);
-                                
-                                firestoreManager.updateTour(tourId, updates, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
-                                    @Override
-                                    public void onSuccess(Object updateResult) {
-                                        Log.d(TAG, "expectedParticipants actualizado: " + newExpected);
-                                    }
-                                    @Override
-                                    public void onFailure(Exception e) {
-                                        Log.e(TAG, "Error al actualizar expectedParticipants", e);
-                                    }
-                                });
-                            }
-                            @Override
-                            public void onFailure(String error) {
-                                Log.e(TAG, "Error al obtener tour para actualizar participants: " + error);
                             }
                         });
                         

@@ -3,6 +3,8 @@ package com.example.droidtour;
 import android.os.Bundle;
 import android.view.MenuItem;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -22,6 +24,7 @@ public class MeetingPointMapActivity extends AppCompatActivity implements OnMapR
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_meeting_point_map);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         // Obtener datos del intent
         latitude = getIntent().getDoubleExtra("latitude", -12.0464);

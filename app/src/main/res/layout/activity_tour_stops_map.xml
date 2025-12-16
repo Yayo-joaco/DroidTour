@@ -12,6 +12,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            app:titleTextAppearance="@style/Toolbar.TitleText3"
             android:background="@color/primary"
             app:navigationIconTint="@color/white"
             app:titleTextColor="@color/white" />

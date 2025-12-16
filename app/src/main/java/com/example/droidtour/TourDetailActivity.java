@@ -688,7 +688,7 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 if (hasReservation != null && hasReservation) {
                     // Usuario ya tiene una reserva confirmada
                     btnBookNow.setEnabled(false);
-                    btnBookNow.setText("Ya tienes una reserva");
+                    btnBookNow.setText("Ya Reservado");
                     btnBookNow.setAlpha(0.5f);
                 }
             }

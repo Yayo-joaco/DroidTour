@@ -74,12 +74,13 @@ public class ToursCatalogActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_tours_catalog);
+        getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.primary));
 
         firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
 
         getIntentData();
         setupToolbar();
-        setupCollapsingToolbar(); // ✅ NUEVO: Configurar efecto del título
+        setupCollapsingToolbar();
         initializeViews();
         setupCompanyHeader(); // Establecer header inicial
         loadCompanyFromFirebase();
@@ -604,7 +605,7 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
         }
         chipGroup.setVisibility(View.VISIBLE);
 
-        // ✅ Espaciado tipo "Companies"
+        // Espaciado tipo "Companies"
         chipGroup.setChipSpacingHorizontal(dp(chipGroup, 8));
         chipGroup.setChipSpacingVertical(dp(chipGroup, 8));
 
@@ -616,14 +617,14 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
             Chip chip = new Chip(chipGroup.getContext());
             chip.setText(name);
 
-            // ✅ No interactivo
+            //  No interactivo
             chip.setClickable(false);
             chip.setCheckable(false);
 
-            // ✅ Que no lo “aplane” Material por touch target
+            //  Que no lo “aplane” Material por touch target
             chip.setEnsureMinTouchTargetSize(false);
 
-            // ✅ Altura + padding para que NO se vea estrecho
+            // Altura + padding para que NO se vea estrecho
             chip.setMinHeight(dp(chipGroup, 36));
             chip.setChipMinHeight(dp(chipGroup, 36));
             chip.setChipStartPadding(dp(chipGroup, 14));
@@ -631,14 +632,14 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
             chip.setTextStartPadding(0f);
             chip.setTextEndPadding(0f);
 
-            // ✅ Forma pill
+            //  Forma pill
             chip.setChipCornerRadius(dp(chipGroup, 18));
 
-            // ✅ Colores neutros (ajústalos a tu paleta si quieres)
+            // Colores neutros (ajústalos a tu paleta si quieres)
             chip.setChipBackgroundColor(ColorStateList.valueOf(Color.parseColor("#E8F1FF")));
             chip.setTextColor(Color.parseColor("#0B3B7A"));
 
-            // ✅ Opcional: borde suave como algunos chips de Companies
+            //  Opcional: borde suave como algunos chips de Companies
             chip.setChipStrokeWidth(dp(chipGroup, 1));
             chip.setChipStrokeColor(ColorStateList.valueOf(Color.parseColor("#C7DAFF")));
 

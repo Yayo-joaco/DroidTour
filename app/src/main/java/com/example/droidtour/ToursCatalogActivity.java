@@ -2,6 +2,7 @@ package com.example.droidtour;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.LayoutInflater;
 import android.text.Editable;
@@ -15,6 +16,7 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.example.droidtour.firebase.FirestoreManager;
 import com.example.droidtour.models.Company;
 import com.example.droidtour.models.Tour;
 import com.google.android.material.appbar.AppBarLayout;
@@ -24,6 +26,8 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class ToursCatalogActivity extends AppCompatActivity {
@@ -497,14 +501,12 @@ class ToursCatalogAdapter extends RecyclerView.Adapter<ToursCatalogAdapter.ViewH
         }
 
         // Rating
-        /*Float avgRating = tour.getAverageRating();
+        Double avgRating = tour.getAverageRating();
         if (avgRating != null && avgRating > 0) {
-            rating.setText("⭐ " + String.format(java.util.Locale.US, "%.1f", avgRating));
+            rating.setText(String.format(java.util.Locale.US, "%.1f", avgRating));
         } else {
-            rating.setText("⭐ --");
+            rating.setText("--");
         }
-s
-         */
 
         // Duración
         String durationStr = tour.getDuration();
@@ -513,15 +515,20 @@ s
         // Tamaño de grupo
         Integer maxSize = tour.getMaxGroupSize();
         if (maxSize != null && maxSize > 0) {
-            groupSize.setText("Máx " + maxSize + " personas");
+            groupSize.setText(String.valueOf(maxSize));
         } else {
-            groupSize.setText("Grupo flexible");
+            groupSize.setText("--");
         }
 
         // Idiomas
         java.util.List<String> tourLanguages = tour.getLanguages();
         if (tourLanguages != null && !tourLanguages.isEmpty()) {
-            languages.setText(String.join(", ", tourLanguages));
+            // Limitar a 2 idiomas para no saturar la vista
+            if (tourLanguages.size() > 2) {
+                languages.setText(tourLanguages.get(0) + ", " + tourLanguages.get(1) + "...");
+            } else {
+                languages.setText(String.join(", ", tourLanguages));
+            }
         } else {
             languages.setText("ES");
         }
@@ -549,9 +556,117 @@ s
                     .into(tourImage);
         }
 
+        // ==================== CARGAR SERVICIOS ====================
+        ChipGroup chipGroupServices = holder.itemView.findViewById(R.id.chip_group_services);
+        chipGroupServices.removeAllViews(); // Limpiar chips estáticos
+
+        // Obtener servicios del tour o de la empresa
+        if (tour.getIncludedServices() != null && !tour.getIncludedServices().isEmpty()) {
+            // Si el tour tiene servicios incluidos específicos, mostrarlos
+            displayServicesFromList(tour.getIncludedServices(), chipGroupServices);
+        } else if (tour.getIncludedServiceIds() != null && !tour.getIncludedServiceIds().isEmpty()) {
+            // Si tiene IDs de servicios, cargarlos de Firestore
+            loadServicesByIds(tour.getIncludedServiceIds(), chipGroupServices, tour.getCompanyId());
+        } else {
+            // Si no tiene servicios específicos, cargar todos los servicios de la empresa
+            loadServicesByCompany(tour.getCompanyId(), chipGroupServices);
+        }
+
         // Click listeners
         btnReserve.setOnClickListener(v -> onTourClick.onClick(tour));
         holder.itemView.setOnClickListener(v -> onTourClick.onClick(tour));
+    }
+
+    /**
+     * Mostrar servicios desde una lista de strings
+     */
+    private void displayServicesFromList(List<String> services, ChipGroup chipGroup) {
+        if (services == null || services.isEmpty()) return;
+
+        String[] colors = {"#FFF3E0", "#E3F2FD", "#E8F5E9", "#F3E5F5", "#FFF8E1", "#FCE4EC"};
+        String[] textColors = {"#F57C00", "#1976D2", "#388E3C", "#7B1FA2", "#FFA000", "#C2185B"};
+
+        for (int i = 0; i < Math.min(services.size(), 6); i++) {
+            String service = services.get(i);
+
+            com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(chipGroup.getContext());
+            chip.setText(service);
+            chip.setTextSize(11);
+            chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(
+                    android.graphics.Color.parseColor(colors[i % colors.length])));
+            chip.setTextColor(android.graphics.Color.parseColor(textColors[i % textColors.length]));
+            chip.setChipMinHeight(28);
+            chip.setChipIconSize(14);
+            chip.setClickable(false);
+
+            chipGroup.addView(chip);
+        }
+    }
+
+    /**
+     * Cargar servicios por IDs desde Firestore
+     */
+    private void loadServicesByIds(List<String> serviceIds, ChipGroup chipGroup, String companyId) {
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+
+        firestoreManager.getNeoServicesByIds(serviceIds, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<com.example.droidtour.models.Service> services = (List<com.example.droidtour.models.Service>) result;
+
+                if (services != null && !services.isEmpty()) {
+                    List<String> serviceNames = new ArrayList<>();
+                    for (com.example.droidtour.models.Service service : services) {
+                        if (service.getName() != null) {
+                            serviceNames.add(service.getName());
+                        }
+                    }
+                    displayServicesFromList(serviceNames, chipGroup);
+                } else {
+                    // Si no se cargaron servicios, intentar cargar todos los de la empresa
+                    loadServicesByCompany(companyId, chipGroup);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e("ToursCatalog", "Error loading services by IDs", e);
+                loadServicesByCompany(companyId, chipGroup);
+            }
+        });
+    }
+
+    /**
+     * Cargar todos los servicios de una empresa
+     */
+    private void loadServicesByCompany(String companyId, ChipGroup chipGroup) {
+        if (companyId == null || companyId.isEmpty()) return;
+
+        FirestoreManager firestoreManager = FirestoreManager.getInstance();
+
+        firestoreManager.getServicesByCompany(companyId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                @SuppressWarnings("unchecked")
+                List<com.example.droidtour.models.Service> services = (List<com.example.droidtour.models.Service>) result;
+
+                if (services != null && !services.isEmpty()) {
+                    List<String> serviceNames = new ArrayList<>();
+                    for (com.example.droidtour.models.Service service : services) {
+                        if (service.getName() != null) {
+                            serviceNames.add(service.getName());
+                        }
+                    }
+                    displayServicesFromList(serviceNames, chipGroup);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e("ToursCatalog", "Error loading company services", e);
+            }
+        });
     }
 
     @Override

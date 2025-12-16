@@ -63,7 +63,7 @@ public class ClientQRCodesActivity extends AppCompatActivity {
         getIntentData();
         setupToolbar();
         initializeViews();
-        //loadReservationFromFirebase();
+        loadReservationData();
         setupClickListeners();
     }
 
@@ -71,6 +71,60 @@ public class ClientQRCodesActivity extends AppCompatActivity {
         reservationId = getIntent().getStringExtra("reservation_id");
         if (reservationId == null) {
             reservationId = "RES001"; // Fallback
+        }
+    }
+    
+    private void loadReservationData() {
+        // Cargar datos desde el intent
+        String tourName = getIntent().getStringExtra("tour_name");
+        String tourDate = getIntent().getStringExtra("tour_date");
+        String tourTime = getIntent().getStringExtra("tour_time");
+        String qrCheckin = getIntent().getStringExtra("qr_code_checkin");
+        String qrCheckout = getIntent().getStringExtra("qr_code_checkout");
+        boolean hasCheckedIn = getIntent().getBooleanExtra("has_checked_in", false);
+        boolean hasCheckedOut = getIntent().getBooleanExtra("has_checked_out", false);
+        
+        // Mostrar datos
+        if (tourName != null) tvTourName.setText(tourName);
+        if (tourDate != null && tourTime != null) {
+            tvTourDate.setText(tourDate + " • " + tourTime);
+        }
+        if (reservationId != null) tvReservationCode.setText("#" + reservationId);
+        
+        // Estados de check-in/out con backgrounds
+        if (hasCheckedIn) {
+            tvCheckinStatus.setText("✅ Realizado");
+            tvCheckinStatus.setBackgroundResource(R.drawable.bg_status_confirmed);
+            tvCheckinStatus.setTextColor(getColor(android.R.color.white));
+        } else {
+            tvCheckinStatus.setText("⏳ Pendiente");
+            tvCheckinStatus.setBackgroundResource(R.drawable.bg_status_pending);
+            tvCheckinStatus.setTextColor(getColor(android.R.color.white));
+        }
+        
+        if (hasCheckedOut) {
+            tvCheckoutStatus.setText("✅ Realizado");
+            tvCheckoutStatus.setBackgroundResource(R.drawable.bg_status_confirmed);
+            tvCheckoutStatus.setTextColor(getColor(android.R.color.white));
+        } else {
+            tvCheckoutStatus.setText("⏳ Pendiente");
+            tvCheckoutStatus.setBackgroundResource(R.drawable.bg_status_pending);
+            tvCheckoutStatus.setTextColor(getColor(android.R.color.white));
+        }
+        
+        // Generar QR codes
+        if (qrCheckin != null && !qrCheckin.isEmpty()) {
+            Bitmap qrCheckinBitmap = generateQRCodeBitmap(qrCheckin, 500, 500);
+            if (qrCheckinBitmap != null) {
+                ivQrCheckin.setImageBitmap(qrCheckinBitmap);
+            }
+        }
+        
+        if (qrCheckout != null && !qrCheckout.isEmpty()) {
+            Bitmap qrCheckoutBitmap = generateQRCodeBitmap(qrCheckout, 500, 500);
+            if (qrCheckoutBitmap != null) {
+                ivQrCheckout.setImageBitmap(qrCheckoutBitmap);
+            }
         }
     }
 

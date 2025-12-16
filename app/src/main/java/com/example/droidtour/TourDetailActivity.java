@@ -76,6 +76,14 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         setupClickListeners();
         checkExistingReservation();
         
+        // Si viene desde reserva, ocultar bottom bar
+        if (fromReservation) {
+            android.view.View bottomBar = findViewById(R.id.bottom_bar_reservation);
+            if (bottomBar != null) {
+                bottomBar.setVisibility(android.view.View.GONE);
+            }
+        }
+        
         // Inicializar mapa del punto de encuentro
         SupportMapFragment meetingMapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.meeting_point_map);
@@ -118,6 +126,9 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         }
     }
 
+    private boolean fromReservation = false;
+    private java.util.ArrayList<String> reservedServiceIds;
+    
     private void getIntentData() {
         tourId = getIntent().getStringExtra("tour_id");
         tourName = getIntent().getStringExtra("tour_name");
@@ -125,6 +136,8 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         companyId = getIntent().getStringExtra("company_id");
         price = getIntent().getDoubleExtra("price", 0.0);
         imageUrl = getIntent().getStringExtra("image_url");
+        fromReservation = getIntent().getBooleanExtra("from_reservation", false);
+        reservedServiceIds = getIntent().getStringArrayListExtra("reserved_service_ids");
         
         if (tourName == null) tourName = "Tour Increíble";
         if (companyName == null) companyName = "Empresa de Tours";
@@ -296,14 +309,24 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         double servicePrice = service.getPrice();
         tvServicePrice.setText("S/. " + String.format("%.2f", servicePrice));
         
-        cbService.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                additionalServicesPrice += servicePrice;
-            } else {
-                additionalServicesPrice -= servicePrice;
-            }
+        // Si viene desde reserva, preseleccionar y bloquear servicios
+        if (fromReservation && reservedServiceIds != null && reservedServiceIds.contains(service.getServiceId())) {
+            cbService.setChecked(true);
+            cbService.setEnabled(false); // Deshabilitar checkbox
+            serviceView.setAlpha(0.7f); // Opacidad para indicar que está bloqueado
+            additionalServicesPrice += service.getPrice();
             updateTotalPrice();
-        });
+        } else if (!fromReservation) {
+            // Solo permitir cambios si NO viene desde reserva
+            cbService.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    additionalServicesPrice += service.getPrice();
+                } else {
+                    additionalServicesPrice -= service.getPrice();
+                }
+                updateTotalPrice();
+            });
+        }
         
         // Hacer clickeable todo el view para ver detalles
         serviceView.setOnClickListener(v -> showServiceDetailsDialog(service));
@@ -520,12 +543,33 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
 
         if (btnBookNow != null) {
             btnBookNow.setOnClickListener(v -> {
+                if (currentTour == null) {
+                    Toast.makeText(this, "Cargando datos del tour...", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                
                 Intent intent = new Intent(this, TourBookingActivity.class);
                 intent.putExtra("tour_id", tourId);
                 intent.putExtra("tour_name", tourName);
                 intent.putExtra("company_id", companyId);
                 intent.putExtra("company_name", companyName);
-                intent.putExtra("price", price);
+                intent.putExtra("price", currentTour.getPricePerPerson());
+                intent.putExtra("service_price", additionalServicesPrice);
+                
+                // Pasar fecha del tour si existe
+                if (currentTour.getTourDate() != null && !currentTour.getTourDate().isEmpty()) {
+                    intent.putExtra("tour_date", currentTour.getTourDate());
+                } else {
+                    intent.putExtra("tour_date", "Por confirmar");
+                }
+                
+                // Pasar hora del tour si existe
+                if (currentTour.getMeetingTime() != null && !currentTour.getMeetingTime().isEmpty()) {
+                    intent.putExtra("tour_time", currentTour.getMeetingTime());
+                } else {
+                    intent.putExtra("tour_time", "09:00");
+                }
+                
                 startActivity(intent);
             });
         }
@@ -592,6 +636,11 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
      * Verificar si el usuario ya tiene una reserva confirmada para este tour
      */
     private void checkExistingReservation() {
+        // Si viene desde "Ver Detalles" de una reserva, no verificar
+        if (fromReservation) {
+            return;
+        }
+        
         if (currentUserId == null || tourId == null) return;
         
         firestoreManager.hasConfirmedReservation(currentUserId, tourId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {

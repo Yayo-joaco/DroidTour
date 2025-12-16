@@ -180,16 +180,6 @@
                                 android:textSize="14sp"
                                 android:textColor="@color/gray"
                                 android:layout_marginTop="4dp" />
-
-                            <TextView
-                                android:id="@+id/tv_price"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="S/. 85.00 por persona"
-                                android:textSize="16sp"
-                                android:textStyle="bold"
-                                android:textColor="@color/green"
-                                android:layout_marginTop="8dp" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
@@ -243,88 +233,48 @@
                         android:layout_marginTop="8dp"
                         android:layout_marginBottom="16dp"/>
 
-                    <!-- Fecha del tour -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/til_tour_date"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    <!-- Fecha del tour (solo lectura) -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Fecha del tour"
-                        android:layout_marginBottom="16dp"
-                        app:startIconDrawable="@drawable/ic_calendar_form"
-                        app:startIconTint="@color/primary"
-                        app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary"
-                        app:boxCornerRadiusTopStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusBottomEnd="8dp">
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:padding="16dp"
+                        android:background="@drawable/bg_detail_item"
+                        android:layout_marginBottom="12dp">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_tour_date"
-                            android:layout_width="match_parent"
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_calendar_form"
+                            android:tint="@color/primary"
+                            android:layout_marginEnd="12dp"
+                            android:contentDescription="Fecha" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="15 Diciembre, 2024"
-                            android:inputType="none"
-                            android:focusable="false"
-                            android:clickable="true"
-                            android:textSize="16sp"
-                            android:textColor="#000000" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            android:layout_weight="1"
+                            android:orientation="vertical">
 
-                    <!-- Número de personas -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/til_participants"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Número de personas"
-                        android:layout_marginBottom="16dp"
-                        app:startIconDrawable="@drawable/ic_people_24"
-                        app:startIconTint="@color/primary"
-                        app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary"
-                        app:boxCornerRadiusTopStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusBottomEnd="8dp">
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Fecha del Tour"
+                                android:textSize="13sp"
+                                android:textColor="#757575" />
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_participants"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="2"
-                            android:inputType="number"
-                            android:textSize="16sp"
-                            android:textColor="#000000" />
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <!-- Comentarios especiales -->
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/til_comments"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Comentarios especiales (opcional)"
-                        app:startIconTint="@color/primary"
-                        app:boxStrokeColor="@color/primary"
-                        app:hintTextColor="@color/primary"
-                        app:boxCornerRadiusTopStart="8dp"
-                        app:boxCornerRadiusTopEnd="8dp"
-                        app:boxCornerRadiusBottomStart="8dp"
-                        app:boxCornerRadiusBottomEnd="8dp">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_comments"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:minLines="2"
-                            android:maxLines="4"
-                            android:gravity="top|start"
-                            android:inputType="textMultiLine|textCapSentences"
-                            android:textSize="16sp"
-                            android:textColor="#000000" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            <TextView
+                                android:id="@+id/tv_tour_date_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="15 Diciembre, 2024 - 09:00"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="#2C2C2C"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -498,14 +448,15 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Precio por persona:"
+                            android:text="Precio base del tour:"
                             android:textSize="15sp"
                             android:textColor="#2C2C2C" />
 
                         <TextView
+                            android:id="@+id/tv_price"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="S/. 85.00"
+                            android:text="S/. 55.00"
                             android:textSize="15sp"
                             android:textColor="#2C2C2C" />
                     </LinearLayout>
@@ -520,15 +471,15 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Número de personas:"
+                            android:text="Precio de servicios:"
                             android:textSize="15sp"
                             android:textColor="#2C2C2C" />
 
                         <TextView
-                            android:id="@+id/tv_participants_count"
+                            android:id="@+id/tv_service_price"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="2"
+                            android:text="S/. 0.00"
                             android:textSize="15sp"
                             android:textColor="#2C2C2C" />
                     </LinearLayout>

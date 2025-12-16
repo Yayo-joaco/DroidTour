@@ -152,7 +152,7 @@ public class MyReservationsActivity extends AppCompatActivity {
 
     private void setupRecyclerView() {
         rvReservations.setLayoutManager(new LinearLayoutManager(this));
-        reservationsAdapter = new ReservationsAdapter(filteredReservations, this::onReservationClick);
+        reservationsAdapter = new ReservationsAdapter(filteredReservations, this::onReservationClick, firestoreManager);
         rvReservations.setAdapter(reservationsAdapter);
     }
 
@@ -266,10 +266,12 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
     interface OnReservationClick { void onClick(int position); }
     private final OnReservationClick onReservationClick;
     private final List<Reservation> reservations;
+    private final FirestoreManager firestoreManager;
     
-    ReservationsAdapter(List<Reservation> reservations, OnReservationClick listener) { 
+    ReservationsAdapter(List<Reservation> reservations, OnReservationClick listener, FirestoreManager firestoreManager) { 
         this.reservations = reservations;
-        this.onReservationClick = listener; 
+        this.onReservationClick = listener;
+        this.firestoreManager = firestoreManager;
     }
 
     @Override
@@ -303,11 +305,39 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
         companyName.setText(reservation.getCompanyName());
         tourDate.setText(reservation.getTourDate());
         tourTime.setText(reservation.getTourTime());
-        participants.setText(reservation.getNumberOfPeople() + " personas");
+        participants.setText("1 persona");
         paymentMethod.setText(reservation.getPaymentMethod() != null ? reservation.getPaymentMethod() : "Visa ****1234");
-        totalAmount.setText("S/. " + String.format("%.2f", reservation.getTotalPrice()));
-        reservationCode.setText("Código: " + (reservation.getQrCodeCheckIn() != null ? reservation.getQrCodeCheckIn() : "N/A"));
-        reservationDate.setText(reservation.getTourDate());
+        
+        // Calcular precio total correcto (base + servicios)
+        double totalPrice = reservation.getPricePerPerson() + (reservation.getServicePrice() != null ? reservation.getServicePrice() : 0.0);
+        totalAmount.setText("S/. " + String.format("%.2f", totalPrice));
+        
+        // Eliminar el código largo
+        reservationCode.setVisibility(android.view.View.GONE);
+        
+        // Cargar tour para obtener número de paradas
+        firestoreManager.getTourById(reservation.getTourId(), new com.example.droidtour.firebase.FirestoreManager.TourCallback() {
+            @Override
+            public void onSuccess(com.example.droidtour.models.Tour tour) {
+                int numStops = tour.getStops() != null ? tour.getStops().size() : 0;
+                reservationDate.setText(numStops + " paradas");
+                
+                // Cargar imagen del tour
+                android.widget.ImageView ivTourImage = holder.itemView.findViewById(R.id.iv_tour_image);
+                if (ivTourImage != null && tour.getImageUrls() != null && !tour.getImageUrls().isEmpty()) {
+                    com.bumptech.glide.Glide.with(holder.itemView.getContext())
+                        .load(tour.getImageUrls().get(0))
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .centerCrop()
+                        .into(ivTourImage);
+                }
+            }
+            
+            @Override
+            public void onFailure(String error) {
+                reservationDate.setText("Sin info");
+            }
+        });
         
         // Set status and button visibility based on status from database
         boolean isCompleted = reservation.getStatus().equals("COMPLETADA");
@@ -344,8 +374,12 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
             intent.putExtra("reservation_id", reservation.getReservationId());
             intent.putExtra("tour_name", reservation.getTourName());
             intent.putExtra("company_name", reservation.getCompanyName());
+            intent.putExtra("tour_date", reservation.getTourDate());
+            intent.putExtra("tour_time", reservation.getTourTime());
             intent.putExtra("qr_code_checkin", reservation.getQrCodeCheckIn());
             intent.putExtra("qr_code_checkout", reservation.getQrCodeCheckOut());
+            intent.putExtra("has_checked_in", reservation.getHasCheckedIn());
+            intent.putExtra("has_checked_out", reservation.getHasCheckedOut());
             v.getContext().startActivity(intent);
         });
         
@@ -361,8 +395,31 @@ class ReservationsAdapter extends RecyclerView.Adapter<ReservationsAdapter.ViewH
             intent.putExtra("tour_id", reservation.getTourId());
             intent.putExtra("tour_name", reservation.getTourName());
             intent.putExtra("company_name", reservation.getCompanyName());
+            intent.putExtra("company_id", reservation.getCompanyId());
             intent.putExtra("price", reservation.getPricePerPerson());
-            v.getContext().startActivity(intent);
+            intent.putExtra("from_reservation", true); // Indicar que viene desde reserva
+            
+            // Obtener tour para imagen y servicios
+            firestoreManager.getTourById(reservation.getTourId(), new com.example.droidtour.firebase.FirestoreManager.TourCallback() {
+                @Override
+                public void onSuccess(com.example.droidtour.models.Tour tour) {
+                    if (tour.getImageUrls() != null && !tour.getImageUrls().isEmpty()) {
+                        intent.putExtra("image_url", tour.getImageUrls().get(0));
+                    }
+                    
+                    // Pasar servicios incluidos en la reserva para preseleccionar
+                    if (tour.getIncludedServiceIds() != null && !tour.getIncludedServiceIds().isEmpty()) {
+                        intent.putExtra("reserved_service_ids", new java.util.ArrayList<>(tour.getIncludedServiceIds()));
+                    }
+                    
+                    v.getContext().startActivity(intent);
+                }
+                
+                @Override
+                public void onFailure(String error) {
+                    v.getContext().startActivity(intent);
+                }
+            });
         });
         
         btnRateTour.setOnClickListener(v -> {

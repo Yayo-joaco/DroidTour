@@ -290,6 +290,10 @@ public class ClientChatActivity extends AppCompatActivity {
         if (presenceManager != null && currentClientId != null) {
             presenceManager.setOffline(currentClientId);
         }
+        // Detener todos los listeners de conversaciones para evitar fugas de memoria
+        if (conversationHelper != null) {
+            conversationHelper.stopAllListeners();
+        }
     }
     
     @Override

@@ -57,9 +57,10 @@
                     android:gravity="center">
 
                     <TextView
+                        android:id="@+id/tv_total_revenue"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="S/ 12,450"
+                        android:text="S/ 0"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/primary" />
@@ -87,9 +88,10 @@
                     android:gravity="center">
 
                     <TextView
+                        android:id="@+id/tv_total_reservations"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="87"
+                        android:text="0"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="#2C2C2C" />
@@ -117,9 +119,10 @@
                     android:gravity="center">
 
                     <TextView
+                        android:id="@+id/tv_avg_ticket"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="S/ 143"
+                        android:text="S/ 0"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="#2C2C2C" />
@@ -176,8 +179,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Diario"
-                            android:checkable="true"
-                            android:checked="true" />
+                            android:checkable="true" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_monthly"
@@ -192,8 +194,140 @@
                             android:layout_height="wrap_content"
                             android:text="Anual"
                             android:checkable="true" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_general"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="General"
+                            android:checkable="true"
+                            android:checked="true" />
                     </com.google.android.material.chip.ChipGroup>
                 </HorizontalScrollView>
+
+                <!-- Selectores de fecha según el período -->
+                <LinearLayout
+                    android:id="@+id/date_selection_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone">
+
+                    <!-- Selector para Diario (calendario) -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_select_date"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:text="Seleccionar día"
+                        android:textColor="@color/primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        app:icon="@android:drawable/ic_menu_today"
+                        app:iconTint="@color/primary"
+                        app:iconGravity="textStart"
+                        app:iconPadding="12dp"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        app:strokeColor="@color/primary"
+                        app:strokeWidth="2dp"
+                        app:cornerRadius="12dp" />
+
+                    <!-- Selectores para Mensual (mes y año) -->
+                    <LinearLayout
+                        android:id="@+id/month_selection_layout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_month"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Mes"
+                            android:minHeight="56dp"
+                            app:boxCornerRadiusTopStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxStrokeWidth="2dp"
+                            app:boxStrokeWidthFocused="2dp">
+
+                            <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+                                android:id="@+id/spinner_month"
+                                android:layout_width="match_parent"
+                                android:layout_height="56dp"
+                                android:inputType="none"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:paddingVertical="16dp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_year"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="Año"
+                            android:minHeight="56dp"
+                            android:layout_marginStart="12dp"
+                            app:boxCornerRadiusTopStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxStrokeWidth="2dp"
+                            app:boxStrokeWidthFocused="2dp">
+
+                            <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+                                android:id="@+id/spinner_year"
+                                android:layout_width="match_parent"
+                                android:layout_height="56dp"
+                                android:inputType="none"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:paddingVertical="16dp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+
+                    <!-- Selector para Anual (solo año) -->
+                    <LinearLayout
+                        android:id="@+id/year_selection_layout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_year_only"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Año"
+                            android:minHeight="56dp"
+                            app:boxCornerRadiusTopStart="12dp"
+                            app:boxCornerRadiusTopEnd="12dp"
+                            app:boxCornerRadiusBottomStart="12dp"
+                            app:boxCornerRadiusBottomEnd="12dp"
+                            app:boxStrokeWidth="2dp"
+                            app:boxStrokeWidthFocused="2dp">
+
+                            <androidx.appcompat.widget.AppCompatAutoCompleteTextView
+                                android:id="@+id/spinner_year_only"
+                                android:layout_width="match_parent"
+                                android:layout_height="56dp"
+                                android:inputType="none"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                android:paddingVertical="16dp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>

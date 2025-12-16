@@ -229,6 +229,10 @@ public class AdminChatListActivity extends AppCompatActivity {
         if (presenceManager != null && currentUserId != null) {
             presenceManager.setOffline(currentUserId);
         }
+        // Detener todos los listeners de conversaciones para evitar fugas de memoria
+        if (conversationHelper != null) {
+            conversationHelper.stopAllListeners();
+        }
     }
     
     @Override

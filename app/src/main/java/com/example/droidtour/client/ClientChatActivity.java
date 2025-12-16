@@ -314,18 +314,22 @@ public class ClientChatActivity extends AppCompatActivity {
         String lastMessage = conv.getLastMessage() != null ? conv.getLastMessage() : "";
         String lastSenderId = conv.getLastMessageSenderId();
         
+        // Si el último mensaje tiene adjunto, mostrar "Imagen" o "Archivo"
+        if (conv.getLastMessageHasAttachment()) {
+            String attachmentType = conv.getLastMessageAttachmentType();
+            String attachmentText = (attachmentType != null && attachmentType.equals("IMAGE")) ? "Imagen" : "Archivo";
+            
+            // Si el último mensaje es del usuario actual, agregar "Tú: "
+            if (lastSenderId != null && lastSenderId.equals(currentUserId)) {
+                return "Tú: " + attachmentText;
+            } else {
+                return attachmentText;
+            }
+        }
+        
         // Si el último mensaje es del usuario actual, agregar "Tú: "
         if (lastSenderId != null && lastSenderId.equals(currentUserId)) {
-            if (conv.getLastMessageHasAttachment()) {
-                String attachmentType = conv.getLastMessageAttachmentType();
-                if (attachmentType != null && attachmentType.equals("IMAGE")) {
-                    return "Tú: Imagen";
-                } else {
-                    return "Tú: Archivo";
-                }
-            } else {
-                return "Tú: " + lastMessage;
-            }
+            return "Tú: " + lastMessage;
         }
         
         return lastMessage;

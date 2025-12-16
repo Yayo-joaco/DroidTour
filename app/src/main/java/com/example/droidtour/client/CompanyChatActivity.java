@@ -897,6 +897,16 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
                                 .load(message.getAttachmentUrl())
                                 .centerCrop()
                                 .into(ivUserMessageImage);
+                        // Click listener para descargar/abrir imagen
+                        ivUserMessageImage.setOnClickListener(v -> {
+                            if (message.getAttachmentUrl() != null) {
+                                com.example.droidtour.utils.AttachmentDownloadHelper.downloadAndOpenImage(
+                                    holder.itemView.getContext(),
+                                    message.getAttachmentUrl(),
+                                    message.getAttachmentName() != null ? message.getAttachmentName() : "imagen.jpg"
+                                );
+                            }
+                        });
                     }
                     if (layoutUserPdf != null) layoutUserPdf.setVisibility(View.GONE);
                 } else if (message.getAttachmentType().equals("PDF")) {
@@ -910,6 +920,16 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
                         if (tvUserPdfSize != null && message.getAttachmentSize() != null) {
                             tvUserPdfSize.setText(formatFileSize(message.getAttachmentSize()));
                         }
+                        // Click listener para descargar PDF
+                        layoutUserPdf.setOnClickListener(v -> {
+                            if (message.getAttachmentUrl() != null) {
+                                com.example.droidtour.utils.AttachmentDownloadHelper.downloadAndOpenPdf(
+                                    holder.itemView.getContext(),
+                                    message.getAttachmentUrl(),
+                                    message.getAttachmentName() != null ? message.getAttachmentName() : "documento.pdf"
+                                );
+                            }
+                        });
                     }
                 }
                 // Mostrar texto si existe
@@ -949,6 +969,16 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
                                 .load(message.getAttachmentUrl())
                                 .centerCrop()
                                 .into(ivCompanyMessageImage);
+                        // Click listener para descargar/abrir imagen
+                        ivCompanyMessageImage.setOnClickListener(v -> {
+                            if (message.getAttachmentUrl() != null) {
+                                com.example.droidtour.utils.AttachmentDownloadHelper.downloadAndOpenImage(
+                                    holder.itemView.getContext(),
+                                    message.getAttachmentUrl(),
+                                    message.getAttachmentName() != null ? message.getAttachmentName() : "imagen.jpg"
+                                );
+                            }
+                        });
                     }
                     if (layoutCompanyPdf != null) layoutCompanyPdf.setVisibility(View.GONE);
                 } else if (message.getAttachmentType().equals("PDF")) {
@@ -962,6 +992,16 @@ class CompanyChatAdapter extends RecyclerView.Adapter<CompanyChatAdapter.ViewHol
                         if (tvCompanyPdfSize != null && message.getAttachmentSize() != null) {
                             tvCompanyPdfSize.setText(formatFileSize(message.getAttachmentSize()));
                         }
+                        // Click listener para descargar PDF
+                        layoutCompanyPdf.setOnClickListener(v -> {
+                            if (message.getAttachmentUrl() != null) {
+                                com.example.droidtour.utils.AttachmentDownloadHelper.downloadAndOpenPdf(
+                                    holder.itemView.getContext(),
+                                    message.getAttachmentUrl(),
+                                    message.getAttachmentName() != null ? message.getAttachmentName() : "documento.pdf"
+                                );
+                            }
+                        });
                     }
                 }
                 // Mostrar texto si existe

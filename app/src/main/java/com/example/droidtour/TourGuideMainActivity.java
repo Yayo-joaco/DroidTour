@@ -69,6 +69,8 @@ public class TourGuideMainActivity extends AppCompatActivity {
     // Flag para verificar si la actividad está completamente inicializada
     private boolean isActivityInitialized = false;
 
+    private androidx.swiperefreshlayout.widget.SwipeRefreshLayout swipeRefresh;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -165,6 +167,7 @@ public class TourGuideMainActivity extends AppCompatActivity {
         setupNavigationDrawer();
         setupRecyclerViews();
         setupClickListeners();
+        setupSwipeRefresh();
         
         // Cargar datos del usuario y actualizar vistas
         loadUserData();
@@ -332,6 +335,12 @@ public class TourGuideMainActivity extends AppCompatActivity {
         tvActiveTourName = findViewById(R.id.tv_active_tour_name);
         tvActiveTourProgress = findViewById(R.id.tv_active_tour_progress);
         btnContinueTour = findViewById(R.id.btn_continue_tour);
+
+
+        swipeRefresh = findViewById(R.id.swipe_refresh);
+
+
+
     }
     
     @Override
@@ -622,6 +631,87 @@ public class TourGuideMainActivity extends AppCompatActivity {
         // Note: Active tour card, QR Scanner, and Location Tracking clicks 
         // are configured dynamically in checkActiveTour() when a tour is active
     }
+
+    private void setupSwipeRefresh() {
+        // Configurar colores del refresh indicator
+        swipeRefresh.setColorSchemeResources(
+                R.color.primary,
+                R.color.accent,
+                R.color.green
+        );
+
+        // Configurar el listener para el refresh
+        swipeRefresh.setOnRefreshListener(() -> {
+            // Mostrar mensaje opcional
+            Toast.makeText(TourGuideMainActivity.this,
+                    "Actualizando datos...",
+                    Toast.LENGTH_SHORT).show();
+
+            // Recargar todos los datos
+            refreshAllData();
+        });
+    }
+
+    private void refreshAllData() {
+        // Contador para saber cuándo terminar el refresh
+        final int[] pendingTasks = {5}; // 5 tareas en total
+
+        // Metodo helper para verificar si todas las tareas han terminado
+        Runnable checkComplete = () -> {
+            pendingTasks[0]--;
+            if (pendingTasks[0] <= 0) {
+                swipeRefresh.setRefreshing(false);
+                Toast.makeText(TourGuideMainActivity.this,
+                        "Datos actualizados",
+                        Toast.LENGTH_SHORT).show();
+            }
+        };
+
+        // 1. Recargar datos del usuario
+        loadUserData();
+        checkComplete.run();
+
+        // 2. Recargar notificaciones
+        loadNotificationsCount();
+        checkComplete.run();
+
+        // 3. Recargar estadísticas
+        loadGuideStats();
+        checkComplete.run();
+
+        // 4. Recargar ofertas pendientes
+        firestoreManager.getOffersByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                loadPendingOffersFromFirebase();
+                checkComplete.run();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                loadPendingOffersFromFirebase();
+                checkComplete.run();
+            }
+        });
+
+        // 5. Recargar tours programados y tour activo
+        firestoreManager.getToursByGuide(currentUserId, new FirestoreManager.FirestoreCallback() {
+            @Override
+            public void onSuccess(Object result) {
+                loadUpcomingToursFromFirebase();
+                loadActiveTour();
+                checkComplete.run();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                loadUpcomingToursFromFirebase();
+                loadActiveTour();
+                checkComplete.run();
+            }
+        });
+    }
+
 
     private void onOfferClick(int position) {
         Intent intent = new Intent(this, TourOfferDetailActivity.class);

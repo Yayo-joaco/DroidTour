@@ -958,6 +958,16 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
                                 .load(message.attachmentUrl)
                                 .centerCrop()
                                 .into(holder.ivCompanyMessageImage);
+                        // Click listener para descargar/abrir imagen
+                        holder.ivCompanyMessageImage.setOnClickListener(v -> {
+                            if (message.attachmentUrl != null) {
+                                com.example.droidtour.utils.AttachmentDownloadHelper.downloadAndOpenImage(
+                                    holder.itemView.getContext(),
+                                    message.attachmentUrl,
+                                    message.attachmentName != null ? message.attachmentName : "imagen.jpg"
+                                );
+                            }
+                        });
                     }
                     if (holder.layoutCompanyPdf != null) {
                         holder.layoutCompanyPdf.setVisibility(View.GONE);
@@ -975,6 +985,16 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
                         if (holder.tvCompanyPdfSize != null && message.attachmentSize != null) {
                             holder.tvCompanyPdfSize.setText(formatFileSize(message.attachmentSize));
                         }
+                        // Click listener para descargar PDF
+                        holder.layoutCompanyPdf.setOnClickListener(v -> {
+                            if (message.attachmentUrl != null) {
+                                com.example.droidtour.utils.AttachmentDownloadHelper.downloadAndOpenPdf(
+                                    holder.itemView.getContext(),
+                                    message.attachmentUrl,
+                                    message.attachmentName != null ? message.attachmentName : "documento.pdf"
+                                );
+                            }
+                        });
                     }
                 }
                 // Ocultar texto si no hay mensaje de texto
@@ -1023,6 +1043,16 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
                                 .load(message.attachmentUrl)
                                 .centerCrop()
                                 .into(holder.ivUserMessageImage);
+                        // Click listener para descargar/abrir imagen
+                        holder.ivUserMessageImage.setOnClickListener(v -> {
+                            if (message.attachmentUrl != null) {
+                                com.example.droidtour.utils.AttachmentDownloadHelper.downloadAndOpenImage(
+                                    holder.itemView.getContext(),
+                                    message.attachmentUrl,
+                                    message.attachmentName != null ? message.attachmentName : "imagen.jpg"
+                                );
+                            }
+                        });
                     }
                     if (holder.layoutUserPdf != null) {
                         holder.layoutUserPdf.setVisibility(View.GONE);
@@ -1040,6 +1070,16 @@ class AdminChatMessagesAdapter extends RecyclerView.Adapter<AdminChatMessagesAda
                         if (holder.tvUserPdfSize != null && message.attachmentSize != null) {
                             holder.tvUserPdfSize.setText(formatFileSize(message.attachmentSize));
                         }
+                        // Click listener para descargar PDF
+                        holder.layoutUserPdf.setOnClickListener(v -> {
+                            if (message.attachmentUrl != null) {
+                                com.example.droidtour.utils.AttachmentDownloadHelper.downloadAndOpenPdf(
+                                    holder.itemView.getContext(),
+                                    message.attachmentUrl,
+                                    message.attachmentName != null ? message.attachmentName : "documento.pdf"
+                                );
+                            }
+                        });
                     }
                 }
                 // Ocultar texto si no hay mensaje de texto

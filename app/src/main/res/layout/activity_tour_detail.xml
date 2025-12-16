@@ -33,20 +33,31 @@
                 app:layout_collapseMode="parallax"
                 app:layout_collapseParallaxMultiplier="0.7">
 
-                <ImageView
-                    android:id="@+id/iv_header_image"
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/vp_header_images"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:background="#E0E0E0"
-                    android:contentDescription="Imagen del tour"
-                    tools:src="@drawable/sample_tour" />
+                    android:background="#E0E0E0" />
 
                 <!-- Gradient overlay para mejor legibilidad -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@drawable/gradient_overlay" />
+
+                <TextView
+                    android:id="@+id/tv_header_counter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="12dp"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="6dp"
+                    android:background="@drawable/bg_chip_dark"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:text="0/0" />
 
                 <!-- Badges flotantes -->
                 <LinearLayout

@@ -4,11 +4,17 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.viewpager2.widget.ViewPager2;
 import com.bumptech.glide.Glide;
 import com.example.droidtour.client.CompanyChatActivity;
 import com.example.droidtour.models.Tour;
@@ -21,14 +27,23 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 public class TourDetailActivity extends AppCompatActivity implements OnMapReadyCallback {
-    
+
     private TextView tvTourName, tvCompanyName, tvTourDescription, tvRating;
     private TextView tvDuration, tvGroupSize, tvLanguages, tvPriceBottom;
+    private TextView tvHeaderCounter;
+    private ViewPager2 vpHeaderImages;
     private RecyclerView rvItinerary, rvReviews;
     private MaterialButton btnBookNow, btnSeeAllReviews, btnContact;
     private MaterialButton btnViewMap;
     private android.widget.LinearLayout layoutServices;
+    private HeaderImagesAdapter headerImagesAdapter;
     private double basePrice = 0.0;
     private double additionalServicesPrice = 0.0;
     private GoogleMap meetingPointMap;
@@ -39,22 +54,24 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
     private String tourId, tourName, companyName, companyId, imageUrl;
     private String currentUserId;
     private double price;
-    private java.util.List<com.example.droidtour.models.Review> tourReviews = new java.util.ArrayList<>();
+    private List<com.example.droidtour.models.Review> tourReviews = new ArrayList<>();
+    private boolean fromReservation = false;
+    private ArrayList<String> reservedServiceIds;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // Inicializar PreferencesManager PRIMERO
         com.example.droidtour.utils.PreferencesManager prefsManager = new com.example.droidtour.utils.PreferencesManager(this);
-        
+
         // Validar sesión PRIMERO
         if (!prefsManager.isLoggedIn()) {
             redirectToLogin();
             finish();
             return;
         }
-        
+
         // Validar que el usuario sea CLIENT
         String userType = prefsManager.getUserType();
         if (userType == null || !userType.equals("CLIENT")) {
@@ -62,13 +79,13 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             finish();
             return;
         }
-        
+
         setContentView(R.layout.activity_tour_detail);
 
         firestoreManager = com.example.droidtour.firebase.FirestoreManager.getInstance();
         authManager = com.example.droidtour.firebase.FirebaseAuthManager.getInstance(this);
         currentUserId = authManager.getCurrentUserId();
-        
+
         getIntentData();
         setupToolbar();
         initializeViews();
@@ -76,15 +93,15 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         setupRecyclerViews();
         setupClickListeners();
         checkExistingReservation();
-        
+
         // Si viene desde reserva, ocultar bottom bar
         if (fromReservation) {
-            android.view.View bottomBar = findViewById(R.id.bottom_bar_reservation);
+            View bottomBar = findViewById(R.id.bottom_bar_reservation);
             if (bottomBar != null) {
-                bottomBar.setVisibility(android.view.View.GONE);
+                bottomBar.setVisibility(View.GONE);
             }
         }
-        
+
         // Inicializar mapa del punto de encuentro
         SupportMapFragment meetingMapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.meeting_point_map);
@@ -92,33 +109,33 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             meetingMapFragment.getMapAsync(this);
         }
     }
-    
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         meetingPointMap = googleMap;
-        
+
         // Deshabilitar gestos para el mapa pequeño
         meetingPointMap.getUiSettings().setScrollGesturesEnabled(false);
         meetingPointMap.getUiSettings().setZoomGesturesEnabled(false);
         meetingPointMap.getUiSettings().setRotateGesturesEnabled(false);
         meetingPointMap.getUiSettings().setTiltGesturesEnabled(false);
-        
+
         // Actualizar mapa si ya tenemos los datos del tour
         if (currentTour != null) {
             updateMeetingPointMap();
         }
     }
-    
+
     private void updateMeetingPointMap() {
-        if (meetingPointMap != null && currentTour != null && 
-            currentTour.getMeetingPointLatitude() != null && 
-            currentTour.getMeetingPointLongitude() != null) {
-            
+        if (meetingPointMap != null && currentTour != null &&
+                currentTour.getMeetingPointLatitude() != null &&
+                currentTour.getMeetingPointLongitude() != null) {
+
             LatLng meetingPoint = new LatLng(
-                currentTour.getMeetingPointLatitude(),
-                currentTour.getMeetingPointLongitude()
+                    currentTour.getMeetingPointLatitude(),
+                    currentTour.getMeetingPointLongitude()
             );
-            
+
             meetingPointMap.clear();
             meetingPointMap.addMarker(new MarkerOptions()
                     .position(meetingPoint)
@@ -127,9 +144,6 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         }
     }
 
-    private boolean fromReservation = false;
-    private java.util.ArrayList<String> reservedServiceIds;
-    
     private void getIntentData() {
         tourId = getIntent().getStringExtra("tour_id");
         tourName = getIntent().getStringExtra("tour_name");
@@ -139,45 +153,45 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         imageUrl = getIntent().getStringExtra("image_url");
         fromReservation = getIntent().getBooleanExtra("from_reservation", false);
         reservedServiceIds = getIntent().getStringArrayListExtra("reserved_service_ids");
-        
+
         if (tourName == null) tourName = "Tour Increíble";
         if (companyName == null) companyName = "Empresa de Tours";
     }
-    
+
     private void loadTourFromFirebase() {
         if (tourId != null) {
             firestoreManager.getTour(tourId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
                 @Override
                 public void onSuccess(Object result) {
                     currentTour = (Tour) result;
-                    
+
                     // Validar que el tour sea público y tenga guía asignado
                     if (currentTour == null) {
                         Toast.makeText(TourDetailActivity.this, "Tour no encontrado", Toast.LENGTH_SHORT).show();
                         finish();
                         return;
                     }
-                    
+
                     Boolean isPublic = currentTour.getPublic();
                     String assignedGuideId = currentTour.getAssignedGuideId();
-                    
+
                     // Verificar que el tour esté disponible para clientes (público y con guía)
                     if (isPublic == null || !isPublic || assignedGuideId == null || assignedGuideId.trim().isEmpty()) {
-                        Toast.makeText(TourDetailActivity.this, 
-                            "Este tour no está disponible actualmente. No tiene un guía asignado.", 
-                            Toast.LENGTH_LONG).show();
+                        Toast.makeText(TourDetailActivity.this,
+                                "Este tour no está disponible actualmente. No tiene un guía asignado.",
+                                Toast.LENGTH_LONG).show();
                         finish();
                         return;
                     }
-                    
+
                     displayTourData();
                 }
-                
+
                 @Override
                 public void onFailure(Exception e) {
-                    Toast.makeText(TourDetailActivity.this, 
-                        "Error al cargar el tour: " + e.getMessage(), 
-                        Toast.LENGTH_SHORT).show();
+                    Toast.makeText(TourDetailActivity.this,
+                            "Error al cargar el tour: " + e.getMessage(),
+                            Toast.LENGTH_SHORT).show();
                     setupTourData(); // Fallback a datos locales
                 }
             });
@@ -185,35 +199,37 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             setupTourData();
         }
     }
-    
+
     private void displayTourData() {
         if (currentTour == null) return;
-        
+
         // Actualizar companyId si viene del tour
         if (currentTour.getCompanyId() != null && !currentTour.getCompanyId().isEmpty()) {
             companyId = currentTour.getCompanyId();
         }
-        
+
         tvTourName.setText(currentTour.getTourName());
         tvCompanyName.setText("por " + currentTour.getCompanyName());
         tvPriceBottom.setText("S/. " + String.format("%.2f", currentTour.getPricePerPerson()));
         tvTourDescription.setText(currentTour.getDescription());
-        
+
+        setupHeaderImages(buildHeaderImageList());
+
         // Quitar emoji de estrella porque ya hay ImageView con estrella
         Double avgRating = currentTour.getAverageRating();
         Integer totalReviews = currentTour.getTotalReviews();
         tvRating.setText(String.format("%.1f", avgRating != null ? avgRating : 0.0));
-        
+
         TextView tvReviewsCount = findViewById(R.id.tv_reviews_count);
         if (tvReviewsCount != null) {
             tvReviewsCount.setText(" (" + (totalReviews != null ? totalReviews : 0) + " reseñas)");
         }
-        
+
         tvDuration.setText(currentTour.getDuration());
-        
+
         // Solo mostrar número sin "personas"
         tvGroupSize.setText(String.valueOf(currentTour.getMaxGroupSize()));
-        
+
         // Convertir códigos ISO a nombres completos de idiomas
         if (currentTour.getLanguages() != null) {
             StringBuilder languagesText = new StringBuilder();
@@ -228,10 +244,10 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         } else {
             tvLanguages.setText("Español, Inglés");
         }
-        
+
         // Establecer precio base
         basePrice = currentTour.getPricePerPerson();
-        
+
         // Cargar servicios del tour en segundo plano para evitar lag
         new android.os.Handler().postDelayed(new Runnable() {
             @Override
@@ -239,13 +255,13 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 loadTourServices();
             }
         }, 100);
-        
+
         // Actualizar itinerario con paradas reales
         updateItineraryAdapter();
-        
+
         // Actualizar punto de encuentro
         updateMeetingPoint();
-        
+
         // Actualizar hora de encuentro
         TextView tvMeetingTime = findViewById(R.id.tv_meeting_time);
         if (tvMeetingTime != null) {
@@ -256,56 +272,101 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 tvMeetingTime.setText("No especificado");
             }
         }
-        
+
         // Actualizar mapa del punto de encuentro
         updateMeetingPointMap();
-        
+
         // Cargar reviews del tour
         loadTourReviews();
     }
-    
+
     private void loadTourReviews() {
         String finalTourId = tourId;
         if (finalTourId == null && currentTour != null && currentTour.getTourId() != null) {
             finalTourId = currentTour.getTourId();
         }
-        
+
         if (finalTourId == null || finalTourId.trim().isEmpty()) {
             return;
         }
-        
+
         firestoreManager.getReviewsByTour(finalTourId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override
             @SuppressWarnings("unchecked")
             public void onSuccess(Object result) {
-                tourReviews = (java.util.List<com.example.droidtour.models.Review>) result;
+                tourReviews = (List<com.example.droidtour.models.Review>) result;
                 if (tourReviews == null) {
-                    tourReviews = new java.util.ArrayList<>();
+                    tourReviews = new ArrayList<>();
                 }
-                
+
                 // Limitar a las primeras 3 para mostrar en el detalle
-                java.util.List<com.example.droidtour.models.Review> reviewsToShow = new java.util.ArrayList<>();
+                List<com.example.droidtour.models.Review> reviewsToShow = new ArrayList<>();
                 for (int i = 0; i < Math.min(3, tourReviews.size()); i++) {
                     reviewsToShow.add(tourReviews.get(i));
                 }
-                
+
                 // Actualizar adapter
                 if (rvReviews != null) {
                     rvReviews.setAdapter(new ReviewsAdapter(reviewsToShow));
                 }
             }
-            
+
             @Override
             public void onFailure(Exception e) {
                 android.util.Log.e("TourDetail", "Error loading reviews", e);
                 // Mantener adapter vacío
                 if (rvReviews != null) {
-                    rvReviews.setAdapter(new ReviewsAdapter(new java.util.ArrayList<>()));
+                    rvReviews.setAdapter(new ReviewsAdapter(new ArrayList<>()));
                 }
             }
         });
     }
-    
+
+    private List<String> buildHeaderImageList() {
+        List<String> urls = new ArrayList<>();
+        if (currentTour != null) {
+            if (currentTour.getImageUrls() != null && !currentTour.getImageUrls().isEmpty()) {
+                urls.addAll(currentTour.getImageUrls());
+            }
+            if (urls.isEmpty() && currentTour.getMainImageUrl() != null && !currentTour.getMainImageUrl().isEmpty()) {
+                urls.add(currentTour.getMainImageUrl());
+            }
+        }
+        if (urls.isEmpty() && imageUrl != null && !imageUrl.isEmpty()) {
+            urls.add(imageUrl);
+        }
+        return urls;
+    }
+
+    private void setupHeaderImages(List<String> urls) {
+        if (vpHeaderImages == null || tvHeaderCounter == null) return;
+
+        if (urls == null || urls.isEmpty()) {
+            vpHeaderImages.setVisibility(View.GONE);
+            tvHeaderCounter.setVisibility(View.GONE);
+            return;
+        }
+
+        vpHeaderImages.setVisibility(View.VISIBLE);
+        tvHeaderCounter.setVisibility(View.VISIBLE);
+
+        if (headerImagesAdapter == null) {
+            headerImagesAdapter = new HeaderImagesAdapter(urls);
+            vpHeaderImages.setAdapter(headerImagesAdapter);
+        } else {
+            headerImagesAdapter.updateData(urls);
+        }
+
+        tvHeaderCounter.setText("1/" + urls.size());
+        vpHeaderImages.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                tvHeaderCounter.setText((position + 1) + "/" + urls.size());
+            }
+        });
+    }
+
     private void updateMeetingPoint() {
         TextView tvMeetingPoint = findViewById(R.id.tv_meeting_point);
         if (tvMeetingPoint != null && currentTour != null) {
@@ -317,18 +378,18 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             }
         }
     }
-    
+
     private void loadTourServices() {
         android.util.Log.d("TourDetail", "loadTourServices called");
-        
+
         if (currentTour == null) {
             android.util.Log.e("TourDetail", "currentTour is null");
             return;
         }
-        
+
         // IMPORTANTE: Usar includedServiceIds (IDs reales) en lugar de includedServices (nombres)
         android.util.Log.d("TourDetail", "IncludedServiceIds: " + (currentTour.getIncludedServiceIds() != null ? currentTour.getIncludedServiceIds().toString() : "null"));
-        
+
         if (currentTour.getIncludedServiceIds() == null || currentTour.getIncludedServiceIds().isEmpty()) {
             if (layoutServices != null) {
                 layoutServices.removeAllViews();
@@ -341,11 +402,11 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             }
             return;
         }
-        
+
         if (layoutServices != null) {
             layoutServices.removeAllViews();
         }
-        
+
         // Cargar cada servicio del tour usando los IDs correctos
         android.util.Log.d("TourDetail", "Loading " + currentTour.getIncludedServiceIds().size() + " services");
         for (String serviceId : currentTour.getIncludedServiceIds()) {
@@ -361,7 +422,7 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                         android.util.Log.e("TourDetail", "Service is null");
                     }
                 }
-                
+
                 @Override
                 public void onFailure(Exception e) {
                     android.util.Log.e("TourDetail", "Error loading service: " + e.getMessage(), e);
@@ -369,20 +430,20 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             });
         }
     }
-    
+
     private void addServiceToLayout(com.example.droidtour.models.Service service) {
         if (layoutServices == null) return;
-        
-        android.view.View serviceView = getLayoutInflater().inflate(R.layout.item_service_checkbox, layoutServices, false);
-        
+
+        View serviceView = getLayoutInflater().inflate(R.layout.item_service_checkbox, layoutServices, false);
+
         com.google.android.material.checkbox.MaterialCheckBox cbService = serviceView.findViewById(R.id.cb_service);
         TextView tvServicePrice = serviceView.findViewById(R.id.tv_service_price);
-        
+
         cbService.setText(service.getName());
-        
+
         double servicePrice = service.getPrice();
         tvServicePrice.setText("S/. " + String.format("%.2f", servicePrice));
-        
+
         // Si viene desde reserva, preseleccionar y bloquear servicios
         if (fromReservation && reservedServiceIds != null && reservedServiceIds.contains(service.getServiceId())) {
             cbService.setChecked(true);
@@ -401,60 +462,60 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 updateTotalPrice();
             });
         }
-        
+
         // Hacer clickeable todo el view para ver detalles
         serviceView.setOnClickListener(v -> showServiceDetailsDialog(service));
-        
+
         layoutServices.addView(serviceView);
     }
-    
+
     private void showServiceDetailsDialog(com.example.droidtour.models.Service service) {
-        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
-        android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_service_details, null);
-        
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_service_details, null);
+
         // Inicializar vistas
-        android.widget.ImageView ivServiceImage1 = dialogView.findViewById(R.id.iv_service_image1);
-        android.widget.ImageView ivServiceImage2 = dialogView.findViewById(R.id.iv_service_image2);
+        ImageView ivServiceImage1 = dialogView.findViewById(R.id.iv_service_image1);
+        ImageView ivServiceImage2 = dialogView.findViewById(R.id.iv_service_image2);
         TextView tvServiceName = dialogView.findViewById(R.id.tv_service_name);
         TextView tvServicePrice = dialogView.findViewById(R.id.tv_service_price);
         TextView tvServiceDescription = dialogView.findViewById(R.id.tv_service_description);
-        
+
         // Establecer datos
         tvServiceName.setText(service.getName());
         tvServicePrice.setText("S/. " + String.format("%.2f", service.getPrice()));
-        
+
         if (service.getDescription() != null && !service.getDescription().isEmpty()) {
             tvServiceDescription.setText(service.getDescription());
         } else {
             tvServiceDescription.setText("Sin descripción disponible");
         }
-        
+
         // Cargar imágenes con Glide optimizado
         if (service.getImageUrls() != null && !service.getImageUrls().isEmpty()) {
             // Imagen 1
             if (service.getImageUrls().size() > 0 && service.getImageUrls().get(0) != null && !service.getImageUrls().get(0).isEmpty()) {
                 Glide.with(this)
-                    .load(service.getImageUrls().get(0))
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .error(android.R.drawable.ic_menu_gallery)
-                    .thumbnail(0.1f)
-                    .override(600, 600)
-                    .centerCrop()
-                    .into(ivServiceImage1);
+                        .load(service.getImageUrls().get(0))
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_gallery)
+                        .thumbnail(0.1f)
+                        .override(600, 600)
+                        .centerCrop()
+                        .into(ivServiceImage1);
             } else {
                 ivServiceImage1.setImageResource(android.R.drawable.ic_menu_gallery);
             }
-            
+
             // Imagen 2
             if (service.getImageUrls().size() > 1 && service.getImageUrls().get(1) != null && !service.getImageUrls().get(1).isEmpty()) {
                 Glide.with(this)
-                    .load(service.getImageUrls().get(1))
-                    .placeholder(android.R.drawable.ic_menu_gallery)
-                    .error(android.R.drawable.ic_menu_gallery)
-                    .thumbnail(0.1f)
-                    .override(600, 600)
-                    .centerCrop()
-                    .into(ivServiceImage2);
+                        .load(service.getImageUrls().get(1))
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_gallery)
+                        .thumbnail(0.1f)
+                        .override(600, 600)
+                        .centerCrop()
+                        .into(ivServiceImage2);
             } else {
                 ivServiceImage2.setImageResource(android.R.drawable.ic_menu_gallery);
             }
@@ -462,19 +523,19 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             ivServiceImage1.setImageResource(android.R.drawable.ic_menu_gallery);
             ivServiceImage2.setImageResource(android.R.drawable.ic_menu_gallery);
         }
-        
+
         builder.setView(dialogView)
-               .setPositiveButton("Cerrar", null)
-               .show();
+                .setPositiveButton("Cerrar", null)
+                .show();
     }
-    
+
     private void updateTotalPrice() {
         double totalPrice = basePrice + additionalServicesPrice;
         if (tvPriceBottom != null) {
             tvPriceBottom.setText("S/. " + String.format("%.2f", totalPrice));
         }
     }
-    
+
     private String getLanguageName(String isoCode) {
         switch (isoCode.toUpperCase()) {
             case "ES": return "Español";
@@ -518,15 +579,8 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         btnSeeAllReviews = findViewById(R.id.btn_see_all_reviews);
         btnContact = findViewById(R.id.btn_contact);
         btnViewMap = findViewById(R.id.btn_view_map);
-
-        android.widget.ImageView headerImage = findViewById(R.id.iv_header_image);
-        if (headerImage != null) {
-            Glide.with(this)
-                .load(imageUrl)
-                .placeholder(android.R.drawable.ic_menu_gallery)
-                .centerCrop()
-                .into(headerImage);
-        }
+        vpHeaderImages = findViewById(R.id.vp_header_images);
+        tvHeaderCounter = findViewById(R.id.tv_header_counter);
     }
 
     private void setupTourData() {
@@ -579,19 +633,19 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         // Reviews RecyclerView
         if (rvReviews != null) {
             rvReviews.setLayoutManager(new LinearLayoutManager(this));
-            rvReviews.setAdapter(new ReviewsAdapter(new java.util.ArrayList<>()));
+            rvReviews.setAdapter(new ReviewsAdapter(new ArrayList<>()));
         }
     }
-    
+
     private void updateItineraryAdapter() {
         if (rvItinerary != null && currentTour != null) {
-            java.util.List<Tour.TourStop> stops = currentTour.getStops();
+            List<Tour.TourStop> stops = currentTour.getStops();
             if (stops != null && !stops.isEmpty()) {
                 // Ordenar paradas por orden
-                java.util.Collections.sort(stops, (s1, s2) -> Integer.compare(s1.getOrder(), s2.getOrder()));
+                Collections.sort(stops, (s1, s2) -> Integer.compare(s1.getOrder(), s2.getOrder()));
                 rvItinerary.setAdapter(new ItineraryAdapter(stops));
             } else {
-                rvItinerary.setAdapter(new ItineraryAdapter(new java.util.ArrayList<>()));
+                rvItinerary.setAdapter(new ItineraryAdapter(new ArrayList<>()));
             }
         }
     }
@@ -607,7 +661,7 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 } else if (companyId != null && !companyId.isEmpty()) {
                     finalCompanyId = companyId;
                 }
-                
+
                 if (finalCompanyId != null && !finalCompanyId.isEmpty()) {
                     Intent intent = new Intent(this, com.example.droidtour.client.CompanyProfileActivity.class);
                     intent.putExtra("company_id", finalCompanyId);
@@ -638,7 +692,7 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 Intent intent = new Intent(this, CompanyChatActivity.class);
                 intent.putExtra("company_name", companyName);
                 intent.putExtra("tour_name", tourName);
-                
+
                 // Obtener companyId: primero del tour actual, luego del intent, luego del tour cargado
                 String finalCompanyId = null;
                 if (currentTour != null && currentTour.getCompanyId() != null) {
@@ -646,11 +700,11 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 } else if (companyId != null && !companyId.isEmpty()) {
                     finalCompanyId = companyId;
                 }
-                
+
                 if (finalCompanyId != null && !finalCompanyId.isEmpty()) {
                     intent.putExtra("company_id", finalCompanyId);
                 }
-                
+
                 startActivity(intent);
             });
         }
@@ -661,7 +715,7 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                     Toast.makeText(this, "Cargando datos del tour...", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                
+
                 Intent intent = new Intent(this, TourBookingActivity.class);
                 intent.putExtra("tour_id", tourId);
                 intent.putExtra("tour_name", tourName);
@@ -669,21 +723,21 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 intent.putExtra("company_name", companyName);
                 intent.putExtra("price", currentTour.getPricePerPerson());
                 intent.putExtra("service_price", additionalServicesPrice);
-                
+
                 // Pasar fecha del tour si existe
                 if (currentTour.getTourDate() != null && !currentTour.getTourDate().isEmpty()) {
                     intent.putExtra("tour_date", currentTour.getTourDate());
                 } else {
                     intent.putExtra("tour_date", "Por confirmar");
                 }
-                
+
                 // Pasar hora del tour si existe
                 if (currentTour.getMeetingTime() != null && !currentTour.getMeetingTime().isEmpty()) {
                     intent.putExtra("tour_time", currentTour.getMeetingTime());
                 } else {
                     intent.putExtra("tour_time", "09:00");
                 }
-                
+
                 startActivity(intent);
             });
         }
@@ -711,29 +765,29 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             });
         }
     }
-    
+
     private void showStopsMapDialog() {
         // Abrir actividad con mapa completo de paradas
         Intent intent = new Intent(this, TourStopsMapActivity.class);
-        
+
         // Pasar lista de paradas (TourStop ahora es Serializable)
         if (currentTour != null && currentTour.getStops() != null) {
-            intent.putExtra("stops", new java.util.ArrayList<>(currentTour.getStops()));
+            intent.putExtra("stops", new ArrayList<>(currentTour.getStops()));
         }
-        
+
         startActivity(intent);
     }
-    
+
     private void openMeetingPointMap() {
         // Abrir actividad con mapa grande del punto de encuentro
         Intent intent = new Intent(this, MeetingPointMapActivity.class);
-        
+
         if (currentTour != null) {
             intent.putExtra("latitude", currentTour.getMeetingPointLatitude());
             intent.putExtra("longitude", currentTour.getMeetingPointLongitude());
             intent.putExtra("locationName", currentTour.getMeetingPoint());
         }
-        
+
         startActivity(intent);
     }
 
@@ -745,7 +799,7 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         }
         return super.onOptionsItemSelected(item);
     }
-    
+
     /**
      * Verificar si el usuario ya tiene una reserva confirmada para este tour
      */
@@ -754,9 +808,9 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
         if (fromReservation) {
             return;
         }
-        
+
         if (currentUserId == null || tourId == null) return;
-        
+
         firestoreManager.hasConfirmedReservation(currentUserId, tourId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
             @Override
             public void onSuccess(Object result) {
@@ -768,7 +822,7 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                     btnBookNow.setAlpha(0.5f);
                 }
             }
-            
+
             @Override
             public void onFailure(Exception e) {
                 // Si falla la verificación, permitir reservar de todas formas
@@ -776,7 +830,7 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
             }
         });
     }
-    
+
     private void redirectToLogin() {
         Intent intent = new Intent(this, com.example.droidtour.LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -786,15 +840,15 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
 
 // Adaptador para el itinerario
 class ItineraryAdapter extends RecyclerView.Adapter<ItineraryAdapter.ViewHolder> {
-    private java.util.List<Tour.TourStop> stops;
+    private List<Tour.TourStop> stops;
 
-    ItineraryAdapter(java.util.List<Tour.TourStop> stops) {
-        this.stops = stops != null ? stops : new java.util.ArrayList<>();
+    ItineraryAdapter(List<Tour.TourStop> stops) {
+        this.stops = stops != null ? stops : new ArrayList<>();
     }
 
     @Override
-    public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
-        android.view.View view = LayoutInflater.from(parent.getContext())
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_itinerary_point, parent, false);
         return new ViewHolder(view);
     }
@@ -802,52 +856,52 @@ class ItineraryAdapter extends RecyclerView.Adapter<ItineraryAdapter.ViewHolder>
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         if (stops.isEmpty()) return;
-        
+
         Tour.TourStop stop = stops.get(position);
-        
+
         TextView time = holder.itemView.findViewById(R.id.tv_time);
         TextView locationName = holder.itemView.findViewById(R.id.tv_location_name);
         TextView activityDescription = holder.itemView.findViewById(R.id.tv_activity_description);
         TextView duration = holder.itemView.findViewById(R.id.tv_duration);
-        android.view.View timelineLine = holder.itemView.findViewById(R.id.view_timeline_line);
-        
+        View timelineLine = holder.itemView.findViewById(R.id.view_timeline_line);
+
         time.setText(stop.getTime() != null ? stop.getTime() : "");
         locationName.setText(stop.getName() != null ? stop.getName() : "Parada " + (position + 1));
         activityDescription.setText(stop.getDescription() != null ? stop.getDescription() : "");
-        
+
         if (stop.getStopDuration() != null && stop.getStopDuration() > 0) {
             duration.setText("⏱️ " + stop.getStopDuration() + " minutos");
         } else {
-            duration.setVisibility(android.view.View.GONE);
+            duration.setVisibility(View.GONE);
         }
-        
+
         // Hide timeline line for last item
         if (position == getItemCount() - 1) {
-            timelineLine.setVisibility(android.view.View.INVISIBLE);
+            timelineLine.setVisibility(View.INVISIBLE);
         } else {
-            timelineLine.setVisibility(android.view.View.VISIBLE);
+            timelineLine.setVisibility(View.VISIBLE);
         }
     }
 
     @Override
     public int getItemCount() { return stops.size(); }
 
-    static class ViewHolder extends RecyclerView.ViewHolder { 
-        ViewHolder(android.view.View v) { super(v); } 
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        ViewHolder(View v) { super(v); }
     }
 }
 
 // Adaptador para las reseñas
 class ReviewsAdapter extends RecyclerView.Adapter<ReviewsAdapter.ViewHolder> {
-    private final java.util.List<com.example.droidtour.models.Review> reviews;
-    
-    ReviewsAdapter(java.util.List<com.example.droidtour.models.Review> reviews) {
-        this.reviews = reviews != null ? reviews : new java.util.ArrayList<>();
+    private final List<com.example.droidtour.models.Review> reviews;
+
+    ReviewsAdapter(List<com.example.droidtour.models.Review> reviews) {
+        this.reviews = reviews != null ? reviews : new ArrayList<>();
     }
 
     @Override
-    public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
-        android.view.View view = LayoutInflater.from(parent.getContext())
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_review, parent, false);
         return new ViewHolder(view);
     }
@@ -857,9 +911,9 @@ class ReviewsAdapter extends RecyclerView.Adapter<ReviewsAdapter.ViewHolder> {
         if (position >= reviews.size()) {
             return;
         }
-        
+
         com.example.droidtour.models.Review review = reviews.get(position);
-        
+
         TextView userInitial = holder.itemView.findViewById(R.id.tv_user_initial);
         TextView userName = holder.itemView.findViewById(R.id.tv_user_name);
         TextView rating = holder.itemView.findViewById(R.id.tv_rating);
@@ -877,31 +931,31 @@ class ReviewsAdapter extends RecyclerView.Adapter<ReviewsAdapter.ViewHolder> {
             }
         }
         userInitial.setText(initial);
-        
+
         // Mostrar nombre del usuario
         userName.setText(review.getUserName() != null ? review.getUserName() : "Usuario");
-        
+
         // Crear estrellas basadas en la calificación del tour
         StringBuilder stars = new StringBuilder();
         Float tourRating = review.getRating();
         if (tourRating == null) tourRating = 0f;
         int roundedRating = Math.round(tourRating);
-        
+
         for (int i = 0; i < roundedRating; i++) {
             stars.append("⭐");
         }
-        
+
         rating.setText(stars.toString());
-        
+
         // Mostrar texto del comentario del tour
         String text = review.getReviewText();
         if (text == null || text.trim().isEmpty()) {
             text = "Sin comentario";
         }
         reviewText.setText(text);
-        
+
         // Mostrar fecha de creación
-        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         if (review.getCreatedAt() != null) {
             reviewDate.setText(dateFormat.format(review.getCreatedAt()));
         } else {
@@ -910,11 +964,62 @@ class ReviewsAdapter extends RecyclerView.Adapter<ReviewsAdapter.ViewHolder> {
     }
 
     @Override
-    public int getItemCount() { 
-        return reviews != null ? reviews.size() : 0; 
+    public int getItemCount() {
+        return reviews != null ? reviews.size() : 0;
     }
 
-    static class ViewHolder extends RecyclerView.ViewHolder { 
-        ViewHolder(android.view.View v) { super(v); } 
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        ViewHolder(View v) { super(v); }
+    }
+}
+
+// Adaptador para imágenes del header (carrusel)
+class HeaderImagesAdapter extends RecyclerView.Adapter<HeaderImagesAdapter.ViewHolder> {
+    private final List<String> images;
+
+    HeaderImagesAdapter(List<String> images) {
+        this.images = new ArrayList<>(images);
+    }
+
+    void updateData(List<String> newImages) {
+        images.clear();
+        if (newImages != null) {
+            images.addAll(newImages);
+        }
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        ImageView imageView = new ImageView(parent.getContext());
+        imageView.setLayoutParams(new RecyclerView.LayoutParams(
+                RecyclerView.LayoutParams.MATCH_PARENT,
+                RecyclerView.LayoutParams.MATCH_PARENT));
+        imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        return new ViewHolder(imageView);
+    }
+
+    @Override
+    public void onBindViewHolder(ViewHolder holder, int position) {
+        String url = images.get(position);
+        Glide.with(holder.imageView.getContext())
+                .load(url)
+                .placeholder(R.drawable.placeholder_image)
+                .error(R.drawable.placeholder_image)
+                .into(holder.imageView);
+    }
+
+    @Override
+    public int getItemCount() {
+        return images.size();
+    }
+
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        final ImageView imageView;
+
+        ViewHolder(ImageView itemView) {
+            super(itemView);
+            this.imageView = itemView;
+        }
     }
 }

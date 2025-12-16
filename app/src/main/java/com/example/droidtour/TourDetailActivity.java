@@ -149,11 +149,34 @@ public class TourDetailActivity extends AppCompatActivity implements OnMapReadyC
                 @Override
                 public void onSuccess(Object result) {
                     currentTour = (Tour) result;
+                    
+                    // Validar que el tour sea público y tenga guía asignado
+                    if (currentTour == null) {
+                        Toast.makeText(TourDetailActivity.this, "Tour no encontrado", Toast.LENGTH_SHORT).show();
+                        finish();
+                        return;
+                    }
+                    
+                    Boolean isPublic = currentTour.getPublic();
+                    String assignedGuideId = currentTour.getAssignedGuideId();
+                    
+                    // Verificar que el tour esté disponible para clientes (público y con guía)
+                    if (isPublic == null || !isPublic || assignedGuideId == null || assignedGuideId.trim().isEmpty()) {
+                        Toast.makeText(TourDetailActivity.this, 
+                            "Este tour no está disponible actualmente. No tiene un guía asignado.", 
+                            Toast.LENGTH_LONG).show();
+                        finish();
+                        return;
+                    }
+                    
                     displayTourData();
                 }
                 
                 @Override
                 public void onFailure(Exception e) {
+                    Toast.makeText(TourDetailActivity.this, 
+                        "Error al cargar el tour: " + e.getMessage(), 
+                        Toast.LENGTH_SHORT).show();
                     setupTourData(); // Fallback a datos locales
                 }
             });

@@ -472,8 +472,8 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
         showEmptyFeaturedTours(true);
         featuredTours.clear();
 
-        // Cargar todos los tours y ordenar por rating
-        firestoreManager.getAllTours(new FirestoreManager.FirestoreCallback() {
+        // Cargar solo tours públicos (con guía asignado) y ordenar por rating
+        firestoreManager.getPublicTours(new FirestoreManager.FirestoreCallback() {
             @Override
             @SuppressWarnings("unchecked")
             public void onSuccess(Object result) {

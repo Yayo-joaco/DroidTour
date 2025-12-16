@@ -551,8 +551,22 @@ public class CompanyInfoActivity extends AppCompatActivity implements OnMapReady
             return false;
         }
 
-        if (etCompanyPhone.getText().toString().trim().isEmpty()) {
+        String phone = etCompanyPhone.getText().toString().trim();
+        if (phone.isEmpty()) {
             etCompanyPhone.setError("Ingrese el teléfono de la empresa");
+            return false;
+        }
+
+        // Validar que el número tenga exactamente 9 dígitos (solo el número local, sin código de país)
+        String telefonoSinEspacios = phone.replaceAll("\\s+", "");
+        if (telefonoSinEspacios.length() != 9) {
+            etCompanyPhone.setError("El número de teléfono debe tener 9 dígitos");
+            return false;
+        }
+
+        // Validar que solo contenga dígitos
+        if (!telefonoSinEspacios.matches("\\d{9}")) {
+            etCompanyPhone.setError("El número de teléfono solo debe contener dígitos");
             return false;
         }
 

@@ -249,78 +249,121 @@ public class TourBookingActivity extends AppCompatActivity {
         btnConfirmBooking.setEnabled(false);
         btnConfirmBooking.setText("Procesando...");
         
-        firestoreManager.getUser(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+        // Primero validar que el tour tenga guía asignado
+        firestoreManager.getTourById(tourId, new com.example.droidtour.firebase.FirestoreManager.TourCallback() {
             @Override
-            public void onSuccess(Object result) {
-                com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
+            public void onSuccess(com.example.droidtour.models.Tour tour) {
+                if (tour == null) {
+                    btnConfirmBooking.setEnabled(true);
+                    btnConfirmBooking.setText("Confirmar Reserva");
+                    Toast.makeText(TourBookingActivity.this, "❌ Error: Tour no encontrado", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 
-                Reservation reservation = new Reservation(
-                    currentUserId,
-                    user.getFirstName() + " " + user.getLastName(),
-                    user.getEmail(),
-                    tourId,
-                    tourName,
-                    companyId,
-                    companyName,
-                    tourDate,
-                    tourTime,
-                    1, // Siempre 1 persona por reserva
-                    pricePerPerson,
-                    servicePrice
-                );
-                reservation.setStatus("CONFIRMADA");
-                reservation.setPaymentStatus("CONFIRMADO");
+                // Validar que el tour sea público y tenga guía asignado
+                Boolean isPublic = tour.getPublic();
+                String assignedGuideId = tour.getAssignedGuideId();
+                String assignedGuideName = tour.getAssignedGuideName();
                 
-                // Agregar información del método de pago
-                String last4 = selectedPaymentMethod.getCardNumber().substring(
-                    selectedPaymentMethod.getCardNumber().length() - 4);
-                reservation.setPaymentMethod(selectedPaymentMethod.getCardType() + " ****" + last4);
-                reservation.setPaymentMethodId(selectedPaymentMethod.getPaymentMethodId());
+                if (isPublic == null || !isPublic || assignedGuideId == null || assignedGuideId.trim().isEmpty()) {
+                    btnConfirmBooking.setEnabled(true);
+                    btnConfirmBooking.setText("Confirmar Reserva");
+                    Toast.makeText(TourBookingActivity.this, 
+                        "❌ Este tour no está disponible actualmente. No tiene un guía asignado.", 
+                        Toast.LENGTH_LONG).show();
+                    finish();
+                    return;
+                }
                 
-                firestoreManager.createReservation(reservation, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                // Si pasó las validaciones, proceder a crear la reserva
+                firestoreManager.getUser(currentUserId, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
                     @Override
                     public void onSuccess(Object result) {
-                        Reservation savedReservation = (Reservation) result;
+                        com.example.droidtour.models.User user = (com.example.droidtour.models.User) result;
                         
-                        // Regenerar QR codes con el reservationId real
-                        savedReservation.regenerateQRCodes();
-                        firestoreManager.updateReservation(savedReservation, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                        Reservation reservation = new Reservation(
+                            currentUserId,
+                            user.getFirstName() + " " + user.getLastName(),
+                            user.getEmail(),
+                            tourId,
+                            tourName,
+                            companyId,
+                            companyName,
+                            tourDate,
+                            tourTime,
+                            1, // Siempre 1 persona por reserva
+                            pricePerPerson,
+                            servicePrice
+                        );
+                        
+                        // Establecer datos del guía en la reserva
+                        reservation.setGuideId(assignedGuideId);
+                        reservation.setGuideName(assignedGuideName != null ? assignedGuideName : "Guía asignado");
+                        
+                        reservation.setStatus("CONFIRMADA");
+                        reservation.setPaymentStatus("CONFIRMADO");
+                        
+                        // Agregar información del método de pago
+                        String last4 = selectedPaymentMethod.getCardNumber().substring(
+                            selectedPaymentMethod.getCardNumber().length() - 4);
+                        reservation.setPaymentMethod(selectedPaymentMethod.getCardType() + " ****" + last4);
+                        reservation.setPaymentMethodId(selectedPaymentMethod.getPaymentMethodId());
+                        
+                        firestoreManager.createReservation(reservation, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
                             @Override
-                            public void onSuccess(Object updateResult) {
-                                Log.d(TAG, "QR codes regenerados correctamente");
+                            public void onSuccess(Object result) {
+                                Reservation savedReservation = (Reservation) result;
+                                
+                                // Regenerar QR codes con el reservationId real
+                                savedReservation.regenerateQRCodes();
+                                firestoreManager.updateReservation(savedReservation, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                                    @Override
+                                    public void onSuccess(Object updateResult) {
+                                        Log.d(TAG, "QR codes regenerados correctamente");
+                                    }
+                                    @Override
+                                    public void onFailure(Exception e) {
+                                        Log.e(TAG, "Error al regenerar QR codes", e);
+                                    }
+                                });
+                                
+                                // ✅ Incrementar expectedParticipants del tour
+                                incrementTourParticipants();
+                                
+                                Toast.makeText(TourBookingActivity.this, "✅ ¡Reserva confirmada!", Toast.LENGTH_LONG).show();
+                                Intent intent = new Intent(TourBookingActivity.this, MyReservationsActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                startActivity(intent);
+                                finish();
                             }
+                            
                             @Override
                             public void onFailure(Exception e) {
-                                Log.e(TAG, "Error al regenerar QR codes", e);
+                                Log.e(TAG, "Error creando reserva", e);
+                                btnConfirmBooking.setEnabled(true);
+                                btnConfirmBooking.setText("Confirmar Reserva");
+                                Toast.makeText(TourBookingActivity.this, "❌ Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                             }
                         });
-                        
-                        // ✅ Incrementar expectedParticipants del tour
-                        incrementTourParticipants();
-                        
-                        Toast.makeText(TourBookingActivity.this, "✅ ¡Reserva confirmada!", Toast.LENGTH_LONG).show();
-                        Intent intent = new Intent(TourBookingActivity.this, MyReservationsActivity.class);
-                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        startActivity(intent);
-                        finish();
                     }
                     
                     @Override
                     public void onFailure(Exception e) {
-                        Log.e(TAG, "Error creando reserva", e);
+                        Log.e(TAG, "Error obteniendo datos del usuario", e);
                         btnConfirmBooking.setEnabled(true);
                         btnConfirmBooking.setText("Confirmar Reserva");
-                        Toast.makeText(TourBookingActivity.this, "❌ Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(TourBookingActivity.this, "❌ Error obteniendo datos", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
             
             @Override
-            public void onFailure(Exception e) {
-                Log.e(TAG, "Error obteniendo datos del tour o método de pago", e);
+            public void onFailure(String error) {
+                Log.e(TAG, "Error obteniendo tour: " + error);
                 btnConfirmBooking.setEnabled(true);
                 btnConfirmBooking.setText("Confirmar Reserva");
-                Toast.makeText(TourBookingActivity.this, "❌ Error obteniendo datos", Toast.LENGTH_SHORT).show();
+                Toast.makeText(TourBookingActivity.this, "❌ Error: " + error, Toast.LENGTH_SHORT).show();
             }
         });
     }

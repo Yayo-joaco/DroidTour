@@ -21,6 +21,7 @@ public class Company {
     private String description;     // Descripción de la empresa
     private String logoUrl;
     private List<String> coverImageUrls;
+    private List<String> serviceIds; // IDs de los servicios de la empresa
 
     private String status; // active, inactive
     @ServerTimestamp private Date createdAt;
@@ -160,5 +161,13 @@ public class Company {
 
     public void setUpdatedAt(Date updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<String> getServiceIds() {
+        return serviceIds;
+    }
+
+    public void setServiceIds(List<String> serviceIds) {
+        this.serviceIds = serviceIds;
     }
 }

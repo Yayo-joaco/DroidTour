@@ -92,11 +92,12 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/active_reservations_count"
-                            android:textSize="14sp"
+                            android:textSize="13sp"
                             android:textColor="@color/white"
-                            android:background="@drawable/circle_orange"
+                            android:background="@drawable/bg_rounded_orange"
                             android:gravity="center"
-                            android:minWidth="28dp"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="6dp"
                             android:minHeight="28dp" />
 
                     </LinearLayout>

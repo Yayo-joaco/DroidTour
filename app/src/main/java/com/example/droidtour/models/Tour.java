@@ -2,6 +2,7 @@ package com.example.droidtour.models;
 
 import com.google.firebase.firestore.DocumentId;
 import com.google.firebase.firestore.ServerTimestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -232,6 +233,32 @@ public class Tour {
         map.put("guidePayment", guidePayment);
         map.put("meetingPointConfirmed", meetingPointConfirmed);
         map.put("meetingPointConfirmedAt", meetingPointConfirmedAt);
+        
+        // Campos de check-in/checkout
+        map.put("checkInOutStatus", checkInOutStatus);
+        map.put("expectedParticipants", expectedParticipants);
+        map.put("checkedInCount", checkedInCount);
+        map.put("checkedOutCount", checkedOutCount);
+        
+        // Convertir lista de ScannedParticipant a Map para Firestore
+        if (scannedParticipants != null) {
+            List<Map<String, Object>> participantsList = new ArrayList<>();
+            for (ScannedParticipant participant : scannedParticipants) {
+                Map<String, Object> participantMap = new HashMap<>();
+                participantMap.put("reservationId", participant.getReservationId());
+                participantMap.put("userId", participant.getUserId());
+                participantMap.put("userName", participant.getUserName());
+                participantMap.put("hasCheckedIn", participant.getHasCheckedIn());
+                participantMap.put("hasCheckedOut", participant.getHasCheckedOut());
+                participantMap.put("checkInTime", participant.getCheckInTime());
+                participantMap.put("checkOutTime", participant.getCheckOutTime());
+                participantsList.add(participantMap);
+            }
+            map.put("scannedParticipants", participantsList);
+        } else {
+            map.put("scannedParticipants", null);
+        }
+        
         return map;
     }
 

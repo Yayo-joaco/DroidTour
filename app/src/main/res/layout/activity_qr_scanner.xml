@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<LinearLayout
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="@color/light_gray">
 
     <!-- Toolbar -->
@@ -16,14 +21,23 @@
         app:titleCentered="true"
         app:titleTextColor="@color/white"
         app:navigationIcon="@drawable/ic_arrow_back_24"
-        app:navigationIconTint="@color/white"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:navigationIconTint="@color/white" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
 
     <!-- Camera Preview Placeholder (styled as card container) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/layout_camera_preview"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="280dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginTop="14dp"
@@ -32,11 +46,9 @@
         app:cardBackgroundColor="@color/black"
         app:strokeWidth="1dp"
         app:strokeColor="#1AFFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
-        app:layout_constraintBottom_toTopOf="@id/layout_scan_actions"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_percent="0.46">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -125,7 +137,6 @@
         app:strokeWidth="1dp"
         app:strokeColor="#ECECEC"
         app:layout_constraintTop_toBottomOf="@id/layout_camera_preview"
-        app:layout_constraintBottom_toTopOf="@id/card_scan_info"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -181,9 +192,9 @@
         app:strokeWidth="1dp"
         app:strokeColor="#ECECEC"
         app:layout_constraintTop_toBottomOf="@id/layout_scan_actions"
-        app:layout_constraintBottom_toTopOf="@id/card_scan_history"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/card_scan_history">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -338,11 +349,11 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Scan History Card -->
+    <!-- Historial de Escaneos Card (mismo formato que Información del Tour) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_scan_history"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginTop="12dp"
@@ -353,101 +364,98 @@
         app:strokeWidth="1dp"
         app:strokeColor="#ECECEC"
         app:layout_constraintTop_toBottomOf="@id/card_scan_info"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-            <!-- Header (clean, no full primary bar) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:padding="14dp">
+                android:layout_marginBottom="12dp">
 
                 <FrameLayout
-                    android:layout_width="34dp"
-                    android:layout_height="34dp"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
                     android:layout_marginEnd="10dp">
 
                     <com.google.android.material.card.MaterialCardView
-                        android:layout_width="34dp"
-                        android:layout_height="34dp"
-                        app:cardCornerRadius="17dp"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        app:cardCornerRadius="19dp"
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="#1A2196F3" />
 
                     <ImageView
-                        android:layout_width="18dp"
-                        android:layout_height="18dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:layout_gravity="center"
                         android:src="@android:drawable/ic_menu_recent_history"
                         android:tint="@color/primary" />
                 </FrameLayout>
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:text="Historial de escaneos"
-                    android:textSize="15sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#202124" />
 
-                <TextView
-                    android:id="@+id/tv_scans_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="3 escaneos"
-                    android:textSize="12sp"
-                    android:textColor="#6B7280" />
-
             </LinearLayout>
 
-            <View
+            <!-- Mensaje cuando no hay escaneos -->
+            <TextView
+                android:id="@+id/tv_empty_history"
                 android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#EEEEEE" />
+                android:layout_height="wrap_content"
+                android:text="Aún no se han escaneado participantes"
+                android:textSize="13sp"
+                android:textColor="#999999"
+                android:gravity="center"
+                android:padding="16dp"
+                android:visibility="visible" />
 
-            <!-- Scans List -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_scan_history"
+            <!-- Lista de participantes escaneados -->
+            <LinearLayout
+                android:id="@+id/layout_scanned_list"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="12dp"
-                android:clipToPadding="false"
-                android:nestedScrollingEnabled="false"
-                android:overScrollMode="never" />
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+            </LinearLayout>
 
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Success/Error Overlay -->
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/card_scan_result"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_margin="24dp"
-        app:cardCornerRadius="18dp"
-        app:cardElevation="10dp"
-        android:visibility="gone"
-        app:cardBackgroundColor="@color/white"
-        app:strokeWidth="1dp"
-        app:strokeColor="#ECECEC"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </ScrollView>
+
+</LinearLayout>
+
+<!-- Success/Error Overlay -->
+<com.google.android.material.card.MaterialCardView
+    android:id="@+id/card_scan_result"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="24dp"
+    android:layout_gravity="center"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="10dp"
+    android:visibility="gone"
+    app:cardBackgroundColor="@color/white"
+    app:strokeWidth="1dp"
+    app:strokeColor="#ECECEC">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -519,4 +527,4 @@
 
     </com.google.android.material.card.MaterialCardView>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout>

@@ -471,7 +471,46 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
     private void loadFeaturedToursFromFirebase() {
         showEmptyFeaturedTours(true);
         featuredTours.clear();
-        if (rvFeaturedTours.getAdapter() != null) rvFeaturedTours.getAdapter().notifyDataSetChanged();
+
+        // Cargar todos los tours y ordenar por rating
+        firestoreManager.getAllTours(new FirestoreManager.FirestoreCallback() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public void onSuccess(Object result) {
+                if (result instanceof List) {
+                    List<Tour> allTours = (List<Tour>) result;
+
+                    // Ordenar por averageRating descendente
+                    allTours.sort((t1, t2) -> {
+                        Double r1 = t1.getAverageRating() != null ? t1.getAverageRating() : 0.0;
+                        Double r2 = t2.getAverageRating() != null ? t2.getAverageRating() : 0.0;
+                        return r2.compareTo(r1);
+                    });
+
+                    // Agregar solo los top 3
+                    for (int i = 0; i < Math.min(3, allTours.size()); i++) {
+                        featuredTours.add(allTours.get(i));
+                    }
+
+                    if (featuredTours.isEmpty()) {
+                        showEmptyFeaturedTours(true);
+                        Log.d(TAG, "No hay tours destacados disponibles");
+                    } else {
+                        showEmptyFeaturedTours(false);
+                        if (rvFeaturedTours.getAdapter() != null) {
+                            rvFeaturedTours.getAdapter().notifyDataSetChanged();
+                        }
+                        Log.d(TAG, "Tours destacados cargados: " + featuredTours.size());
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Log.e(TAG, "Error cargando tours destacados", e);
+                showEmptyFeaturedTours(true);
+            }
+        });
     }
 
     private void loadPopularCompaniesFromFirebase() {
@@ -631,7 +670,8 @@ public class ClientMainActivity extends AppCompatActivity implements NavigationV
                         }
                     }
 
-                    tvActiveReservations.setText(activeCount + " reservas activas");
+                    String text = activeCount == 1 ? "1 reserva activa" : activeCount + " reservas activas";
+                    tvActiveReservations.setText(text);
                 }
             }
 
@@ -719,44 +759,25 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
     interface OnCompanyClick { void onClick(Company company); }
     private final List<Company> companies;
     private final OnCompanyClick onCompanyClick;
+    private final android.content.Context context;
 
     PopularCompaniesAdapter(List<Company> companies, OnCompanyClick listener) {
         this.companies = companies;
         this.onCompanyClick = listener;
+        this.context = null;
     }
 
     @Override
     public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
         android.view.View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_popular_company, parent, false);
-        return new ViewHolder(view);
+        return new ViewHolder(view, parent.getContext());
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         Company company = companies.get(position);
-
-        TextView companyName = holder.itemView.findViewById(R.id.tv_company_name);
-        TextView location = holder.itemView.findViewById(R.id.tv_company_location);
-        TextView rating = holder.itemView.findViewById(R.id.tv_rating);
-        TextView toursCount = holder.itemView.findViewById(R.id.tv_tours_count);
-        TextView reviewsCount = holder.itemView.findViewById(R.id.tv_reviews_count);
-        android.view.View btnViewTours = holder.itemView.findViewById(R.id.btn_view_tours);
-
-        String displayName = company.getCommercialName() != null ?
-                company.getCommercialName() : company.getBusinessName();
-        companyName.setText(displayName != null ? displayName : "Empresa");
-
-        location.setText("📍 " + (company.getAddress() != null ? company.getAddress() : "Ubicación no disponible"));
-
-        rating.setText("⭐ " + (company.getStatus() != null ? company.getStatus() : "4.5"));
-        toursCount.setText("• -- tours");
-        reviewsCount.setText("• -- reseñas");
-
-        holder.itemView.setOnClickListener(v -> onCompanyClick.onClick(company));
-        if (btnViewTours != null) {
-            btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(company));
-        }
+        holder.bind(company, onCompanyClick);
     }
 
     @Override
@@ -765,6 +786,148 @@ class PopularCompaniesAdapter extends RecyclerView.Adapter<PopularCompaniesAdapt
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        ViewHolder(android.view.View v) { super(v); }
+        private final android.content.Context context;
+        private final ImageView ivCompanyLogo;
+        private final TextView tvCompanyName;
+        private final TextView tvLocation;
+        private final TextView tvRating;
+        private final TextView tvToursCount;
+        private final TextView tvReviewsCount;
+        private final TextView tvExperienceYears;
+        private final android.widget.ImageButton btnFavorite;
+        private final com.google.android.material.chip.Chip chipService1;
+        private final com.google.android.material.chip.Chip chipService2;
+        private final com.google.android.material.chip.Chip chipService3;
+        private final android.view.View btnViewTours;
+
+        ViewHolder(android.view.View v, android.content.Context ctx) {
+            super(v);
+            this.context = ctx;
+            ivCompanyLogo = v.findViewById(R.id.iv_company_logo);
+            tvCompanyName = v.findViewById(R.id.tv_company_name);
+            tvLocation = v.findViewById(R.id.tv_company_location);
+            tvRating = v.findViewById(R.id.tv_rating);
+            tvToursCount = v.findViewById(R.id.tv_tours_count);
+            tvReviewsCount = v.findViewById(R.id.tv_reviews_count);
+            tvExperienceYears = v.findViewById(R.id.tv_experience_years);
+            btnFavorite = v.findViewById(R.id.btn_favorite);
+            chipService1 = v.findViewById(R.id.chip_service_1);
+            chipService2 = v.findViewById(R.id.chip_service_2);
+            chipService3 = v.findViewById(R.id.chip_service_3);
+            btnViewTours = v.findViewById(R.id.btn_view_tours);
+        }
+
+        void bind(Company company, OnCompanyClick onCompanyClick) {
+            // Nombre
+            String displayName = company.getCommercialName() != null ?
+                    company.getCommercialName() : company.getBusinessName();
+            tvCompanyName.setText(displayName != null ? displayName : "Empresa");
+
+            // Logo
+            if (ivCompanyLogo != null) {
+                String logoUrl = company.getLogoUrl();
+                if (logoUrl != null && !logoUrl.isEmpty()) {
+                    Glide.with(context)
+                            .load(logoUrl)
+                            .placeholder(R.drawable.ic_company)
+                            .error(R.drawable.ic_company)
+                            .centerInside()
+                            .into(ivCompanyLogo);
+                } else {
+                    ivCompanyLogo.setImageResource(R.drawable.ic_company);
+                }
+            }
+
+            // Ubicación
+            tvLocation.setText(company.getAddress() != null ? company.getAddress() : "Ubicación no disponible");
+
+            // Ocultar corazón
+            if (btnFavorite != null) {
+                btnFavorite.setVisibility(android.view.View.GONE);
+            }
+
+            // Calcular años de experiencia
+            int yearsExperience = 0;
+            if (company.getCreatedAt() != null) {
+                long diffMillis = new java.util.Date().getTime() - company.getCreatedAt().getTime();
+                yearsExperience = (int) (diffMillis / (1000L * 60 * 60 * 24 * 365));
+            }
+            tvExperienceYears.setText(yearsExperience + "+");
+
+            // Rating y reseñas - Cargar desde Firebase
+            tvRating.setText("0.0");
+            tvReviewsCount.setText("0 reseñas");
+
+            FirestoreManager firestoreManager = FirestoreManager.getInstance();
+            firestoreManager.getToursByCompany(company.getCompanyId(), new FirestoreManager.FirestoreCallback() {
+                @Override
+                @SuppressWarnings("unchecked")
+                public void onSuccess(Object result) {
+                    if (result instanceof List) {
+                        List<Tour> tours = (List<Tour>) result;
+                        int tourCount = tours.size();
+                        tvToursCount.setText(String.valueOf(tourCount));
+
+                        // Calcular rating promedio y total de reseñas
+                        double totalRating = 0.0;
+                        int totalReviews = 0;
+                        for (Tour tour : tours) {
+                            if (tour.getAverageRating() != null) {
+                                totalRating += tour.getAverageRating();
+                            }
+                            if (tour.getTotalReviews() != null) {
+                                totalReviews += tour.getTotalReviews();
+                            }
+                        }
+
+                        if (tourCount > 0 && totalRating > 0) {
+                            double avgRating = totalRating / tourCount;
+                            tvRating.setText(String.format("%.1f", avgRating));
+                        }
+                        tvReviewsCount.setText(totalReviews + " reseñas");
+
+                        // Cargar servicios reales del primer tour
+                        if (!tours.isEmpty() && tours.get(0).getIncludedServices() != null) {
+                            List<String> inclusions = tours.get(0).getIncludedServices();
+                            if (inclusions.size() > 0 && chipService1 != null) {
+                                chipService1.setText(inclusions.get(0));
+                                chipService1.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService1 != null) {
+                                chipService1.setVisibility(android.view.View.GONE);
+                            }
+                            if (inclusions.size() > 1 && chipService2 != null) {
+                                chipService2.setText(inclusions.get(1));
+                                chipService2.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService2 != null) {
+                                chipService2.setVisibility(android.view.View.GONE);
+                            }
+                            if (inclusions.size() > 2 && chipService3 != null) {
+                                chipService3.setText(inclusions.get(2));
+                                chipService3.setVisibility(android.view.View.VISIBLE);
+                            } else if (chipService3 != null) {
+                                chipService3.setVisibility(android.view.View.GONE);
+                            }
+                        } else {
+                            if (chipService1 != null) chipService1.setVisibility(android.view.View.GONE);
+                            if (chipService2 != null) chipService2.setVisibility(android.view.View.GONE);
+                            if (chipService3 != null) chipService3.setVisibility(android.view.View.GONE);
+                        }
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    tvToursCount.setText("0");
+                    tvRating.setText("0.0");
+                    tvReviewsCount.setText("0 reseñas");
+                }
+            });
+
+            // Click listeners
+            itemView.setOnClickListener(v -> onCompanyClick.onClick(company));
+            if (btnViewTours != null) {
+                btnViewTours.setOnClickListener(v -> onCompanyClick.onClick(company));
+            }
+        }
     }
 }

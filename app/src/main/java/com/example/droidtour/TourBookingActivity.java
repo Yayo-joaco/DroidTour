@@ -311,6 +311,48 @@ public class TourBookingActivity extends AppCompatActivity {
                 firestoreManager.createReservation(reservation, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
                     @Override
                     public void onSuccess(Object result) {
+                        Reservation savedReservation = (Reservation) result;
+                        
+                        // Regenerar QR codes con el reservationId real
+                        savedReservation.regenerateQRCodes();
+                        firestoreManager.updateReservation(savedReservation, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                            @Override
+                            public void onSuccess(Object updateResult) {
+                                Log.d(TAG, "QR codes regenerados correctamente");
+                            }
+                            @Override
+                            public void onFailure(Exception e) {
+                                Log.e(TAG, "Error al regenerar QR codes", e);
+                            }
+                        });
+                        
+                        // Incrementar expectedParticipants en el tour
+                        firestoreManager.getTourById(tourId, new com.example.droidtour.firebase.FirestoreManager.TourCallback() {
+                            @Override
+                            public void onSuccess(com.example.droidtour.models.Tour tour) {
+                                int currentExpected = tour.getExpectedParticipants() != null ? tour.getExpectedParticipants() : 0;
+                                int newExpected = currentExpected + participants;
+                                
+                                java.util.Map<String, Object> updates = new java.util.HashMap<>();
+                                updates.put("expectedParticipants", newExpected);
+                                
+                                firestoreManager.updateTour(tourId, updates, new com.example.droidtour.firebase.FirestoreManager.FirestoreCallback() {
+                                    @Override
+                                    public void onSuccess(Object updateResult) {
+                                        Log.d(TAG, "expectedParticipants actualizado: " + newExpected);
+                                    }
+                                    @Override
+                                    public void onFailure(Exception e) {
+                                        Log.e(TAG, "Error al actualizar expectedParticipants", e);
+                                    }
+                                });
+                            }
+                            @Override
+                            public void onFailure(String error) {
+                                Log.e(TAG, "Error al obtener tour para actualizar participants: " + error);
+                            }
+                        });
+                        
                         Toast.makeText(TourBookingActivity.this, "✅ ¡Reserva confirmada!", Toast.LENGTH_LONG).show();
                         Intent intent = new Intent(TourBookingActivity.this, MyReservationsActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);

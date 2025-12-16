@@ -814,14 +814,28 @@ public class FirestoreManager {
             return;
         }
 
-        db.collection(COLLECTION_COMPANIES)
-                .document(companyId)
-                .update(updates)
-                .addOnSuccessListener(unused -> {
-                    Log.d(TAG, "Company updated: " + companyId);
-                    callback.onSuccess(true);
-                })
-                .addOnFailureListener(callback::onFailure);
+        // Primero verificar si el campo serviceIds existe, si no, inicializarlo
+        DocumentReference companyRef = db.collection(COLLECTION_COMPANIES).document(companyId);
+        
+        companyRef.get().addOnSuccessListener(documentSnapshot -> {
+            if (documentSnapshot.exists()) {
+                // Si no existe el campo serviceIds, agregarlo a los updates
+                if (!documentSnapshot.contains("serviceIds")) {
+                    updates.put("serviceIds", new java.util.ArrayList<String>());
+                    Log.d(TAG, "Initializing serviceIds field for company: " + companyId);
+                }
+                
+                // Ahora actualizar
+                companyRef.update(updates)
+                        .addOnSuccessListener(unused -> {
+                            Log.d(TAG, "Company updated: " + companyId);
+                            callback.onSuccess(true);
+                        })
+                        .addOnFailureListener(callback::onFailure);
+            } else {
+                callback.onFailure(new Exception("Company not found"));
+            }
+        }).addOnFailureListener(callback::onFailure);
     }
 
     public void getCompanyById(String companyId, FirestoreCallback callback) {
@@ -882,7 +896,21 @@ public class FirestoreManager {
         serviceRef.set(service)
                 .addOnSuccessListener(unused -> {
                     Log.d(TAG, "Service created: " + service.getServiceId());
-                    callback.onSuccess(service);
+                    
+                    // Agregar el serviceId al array de serviceIds de la empresa
+                    String companyId = service.getCompanyId();
+                    DocumentReference companyRef = db.collection(COLLECTION_COMPANIES).document(companyId);
+                    
+                    companyRef.update("serviceIds", com.google.firebase.firestore.FieldValue.arrayUnion(service.getServiceId()))
+                            .addOnSuccessListener(unused2 -> {
+                                Log.d(TAG, "ServiceId added to company: " + companyId);
+                                callback.onSuccess(service);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error adding serviceId to company", e);
+                                // Aún así devolvemos éxito porque el servicio se creó
+                                callback.onSuccess(service);
+                            });
                 })
                 .addOnFailureListener(callback::onFailure);
     }
@@ -976,12 +1004,43 @@ public class FirestoreManager {
             return;
         }
 
+        // Primero obtener el servicio para saber su companyId
         db.collection(COLLECTION_SERVICES)
                 .document(serviceId)
-                .delete()
-                .addOnSuccessListener(unused -> {
-                    Log.d(TAG, "Service deleted: " + serviceId);
-                    callback.onSuccess(true);
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        com.example.droidtour.models.Service service = documentSnapshot.toObject(com.example.droidtour.models.Service.class);
+                        String companyId = service != null ? service.getCompanyId() : null;
+                        
+                        // Eliminar el servicio
+                        db.collection(COLLECTION_SERVICES)
+                                .document(serviceId)
+                                .delete()
+                                .addOnSuccessListener(unused -> {
+                                    Log.d(TAG, "Service deleted: " + serviceId);
+                                    
+                                    // Eliminar el serviceId del array de la empresa
+                                    if (companyId != null && !companyId.trim().isEmpty()) {
+                                        DocumentReference companyRef = db.collection(COLLECTION_COMPANIES).document(companyId);
+                                        companyRef.update("serviceIds", com.google.firebase.firestore.FieldValue.arrayRemove(serviceId))
+                                                .addOnSuccessListener(unused2 -> {
+                                                    Log.d(TAG, "ServiceId removed from company: " + companyId);
+                                                    callback.onSuccess(true);
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    Log.e(TAG, "Error removing serviceId from company", e);
+                                                    // Aún así devolvemos éxito porque el servicio se eliminó
+                                                    callback.onSuccess(true);
+                                                });
+                                    } else {
+                                        callback.onSuccess(true);
+                                    }
+                                })
+                                .addOnFailureListener(callback::onFailure);
+                    } else {
+                        callback.onFailure(new Exception("Service not found"));
+                    }
                 })
                 .addOnFailureListener(callback::onFailure);
     }

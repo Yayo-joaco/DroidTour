@@ -31,16 +31,16 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
 
     // Views
-    private TextView tvScanStatus, tvTourName, tvParticipantCount, tvScansCount, tvCheckInOutStatus;
+    private TextView tvScanStatus, tvTourName, tvParticipantCount, tvCheckInOutStatus;
+    private TextView tvEmptyHistory;
     private MaterialButton btnContinueScanning, btnToggleFlash, btnFinishCheckIn;
     private MaterialCardView cardScanResult;
     private PreviewView previewView;
-    private androidx.recyclerview.widget.RecyclerView rvScanHistory;
+    private android.widget.LinearLayout layoutScannedList;
     // Managers
     private PreferencesManager prefsManager;
     private QRScannerManager qrScannerManager;
     private com.example.droidtour.firebase.FirestoreManager firestoreManager;
-    private ScannedParticipantsAdapter historyAdapter;
 
     // Tour info
     private String tourId;
@@ -94,20 +94,13 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         tvScanStatus = findViewById(R.id.tv_scan_status);
         tvTourName = findViewById(R.id.tv_tour_name);
         tvParticipantCount = findViewById(R.id.tv_participants_count);
-        tvScansCount = findViewById(R.id.tv_scans_count);
         tvCheckInOutStatus = findViewById(R.id.tv_checkinout_status);
+        tvEmptyHistory = findViewById(R.id.tv_empty_history);
         btnContinueScanning = findViewById(R.id.btn_continue_scanning);
         btnToggleFlash = findViewById(R.id.btn_toggle_flash);
         btnFinishCheckIn = findViewById(R.id.btn_finish_checkin);
         cardScanResult = findViewById(R.id.card_scan_result);
-        rvScanHistory = findViewById(R.id.rv_scan_history);
-
-        // Configurar RecyclerView
-        if (rvScanHistory != null) {
-            rvScanHistory.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
-            historyAdapter = new ScannedParticipantsAdapter(new java.util.ArrayList<>());
-            rvScanHistory.setAdapter(historyAdapter);
-        }
+        layoutScannedList = findViewById(R.id.layout_scanned_list);
 
         // Reemplazar el contenedor placeholder con PreviewView
         replaceCameraPlaceholder();
@@ -191,7 +184,6 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
             (currentTour.getCheckedOutCount() != null ? currentTour.getCheckedOutCount() : 0);
         
         updateParticipantCount();
-        updateScansCount();
         updateStatusDisplay();
         updateScanHistory();
         
@@ -202,39 +194,143 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
     }
     
     private void updateScanHistory() {
-        if (historyAdapter == null || currentTour == null) return;
+        if (layoutScannedList == null || tvEmptyHistory == null) {
+            Log.w(TAG, "updateScanHistory: vistas son null");
+            return;
+        }
         
         java.util.List<com.example.droidtour.models.Tour.ScannedParticipant> participants = 
-            currentTour.getScannedParticipants() != null ? 
+            (currentTour != null && currentTour.getScannedParticipants() != null) ? 
             currentTour.getScannedParticipants() : 
             new java.util.ArrayList<>();
         
-        historyAdapter.updateData(participants);
+        Log.d(TAG, "Actualizando historial con " + participants.size() + " participantes");
+        
+        // Limpiar lista anterior
+        layoutScannedList.removeAllViews();
+        
+        if (participants.isEmpty()) {
+            // Mostrar mensaje de vacío
+            tvEmptyHistory.setVisibility(View.VISIBLE);
+            layoutScannedList.setVisibility(View.GONE);
+        } else {
+            // Ocultar mensaje y mostrar lista
+            tvEmptyHistory.setVisibility(View.GONE);
+            layoutScannedList.setVisibility(View.VISIBLE);
+            
+            // Agregar cada participante como una fila
+            for (com.example.droidtour.models.Tour.ScannedParticipant participant : participants) {
+                addParticipantRow(participant);
+            }
+        }
+    }
+    
+    private void addParticipantRow(com.example.droidtour.models.Tour.ScannedParticipant participant) {
+        // Crear LinearLayout horizontal para cada participante
+        android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+        row.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        row.setPadding(0, 0, 0, dpToPx(10));
+        
+        // TextView para el nombre (label)
+        TextView tvLabel = new TextView(this);
+        android.widget.LinearLayout.LayoutParams labelParams = new android.widget.LinearLayout.LayoutParams(
+            dpToPx(92),
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        tvLabel.setLayoutParams(labelParams);
+        tvLabel.setText(participant.getUserName() != null ? participant.getUserName() : "Participante");
+        tvLabel.setTextSize(13);
+        tvLabel.setTextColor(0xFF6B7280);
+        tvLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+        
+        // TextView para el estado
+        TextView tvStatus = new TextView(this);
+        android.widget.LinearLayout.LayoutParams statusParams = new android.widget.LinearLayout.LayoutParams(
+            0,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            1.0f
+        );
+        tvStatus.setLayoutParams(statusParams);
+        
+        // Determinar el estado
+        String statusText = "";
+        int statusColor = 0xFF202124;
+        
+        if (participant.getHasCheckedOut() != null && participant.getHasCheckedOut()) {
+            statusText = "✓ Check-out completado";
+            statusColor = 0xFF4CAF50; // verde
+        } else if (participant.getHasCheckedIn() != null && participant.getHasCheckedIn()) {
+            statusText = "✓ Check-in completado";
+            statusColor = 0xFF2196F3; // azul
+        } else {
+            statusText = "⏳ Pendiente";
+            statusColor = 0xFFFF9800; // naranja
+        }
+        
+        tvStatus.setText(statusText);
+        tvStatus.setTextSize(13);
+        tvStatus.setTextColor(statusColor);
+        
+        row.addView(tvLabel);
+        row.addView(tvStatus);
+        
+        layoutScannedList.addView(row);
+    }
+    
+    private int dpToPx(int dp) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dp * density);
     }
     
     private void updateStatusDisplay() {
-        if (currentTour == null || tvCheckInOutStatus == null) return;
+        if (currentTour == null) return;
         
         String status = currentTour.getCheckInOutStatus();
         if (status == null) status = "ESPERANDO_CHECKIN";
         
-        String displayStatus = "";
+        // Actualizar estado
         switch (status) {
             case "ESPERANDO_CHECKIN":
-                displayStatus = "⏳ Esperando Check-In";
-                tvScanStatus.setText("Escanea QR de Check-In");
+                if (tvScanStatus != null) {
+                    tvScanStatus.setText("Escanea QR de Check-In");
+                    tvScanStatus.setTextColor(getColor(R.color.orange));
+                }
                 break;
             case "ESPERANDO_CHECKOUT":
-                displayStatus = "✓ Check-In Completado - Esperando Check-Out";
-                tvScanStatus.setText("Escanea QR de Check-Out");
+                if (tvScanStatus != null) {
+                    tvScanStatus.setText("Escanea QR de Check-Out");
+                    tvScanStatus.setTextColor(getColor(R.color.primary));
+                }
                 break;
             case "CHECKOUT_COMPLETADO":
-                displayStatus = "✅ Tour Finalizado";
-                tvScanStatus.setText("Tour Completado");
+                if (tvScanStatus != null) {
+                    tvScanStatus.setText("Tour Completado");
+                    tvScanStatus.setTextColor(getColor(R.color.green));
+                }
                 break;
         }
         
-        tvCheckInOutStatus.setText(displayStatus);
+        // Actualizar progreso (conteo de participantes)
+        if (tvCheckInOutStatus != null) {
+            String progressText = scannedCount + " / " + expectedParticipants;
+            if ("CHECK_IN".equals(scanType)) {
+                progressText += " check-ins";
+            } else {
+                progressText += " check-outs";
+            }
+            tvCheckInOutStatus.setText(progressText);
+        }
+        
+        // Mostrar/ocultar botón Finalizar Check-In
+        if (btnFinishCheckIn != null) {
+            btnFinishCheckIn.setVisibility(
+                "CHECK_IN".equals(scanType) && "ESPERANDO_CHECKIN".equals(status) ? View.VISIBLE : View.GONE
+            );
+        }
     }
 
     private void initializeCamera() {
@@ -275,14 +371,10 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
     // ==================== UI Updates ====================
 
     private void updateParticipantCount() {
-        tvParticipantCount.setText(scannedCount + " / " + expectedParticipants + " participantes");
+        tvParticipantCount.setText(expectedParticipants + " participantes");
     }
 
-    private void updateScansCount() {
-        if (tvScansCount != null) {
-            tvScansCount.setText(scannedCount + " escaneos");
-        }
-    }
+
 
 
 
@@ -351,6 +443,10 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
     private void finishCheckInProcess() {
         if (currentTour == null) return;
         
+        // Actualizar expectedParticipants al scannedCount actual
+        currentTour.setExpectedParticipants(scannedCount);
+        expectedParticipants = scannedCount;
+        
         // Cambiar estado del tour a ESPERANDO_CHECKOUT
         currentTour.setCheckInOutStatus("ESPERANDO_CHECKOUT");
         
@@ -358,6 +454,9 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
             @Override
             public void onSuccess(Object result) {
                 Toast.makeText(QRScannerActivity.this, "Check-In finalizado. Ahora puedes hacer Check-Out.", Toast.LENGTH_LONG).show();
+                // Reiniciar conteo para check-out
+                scannedCount = 0;
+                updateParticipantCount();
                 updateStatusDisplay();
                 btnFinishCheckIn.setVisibility(View.GONE);
             }
@@ -369,6 +468,22 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
         });
     }
 
+    private boolean areAllStopsConfirmed() {
+        if (currentTour == null || currentTour.getStops() == null || currentTour.getStops().isEmpty()) {
+            return true; // Si no hay paradas, permitir escaneo
+        }
+        
+        for (com.example.droidtour.models.Tour.TourStop stop : currentTour.getStops()) {
+            // Usar el campo 'completed' para verificar si la parada fue confirmada
+            if (stop.getCompleted() == null || !stop.getCompleted()) {
+                Log.w(TAG, "Parada sin completar: " + stop.getName());
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
     private void toggleFlash() {
         if (qrScannerManager != null) {
             if (qrScannerManager.hasFlash()) {
@@ -407,6 +522,12 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
     // ==================== QR Validation ====================
     
     private void validateAndProcessQR(String qrData) {
+        // Validar que todas las paradas del tour estén confirmadas
+        if (!areAllStopsConfirmed()) {
+            showScanError("Paradas sin confirmar", "Debes confirmar todas las paradas del tour antes de escanear códigos QR.");
+            return;
+        }
+        
         // Parsear QR: Formato esperado CHECKIN-{reservationId}-{tourId} o CHECKOUT-{reservationId}-{tourId}
         String[] parts = qrData.split("-");
         
@@ -635,7 +756,7 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
     private void handleSuccessfulScan(String clientName) {
         // Actualizar UI
         updateParticipantCount();
-        updateScansCount();
+        updateScanHistory();
         updateStatusDisplay();
         
         // Mostrar resultado exitoso
@@ -708,92 +829,7 @@ public class QRScannerActivity extends AppCompatActivity implements QRScannerMan
     
     // ==================== Adapter para Historial de Escaneos ====================
     
-    private class ScannedParticipantsAdapter extends androidx.recyclerview.widget.RecyclerView.Adapter<ScannedParticipantsAdapter.ViewHolder> {
-        private java.util.List<com.example.droidtour.models.Tour.ScannedParticipant> participants;
-        
-        ScannedParticipantsAdapter(java.util.List<com.example.droidtour.models.Tour.ScannedParticipant> participants) {
-            this.participants = participants != null ? participants : new java.util.ArrayList<>();
-        }
-        
-        void updateData(java.util.List<com.example.droidtour.models.Tour.ScannedParticipant> newData) {
-            this.participants = newData != null ? newData : new java.util.ArrayList<>();
-            notifyDataSetChanged();
-        }
-        
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
-            android.view.View view = android.view.LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_scanned_participant, parent, false);
-            return new ViewHolder(view);
-        }
-        
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            com.example.droidtour.models.Tour.ScannedParticipant participant = participants.get(position);
-            
-            // Nombre del participante
-            holder.tvParticipantName.setText(participant.getUserName());
-            
-            // Estado de check-in
-            if (participant.getHasCheckedIn() != null && participant.getHasCheckedIn()) {
-                holder.tvCheckInStatus.setText("\u2713 Check-in");
-                holder.tvCheckInStatus.setTextColor(getColor(R.color.green));
-                
-                if (participant.getCheckInTime() != null) {
-                    holder.tvCheckInTime.setText(formatTime(participant.getCheckInTime()));
-                    holder.tvCheckInTime.setVisibility(View.VISIBLE);
-                } else {
-                    holder.tvCheckInTime.setVisibility(View.GONE);
-                }
-            } else {
-                holder.tvCheckInStatus.setText("\u23f3 Pendiente");
-                holder.tvCheckInStatus.setTextColor(getColor(R.color.orange));
-                holder.tvCheckInTime.setVisibility(View.GONE);
-            }
-            
-            // Estado de check-out
-            if (participant.getHasCheckedOut() != null && participant.getHasCheckedOut()) {
-                holder.tvCheckOutStatus.setText("\u2713 Check-out");
-                holder.tvCheckOutStatus.setTextColor(getColor(R.color.green));
-                
-                if (participant.getCheckOutTime() != null) {
-                    holder.tvCheckOutTime.setText(formatTime(participant.getCheckOutTime()));
-                    holder.tvCheckOutTime.setVisibility(View.VISIBLE);
-                } else {
-                    holder.tvCheckOutTime.setVisibility(View.GONE);
-                }
-            } else {
-                holder.tvCheckOutStatus.setText("\u23f3 Pendiente");
-                holder.tvCheckOutStatus.setTextColor(getColor(R.color.gray));
-                holder.tvCheckOutTime.setVisibility(View.GONE);
-            }
-        }
-        
-        @Override
-        public int getItemCount() {
-            return participants != null ? participants.size() : 0;
-        }
-        
-        class ViewHolder extends androidx.recyclerview.widget.RecyclerView.ViewHolder {
-            TextView tvParticipantName, tvCheckInStatus, tvCheckInTime, tvCheckOutStatus, tvCheckOutTime;
-            
-            ViewHolder(android.view.View view) {
-                super(view);
-                tvParticipantName = view.findViewById(R.id.tv_participant_name);
-                tvCheckInStatus = view.findViewById(R.id.tv_checkin_status);
-                tvCheckInTime = view.findViewById(R.id.tv_checkin_time);
-                tvCheckOutStatus = view.findViewById(R.id.tv_checkout_status);
-                tvCheckOutTime = view.findViewById(R.id.tv_checkout_time);
-            }
-        }
-    }
-    
-    private String formatTime(java.util.Date date) {
-        if (date == null) return "";
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
-        return sdf.format(date);
-    }
+
     
     // ==================== Notificación al Admin ====================
     
